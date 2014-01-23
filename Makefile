@@ -164,4 +164,7 @@ install: minigrace
 Makefile.conf: configure
 	./configure
 
+ctags:
+	ctags -R --exclude=c/* --exclude=js/* --exclude=known-good/* --exclude=l1/* --exclude=l2/*
+
 .PHONY: all clean selfhost-stats test js c selftest install samples sample-%
