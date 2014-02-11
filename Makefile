@@ -19,6 +19,10 @@ buildinfo.grace: $(REALSOURCEFILES) StandardPrelude.grace gracelib.c
 	echo "#pragma DefaultVisibility=public" > buildinfo.grace
 	echo "method gitrevision { \"$(shell [ -e .git ] && git rev-parse HEAD || echo unknown )\" }" >> buildinfo.grace
 	echo "method gitgeneration { \"$(shell [ -e .git ] && tools/git-calculate-generation || echo unknown )\" }" >> buildinfo.grace
+	echo "method prefix { \"$(PREFIX)\" }" >> buildinfo.grace
+	echo "method includepath { \"$(INCLUDE_PATH)\" }" >> buildinfo.grace
+	echo "method modulepath { \"$(MODULE_PATH)\" }" >> buildinfo.grace
+	echo "method objectpath { \"$(OBJECT_PATH)\" }" >> buildinfo.grace
 
 %.o: %.c
 	gcc -g -std=c99 -c -o $@ $<
@@ -156,10 +160,12 @@ known-good/%:
 	rm -f known-good/*out
 
 install: minigrace
-	install -d $(PREFIX)/bin $(PREFIX)/lib/minigrace $(PREFIX)/include
+	install -d $(PREFIX)/bin $(MODULE_PATH) $(OBJECT_PATH) $(INCLUDE_PATH)
 	install -m 755 minigrace $(PREFIX)/bin/minigrace
-	install -m 755 unicode.gso $(OTHER_MODULES) gracelib.o $(PREFIX)/lib/minigrace/
-	install gracelib.h $(PREFIX)/include/gracelib.h
+	install -m 755 unicode.gso $(OTHER_MODULES) $(MODULE_PATH)
+	install -m 755 gracelib.o $(OBJECT_PATH)
+	install -m 644 gracelib.h $(INCLUDE_PATH)
+	install -m 644 mgcollections.grace $(MODULE_PATH)
 
 Makefile.conf: configure
 	./configure
