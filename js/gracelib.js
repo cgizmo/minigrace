@@ -858,7 +858,8 @@ function classType(obj) {
     return t;
 }
 
-var var_Dynamic = new GraceType("Dynamic");
+var var_Unknown = new GraceType("Unknown");
+var var_Dynamic = var_Unknown;
 var var_Done = new GraceType("Done");
 var var_String = classType(new GraceString(""));
 var var_Number = classType(new GraceNum(1));
@@ -870,6 +871,7 @@ var_List.typeMethods = ["==", "!=", "push", "pop", "at", "at()put",
 var type_String = var_String;
 var type_Number = var_Number;
 var type_Boolean = var_Boolean;
+var type_Unknown = var_Unknown;
 var type_Dynamic = var_Dynamic;
 var type_List = var_List;
 var var_Block = new GraceType("Block");
@@ -1906,6 +1908,35 @@ Grace_prelude.methods["while()do"] = function(argcv, c, b) {
         throw new GraceExceptionPacket(TypeErrorObject,
             new GraceString("expected Block for argument condition (1) of "
                 + "while()do, got " + c.className));
+    if (Grace_prelude.methods["while()do"] &&
+            Grace_prelude.methods["while()do"].safe) {
+        var count = 0;
+        var runningTime = 0;
+        var runningCount = 0;
+        var startTime = new Date();
+        var diff;
+        while (Grace_isTrue(callmethod(c, "apply", [0]))) {
+            count++;
+            if (count % 100000 == 0 && ((diff=new Date()-startTime) > 5000)) {
+                var totTime = runningTime + diff;
+                var totIterations = runningCount + count;
+                if (confirm("A while loop is taking a long time to run. Do you want to stop the program? " + totIterations + " iterations of the loop have taken "
+                            + totTime + "ms so far."
+                            + "\n\nChoose OK to stop the loop or Cancel to "
+                            + "let it continue."))
+                    throw new GraceExceptionPacket(RuntimeErrorObject,
+                        new GraceString("user abort of possibly-infinite loop."));
+                else {
+                    runningCount += count;
+                    runningTime += diff;
+                    count = 0;
+                    startTime = new Date();
+                }
+            }
+            callmethod(b, "apply", [0]);
+        }
+        return var_nothing;
+    }
     while (Grace_isTrue(callmethod(c, "apply", [0]))) {
         callmethod(b, "apply", [0]);
     }
