@@ -1,6 +1,6 @@
 import "mgcollections" as collections
 import "dom" as dom
-import "math" as mathModule
+import "math" as randomModule
 
 import "StandardPrelude" as sp
 inherits sp.new
@@ -20,6 +20,7 @@ var initialised := false
 var backgroundColour := "white"
 def registeredObjects = collections.list.new
 def stepBlocks = collections.list.new
+def audioTags = collections.map.new
 
 var canvasWidth
 var canvasHeight
@@ -203,14 +204,23 @@ method rectangle {
             }
             return true
         }
+        method asString {
+            return "rectangle"
+        }
     }
 }
 
+type SniffCircle = {
+    x -> Number
+    y -> Number
+    radius -> Number
+    colour -> String
+}
 method circle {
     object {
         inherits drawable.new
-        var radius := 25
-        var colour := "green"
+        var radius is readable := 25
+        var colour is readable := "green"
         method draw(ctx) {
             ctx.fillStyle := colour
             ctx.beginPath
@@ -225,6 +235,19 @@ method circle {
                 return true
             }
             return false
+        }
+        method touching(other) {
+            if (SniffCircle.match(other)) then {
+                def n2 = (((x - other.x) ^ 2) + ((y - other.y) ^ 2))
+                if (n2 == 0) then {
+                    return true
+                }
+                if ((n2 ^ 0.5) < (other.radius + radius)) then {
+                    return true
+                }
+                return false
+            }
+            super.touching(other)
         }
     }
 }
@@ -315,6 +338,12 @@ method whenever(c)do(b) {
         if (c.apply) then { b.apply }
     })
 }
+method hue(h)saturation(s)lightness(l) {
+    return "hsl({h}, {s}%, {l}%)"
+}
+method h(h)s(s)l(l) {
+    hue(h)saturation(s)lightness(l)
+}
 method initialise {
     if (initialised) then {
         return false
@@ -357,11 +386,30 @@ method background(col) {
     backgroundColour := col
 }
 method random(n) {
-    (n * mathModule.random).truncate
+    (n * randomModule.random).truncate
 }
 method randomPoint {
     point.x(canvasWidth / 10 + random(canvasWidth * 0.8))
         y(canvasHeight / 10 + random(canvasHeight * 0.8))
+}
+method playSound(url) {
+    if (audioTags.contains(url)) then {
+        def audio = audioTags.get(url)
+        audio.currentTime := 0
+        audio.play
+    } else {
+        def audio = dom.document.createElement "audio"
+        audioTags.put(url, audio)
+        audio.src := url
+        audio.load
+        audio.play
+    }
+}
+method stopSound(url) {
+    if (audioTags.contains(url)) then {
+        def audio = audioTags.get(url)
+        audio.pause
+    }
 }
 method start {
     initialise
