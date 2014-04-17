@@ -2514,6 +2514,7 @@ method doobject {
         def localMinIndentLevel = minIndentLevel
         next
         var superclass := false
+        def anns = doannotation
         if(sym.kind != "lbrace") then {
             def suggestion = errormessages.suggestion.new
             def nextTok = findNextToken({ t -> t.kind == "rbrace" })
@@ -2573,6 +2574,9 @@ method doobject {
         }
         util.setline(btok.line)
         var o := ast.objectNode.new(body, superclass)
+        if (false != anns) then {
+            o.annotations.extend(anns)
+        }
         values.push(o)
         minIndentLevel := localMinIndentLevel
     }
@@ -2606,22 +2610,16 @@ method doclass {
             errormessages.syntaxError("A class must have a name after the 'class'.")atPosition(
                 lastToken.line, lastToken.linePos + lastToken.size + 1)withSuggestions(suggestions)
         }
-        def cname = if (!(util.extensions.contains("ClassMethods") &&
-                (tokens.first.kind != "dot"))) then {
-            pushidentifier // A class currently cannot be anonymous
-            def cname' = values.pop
-            if (!accept("dot")) then {
-                def suggestion = errormessages.suggestion.new
-                suggestion.replaceToken(sym) with(".")
-                errormessages.syntaxError "A class must have a dot after the object name."
-                    atPosition(lastToken.line, lastToken.linePos + lastToken.size + 1)
-                    withSuggestion(suggestion)
-            }
-            next
-            cname'
-        } else {
-            false
+        pushidentifier // A class currently cannot be anonymous
+        def cname = values.pop
+        if (!accept("dot")) then {
+            def suggestion = errormessages.suggestion.new
+            suggestion.replaceToken(sym) with(".")
+            errormessages.syntaxError "A class must have a dot after the object name."
+                atPosition(lastToken.line, lastToken.linePos + lastToken.size + 1)
+                withSuggestion(suggestion)
         }
+        next
         var s := methodsignature(false)
         var csig := s.sig
         var constructorName := s.m
@@ -2653,12 +2651,7 @@ method doclass {
         }
         next
         util.setline(btok.line)
-        def o = if (false == cname) then {
-            ast.methodNode.new(constructorName, csig,
-                [ast.objectNode.new(body, false)], false)
-        } else {
-            ast.classNode.new(cname, csig, body, false, constructorName, dtype)
-        }
+        def o = ast.classNode.new(cname, csig, body, false, constructorName, dtype)
         o.generics := s.generics
         if (false != anns) then {
             o.annotations.extend(anns)
@@ -3433,7 +3426,6 @@ method checkUnexpectedTokenAfterStatement {
                         suggestion := errormessages.suggestion.new
                         suggestion.replaceToken(sym)leading(true)trailing(false)with("({sym.value}")
                         suggestion.append ")" onLine(sym.line)
-                            onLine(sym.line)
                         suggestions.push(suggestion)
                     }
                 }
