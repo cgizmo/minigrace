@@ -36,7 +36,7 @@ var modname := "main"
 var escmodname := "main"
 var runmode := "build"
 var buildtype := "bc"
-var gracelibPath := "gracelib.o"
+var gracelibPath := "gracelib-final.o"
 var inBlock := false
 var paramsUsed := 1
 var partsUsed := 1
@@ -1969,6 +1969,8 @@ method compile(vl, of, mn, rm, bt) {
     runmode := rm
     buildtype := bt
     outprint("#include <gracelib.h>")
+    outprint("#include <gracelib_gc.h>")
+    outprint("#include <gracelib_types.h>")
     outprint("#include <stdlib.h>")
     if (!util.extensions.contains("NoMain")) then {
         outprint "#ifndef __CYGWIN__"
@@ -2177,14 +2179,14 @@ method compile(vl, of, mn, rm, bt) {
                 exportDynamicBit := "-Wl,--export-dynamic"
             }
 
-            if(io.exists("{util.gracelibPath}/gracelib.o")) then {
+            if(io.exists("{util.gracelibPath}/gracelib-final.o")) then {
                 cmd := "gcc -g -o \"{modname}\" -fPIC {exportDynamicBit} "
                     ++ "\"{modname}.gcn\" "
-                    ++ "\"" ++ util.gracelibPath ++ "/gracelib.o\" "
+                    ++ "\"" ++ util.gracelibPath ++ "/gracelib-final.o\" "
             } elseif(buildinfo.includepath != "") then {
                 cmd := "gcc -g -o \"{modname}\" -fPIC {exportDynamicBit} "
                     ++ "\"{modname}.gcn\" "
-                    ++ "\"{buildinfo.objectpath}/gracelib.o\" "
+                    ++ "\"{buildinfo.objectpath}/gracelib-final.o\" "
             }else{
                 io.error.write("Try setting the include path before moving the executable")
 

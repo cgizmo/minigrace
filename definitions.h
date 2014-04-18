@@ -1,3 +1,5 @@
+#ifndef DEFINITIONS_H
+#define DEFINITIONS_H
 
 #if !defined(_POSIX_VERSION) || _POSIX_VERSION < 200809L
 size_t mggetline(char **lineptr, size_t *n, FILE *stream)
@@ -31,3 +33,4 @@ size_t mggetline(char **lineptr, size_t *n, FILE *stream)
 #define getline(x,y,z) mggetline(x,y,z)
 #endif
 
+#endif

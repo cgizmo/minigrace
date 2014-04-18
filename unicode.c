@@ -34,6 +34,8 @@
 // The necessary headers for interacting with the rest of the system
 // (should be an actual header)
 #include "gracelib.h"
+#include "gracelib_gc.h"
+#include "gracelib_types.h"
 
 extern ClassData Number;
 

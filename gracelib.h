@@ -1,24 +1,11 @@
+#ifndef GRACELIB_H
+#define GRACELIB_H
+
 #include <stdint.h>
 #include <setjmp.h>
 
-typedef struct Object* Object;
+#include "gracelib_types.h"
 
-typedef struct ClassData* ClassData;
-struct MethodType {
-    int nparts;
-    int *argcv;
-    Object *types;
-    char **names;
-};
-typedef struct Method {
-    const char *name;
-    int32_t flags;
-    Object(*func)(Object, int, int*, Object*, int);
-    int pos;
-    struct MethodType *type;
-    const char *definitionModule;
-    int definitionLine;
-} Method;
 #define MFLAG_REALSELFONLY 2
 #define MFLAG_REALSELFALSO 4
 #define MFLAG_DEF 8
@@ -29,25 +16,6 @@ typedef struct Method {
 #define OFLAG_MUTABLE 64
 
 #define CFLAG_SELF 128
-
-#define OBJECT_HEADER int32_t flags; \
-                      ClassData class;
-
-struct ClassData {
-    OBJECT_HEADER;
-    char *name;
-    Method *methods;
-    int nummethods;
-    void (*mark)(void *);
-    void (*release)(void *);
-    const char *definitionModule;
-    int definitionLine;
-};
-
-struct Object {
-    OBJECT_HEADER;
-    char data[];
-};
 
 struct UserObject {
     OBJECT_HEADER;
@@ -148,16 +116,6 @@ Object alloc_FailedMatch(Object result, Object bindings);
 
 char *grcstring(Object);
 
-
-void gc_mark(Object);
-void gc_root(Object);
-void gc_pause();
-int gc_unpause();
-int gc_frame_new();
-void gc_frame_end(int);
-int gc_frame_newslot(Object);
-void gc_frame_setslot(int, Object);
-
 // Prototypes used by dynamic-module objects
 Object Object_Equals(Object, int, int *, Object*, int);
 Object Object_NotEquals(Object, int, int *, Object*, int);
@@ -196,3 +154,9 @@ void setmodule(const char *);
 void setsource(char *sl[]);
 Object grace_userobj_outer(Object, int, int*, Object*, int);
 Object grace_prelude();
+
+// Used by GC
+void debug(char*, ...);
+void die(char*, ...);
+
+#endif

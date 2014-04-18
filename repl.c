@@ -4,6 +4,8 @@
 #include <stdio.h>
 
 #include "gracelib.h"
+#include "gracelib_gc.h"
+#include "gracelib_types.h"
 
 Object repl_module = NULL;
 Object visitor = NULL;

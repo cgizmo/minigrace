@@ -4,6 +4,8 @@
 #include <stdio.h>
 
 #include "gracelib.h"
+#include "gracelib_gc.h"
+#include "gracelib_types.h"
 
 // mirrors.c defines a Grace module "mirrors" which can be compiled for
 // dynamic or static linking. The module contains one method:

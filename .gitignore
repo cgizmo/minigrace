@@ -38,4 +38,5 @@ java/*.grace
 stdin_minigrace
 java/grace/lib/StandardPrelude.java
 java/grace/lib/StandardPrelude.grace
+gracelib-basic.a
 tags

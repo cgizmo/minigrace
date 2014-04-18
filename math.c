@@ -6,6 +6,8 @@
 #include <time.h>
 
 #include "gracelib.h"
+#include "gracelib_gc.h"
+#include "gracelib_types.h"
 
 Object math_module = NULL;
 

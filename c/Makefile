@@ -1,8 +1,8 @@
 include Makefile.conf
 CFILES = ast.c buildinfo.c genc.c genjs.c lexer.c parser.c util.c mgcollections.c interactive.c xmodule.c identifierresolution.c genjson.c errormessages.c
 
-minigrace: $(CFILES:.c=.gcn) minigrace.gcn $(STATIC_MODULES) $(UNICODE_MODULE) gracelib.o $(OTHER_MODULES)
-	gcc -o minigrace -fPIC gracelib.o minigrace.gcn $(CFILES:.c=.gcn) $(STATIC_MODULES) $(LDFLAGS)
+minigrace: $(CFILES:.c=.gcn) minigrace.gcn $(STATIC_MODULES) $(UNICODE_MODULE) gracelib-final.o $(OTHER_MODULES)
+	gcc -o minigrace -fPIC gracelib-final.o minigrace.gcn $(CFILES:.c=.gcn) $(STATIC_MODULES) $(LDFLAGS)
 
 selfhost: minigrace $(CFILES:.c=.grace)
 	rm -f $(CFILES:.c=.gcn)
@@ -42,16 +42,18 @@ repl.gso: repl.c gracelib.h
 repl.gcn: repl.c gracelib.h
 	gcc -std=c99 -g -c -o repl.gcn repl.c
 
-gracelib.o: gracelib.c StandardPrelude.c debugger.o
-	gcc -std=c99 -c -o gracelib-basic.o gracelib.c
+gracelib-final.o: gracelib.c gracelib_gc.c StandardPrelude.c debugger.o
+	gcc -std=c99 -c -o gracelib.o gracelib.c
+	gcc -std=c99 -c -o gracelib_gc.o gracelib.c
+	ar cr gracelib-basic.a gracelib.o gracelib_gc.o
 	gcc -I. -std=c99 -c -o StandardPrelude.gcn StandardPrelude.c
-	ld -o gracelib.o -r gracelib-basic.o StandardPrelude.gcn debugger.o
+	ld -o gracelib-final.o -r gracelib-basic.a StandardPrelude.gcn debugger.o
 
 install: selfhost
 	install -d $(PREFIX)/bin $(MODULE_PATH) $(OBJECT_PATH) $(INCLUDE_PATH)
 	install -m 755 minigrace $(PREFIX)/bin/minigrace
 	install -m 755 unicode.gso $(OTHER_MODULES) $(MODULE_PATH)
-	install -m 755 gracelib.o $(OBJECT_PATH)
+	install -m 755 gracelib-final.o $(OBJECT_PATH)
 	install -m 644 gracelib.h $(INCLUDE_PATH)
 	install -m 644 mgcollections.grace $(MODULE_PATH)
 
@@ -60,7 +62,7 @@ test: minigrace
 	./tests/harness "../minigrace" tests ""
 
 buildclean:
-	rm -rf *.gcn minigrace unicode.gso gracelib.o bin Makefile.conf
+	rm -rf *.gcn minigrace unicode.gso gracelib-final.o bin Makefile.conf
 
 fullclean: buildclean
 	rm -f *.grace *.c *.h configure
