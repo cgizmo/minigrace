@@ -5,6 +5,7 @@
 
 #include <curl/curl.h>
 
+#include "gracelib_gc.h"
 #include "gracelib.h"
 
 // curl.c defines a Grace module "curl" which can be compiled for
