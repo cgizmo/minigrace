@@ -16,10 +16,10 @@ extern int stack_size;
 
 void set_stack_size(int);
 void gc_init(int, int, int);
+void gc_destroy();
 
 void gc_alloc_obj(Object);
 
-int expand_living();
 void gc_pause();
 int gc_unpause();
 
@@ -34,8 +34,6 @@ void gc_frame_setslot(int, Object);
 
 void *glmalloc(size_t);
 void glfree(void*);
-
-int rungc();
 
 void gc_stats();
 

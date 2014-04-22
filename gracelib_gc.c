@@ -14,7 +14,12 @@
 // For die and debug.
 #include "gracelib.h"
 
-// Alloc/dealloc mutex for modifying global structures.
+int expand_living();
+int rungc();
+
+// GC mutex for gc_* functions
+pthread_mutex_t gc_mutex;
+// Alloc/dealloc mutex for gcmalloc/glfree functions.
 pthread_mutex_t alloc_mutex;
 
 struct GC_Root {
@@ -56,6 +61,7 @@ void set_stack_size(int stack_size_) {
 }
 
 void gc_init(int gc_dofree_, int gc_dowarn_, int gc_period_) {
+    pthread_mutex_init(&gc_mutex, NULL);
     pthread_mutex_init(&alloc_mutex, NULL);
 
     objects_living_size = 2048;
@@ -73,10 +79,13 @@ void gc_init(int gc_dofree_, int gc_dowarn_, int gc_period_) {
 }
 
 void gc_destroy() {
+    pthread_mutex_destroy(&gc_mutex);
     pthread_mutex_destroy(&alloc_mutex);
 }
 
 void gc_alloc_obj(Object o) {
+    pthread_mutex_lock(&gc_mutex);
+
     objectcount++;
 
     if (gc_enabled) {
@@ -91,8 +100,130 @@ void gc_alloc_obj(Object o) {
         if (objects_living_next > objects_living_max)
             objects_living_max = objects_living_next;
     }
+
+    pthread_mutex_unlock(&gc_mutex);
 }
 
+void gc_mark(Object o) {
+    if (o == NULL)
+        return;
+    if (o->flags & FLAG_REACHABLE)
+        return;
+    ClassData c = o->class;
+    o->flags |= FLAG_REACHABLE;
+    if (c && c->mark)
+        c->mark(o);
+}
+
+void gc_root(Object o) {
+    struct GC_Root *r = malloc(sizeof(struct GC_Root));
+    r->object = o;
+
+    pthread_mutex_lock(&gc_mutex);
+    r->next = GC_roots;
+    GC_roots = r;
+    pthread_mutex_unlock(&gc_mutex);
+}
+
+void gc_pause() {
+    pthread_mutex_lock(&gc_mutex);
+    gc_paused++;
+    pthread_mutex_unlock(&gc_mutex);
+}
+
+int gc_unpause() {
+    pthread_mutex_lock(&gc_mutex);
+    gc_paused--;
+    pthread_mutex_unlock(&gc_mutex);
+
+    return gc_wouldHaveRun;
+}
+
+// TODO : might require more work for threading. Need to figure out what this functions does.
+// Check all gc_frame_* functions.
+int gc_frame_new() {
+    pthread_mutex_lock(&gc_mutex);
+    if (gc_stack == NULL) {
+        gc_stack_size = STACK_SIZE * 1024;
+        gc_stack = calloc(sizeof(Object), gc_stack_size);
+    }
+    pthread_mutex_unlock(&gc_mutex);
+
+    return gc_framepos;
+}
+
+void gc_frame_end(int pos) {
+    pthread_mutex_lock(&gc_mutex);
+    gc_framepos = pos;
+    pthread_mutex_unlock(&gc_mutex);
+}
+
+int gc_frame_newslot(Object o) {
+    pthread_mutex_lock(&gc_mutex);
+
+    if (gc_framepos == gc_stack_size) {
+        pthread_mutex_unlock(&gc_mutex);
+        die("gc shadow stack size exceeded\n");
+        return -1; // Should be unreachable
+    }
+
+    int gc_framepos_old = gc_framepos;
+    gc_stack[gc_framepos] = o;
+    gc_framepos++;
+
+    pthread_mutex_unlock(&gc_mutex);
+    return gc_framepos_old;
+}
+
+void gc_frame_setslot(int slot, Object o) {
+    pthread_mutex_lock(&gc_mutex);
+    gc_stack[slot] = o;
+    pthread_mutex_unlock(&gc_mutex);
+}
+
+void *glmalloc(size_t s) {
+    pthread_mutex_lock(&alloc_mutex);
+    heapsize += s;
+    heapcurrent += s;
+    if (heapcurrent >= heapmax)
+        heapmax = heapcurrent;
+    pthread_mutex_unlock(&alloc_mutex);
+
+    // calloc should be thread safe on all modern UNIX systems.
+    void *v = calloc(1, s + sizeof(size_t));
+    size_t *i = v;
+    *i = s;
+    return v + sizeof(size_t);
+}
+
+void glfree(void *p) {
+    size_t *i = p - sizeof(size_t);
+    debug("glfree: freed %p (%i)", p, *i);
+    memset(i, 0, *i);
+    free(i);
+
+    pthread_mutex_lock(&alloc_mutex);
+    heapcurrent -= *i;
+    pthread_mutex_unlock(&alloc_mutex);
+}
+
+// Pre: run within gracelib_stats()
+void gc_stats() {
+    fprintf(stderr, "Total objects allocated: %i\n", objectcount);
+    fprintf(stderr, "Total objects freed:     %i\n", freedcount);
+    fprintf(stderr, "Total heap allocated: %zuB\n", heapsize);
+    fprintf(stderr, "                      %zuKiB\n", heapsize/1024);
+    fprintf(stderr, "                      %zuMiB\n", heapsize/1024/1024);
+    fprintf(stderr, "                      %zuGiB\n", heapsize/1024/1024/1024);
+    fprintf(stderr, "Peak heap allocated:  %zuB\n", heapmax);
+    fprintf(stderr, "                      %zuKiB\n", heapmax/1024);
+    fprintf(stderr, "                      %zuMiB\n", heapmax/1024/1024);
+    fprintf(stderr, "                      %zuGiB\n", heapmax/1024/1024/1024);
+}
+
+/* Non-exported functions */
+
+// Pre : gc_mutex is locked and held by the thread calling expand_living.
 int expand_living() {
     int freed = rungc();
     int mul = 2;
@@ -119,76 +250,7 @@ int expand_living() {
     return 0;
 }
 
-void gc_mark(Object o) {
-    if (o == NULL)
-        return;
-    if (o->flags & FLAG_REACHABLE)
-        return;
-    ClassData c = o->class;
-    o->flags |= FLAG_REACHABLE;
-    if (c && c->mark)
-        c->mark(o);
-}
-
-void gc_root(Object o) {
-    struct GC_Root *r = malloc(sizeof(struct GC_Root));
-    r->object = o;
-    r->next = GC_roots;
-    GC_roots = r;
-}
-
-void gc_pause() {
-    gc_paused++;
-}
-
-int gc_unpause() {
-    gc_paused--;
-    return gc_wouldHaveRun;
-}
-
-int gc_frame_new() {
-    if (gc_stack == NULL) {
-        gc_stack_size = STACK_SIZE * 1024;
-        gc_stack = calloc(sizeof(Object), gc_stack_size);
-    }
-    return gc_framepos;
-}
-
-void gc_frame_end(int pos) {
-    gc_framepos = pos;
-}
-
-int gc_frame_newslot(Object o) {
-    if (gc_framepos == gc_stack_size) {
-        die("gc shadow stack size exceeded\n");
-    }
-    gc_stack[gc_framepos] = o;
-    return gc_framepos++;
-}
-
-void gc_frame_setslot(int slot, Object o) {
-    gc_stack[slot] = o;
-}
-
-void *glmalloc(size_t s) {
-    heapsize += s;
-    heapcurrent += s;
-    if (heapcurrent >= heapmax)
-        heapmax = heapcurrent;
-    void *v = calloc(1, s + sizeof(size_t));
-    size_t *i = v;
-    *i = s;
-    return v + sizeof(size_t);
-}
-
-void glfree(void *p) {
-    size_t *i = p - sizeof(size_t);
-    debug("glfree: freed %p (%i)", p, *i);
-    heapcurrent -= *i;
-    memset(i, 0, *i);
-    free(i);
-}
-
+// Pre : gc_mutex is locked and held by the thread calling run_gc.
 int rungc() {
     int i;
     if (gc_paused) {
@@ -252,16 +314,3 @@ int rungc() {
     return freednow;
 }
 
-// Pre: run within gracelib_stats()
-void gc_stats() {
-    fprintf(stderr, "Total objects allocated: %i\n", objectcount);
-    fprintf(stderr, "Total objects freed:     %i\n", freedcount);
-    fprintf(stderr, "Total heap allocated: %zuB\n", heapsize);
-    fprintf(stderr, "                      %zuKiB\n", heapsize/1024);
-    fprintf(stderr, "                      %zuMiB\n", heapsize/1024/1024);
-    fprintf(stderr, "                      %zuGiB\n", heapsize/1024/1024/1024);
-    fprintf(stderr, "Peak heap allocated:  %zuB\n", heapmax);
-    fprintf(stderr, "                      %zuKiB\n", heapmax/1024);
-    fprintf(stderr, "                      %zuMiB\n", heapmax/1024/1024);
-    fprintf(stderr, "                      %zuGiB\n", heapmax/1024/1024/1024);
-}

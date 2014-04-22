@@ -2147,6 +2147,7 @@ method compile(vl, of, mn, rm, bt) {
         out("  module_sys_init_argv(tmp_argv);")
         out("  module_{escmodname}_init();")
         out("  gracelib_stats();")
+        out("  gracelib_destroy();")
         out("  return 0;")
         out("}")
     }

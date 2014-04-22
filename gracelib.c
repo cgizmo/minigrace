@@ -4071,6 +4071,12 @@ void gracelib_argv(char **argv) {
     RuntimeErrorObject = alloc_Exception("RuntimeError", ErrorObject);
     gc_root(RuntimeErrorObject);
 }
+
+// Gracelib cleanup on destruction
+void gracelib_destroy() {
+    gc_destroy();
+}
+
 void setline(int l) {
     linenumber = l;
 }

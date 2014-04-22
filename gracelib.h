@@ -126,6 +126,7 @@ Object Singleton_asString(Object, int, int *, Object*, int);
 // used elsewhere.
 void initprofiling();
 void gracelib_argv(char **);
+void gracelib_destroy();
 void module_sys_init_argv(Object);
 void gracelib_stats();
 void addtoclosure(Object, Object *);
