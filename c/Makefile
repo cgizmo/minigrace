@@ -2,7 +2,7 @@ include Makefile.conf
 CFILES = ast.c buildinfo.c genc.c genjs.c lexer.c parser.c util.c mgcollections.c interactive.c xmodule.c identifierresolution.c genjson.c errormessages.c
 
 minigrace: $(CFILES:.c=.gcn) minigrace.gcn $(STATIC_MODULES) $(UNICODE_MODULE) gracelib-final.o $(OTHER_MODULES)
-	gcc -o minigrace -fPIC gracelib-final.o minigrace.gcn $(CFILES:.c=.gcn) $(STATIC_MODULES) $(LDFLAGS)
+	gcc $(CFLAGS) -o minigrace -fPIC gracelib-final.o minigrace.gcn $(CFILES:.c=.gcn) $(STATIC_MODULES) $(LDFLAGS)
 
 selfhost: minigrace $(CFILES:.c=.grace)
 	rm -f $(CFILES:.c=.gcn)
@@ -14,39 +14,39 @@ buildinfo.grace: Makefile.conf
 	mv buildinfo.grace.new buildinfo.grace
 
 %.o: %.c
-	gcc -g -I. -std=c99 -c -o $@ $<
+	gcc $(CFLAGS) -I. -c -o $@ $<
 
 %.gcn: %.c
-	gcc -I. -std=c99 -c -o $@ $<
+	gcc $(CFLAGS) -I. -c -o $@ $<
 
 unicode.gso: unicode.c unicodedata.h gracelib.h
-	gcc -std=c99 $(UNICODE_LDFLAGS) -fPIC -shared -o unicode.gso unicode.c
+	gcc $(CFLAGS) $(UNICODE_LDFLAGS) -fPIC -shared -o unicode.gso unicode.c
 
 unicode.gcn: unicode.c unicodedata.h gracelib.h
-	gcc -std=c99 -g -c -o unicode.gcn unicode.c
+	gcc $(CFLAGS) -c -o unicode.gcn unicode.c
 
 mirrors.gso: mirrors.c gracelib.h
-	gcc -std=c99 $(UNICODE_LDFLAGS) -fPIC -shared -o mirrors.gso mirrors.c
+	gcc $(CFLAGS) $(UNICODE_LDFLAGS) -fPIC -shared -o mirrors.gso mirrors.c
 
 mirrors.gcn: mirrors.c gracelib.h
-	gcc -std=c99 -g -c -o mirrors.gcn mirrors.c
+	gcc $(CFLAGS) -c -o mirrors.gcn mirrors.c
 
 math.gso: math.c gracelib.h
-	gcc -std=c99 $(UNICODE_LDFLAGS) -fPIC -shared -o math.gso math.c
+	gcc $(CFLAGS) $(UNICODE_LDFLAGS) -fPIC -shared -o math.gso math.c
 curl.gso: curl.c gracelib.h
-	gcc -std=c99 $(UNICODE_LDFLAGS) -fPIC -shared -o curl.gso curl.c -lcurl
+	gcc $(CFLAGS) $(UNICODE_LDFLAGS) -fPIC -shared -o curl.gso curl.c -lcurl
 
 repl.gso: repl.c gracelib.h
-	gcc -std=c99 $(UNICODE_LDFLAGS) -fPIC -shared -o repl.gso repl.c
+	gcc $(CFLAGS) $(UNICODE_LDFLAGS) -fPIC -shared -o repl.gso repl.c
 
 repl.gcn: repl.c gracelib.h
-	gcc -std=c99 -g -c -o repl.gcn repl.c
+	gcc $(CFLAGS) -c -o repl.gcn repl.c
 
 gracelib-final.o: gracelib.c gracelib_gc.c StandardPrelude.c debugger.o
-	gcc -std=c99 -c -o gracelib.o gracelib.c
-	gcc -std=c99 -c -o gracelib_gc.o gracelib.c
+	gcc $(CFLAGS) -c -o gracelib.o gracelib.c
+	gcc $(CFLAGS) -c -o gracelib_gc.o gracelib.c
 	ar cr gracelib-basic.a gracelib.o gracelib_gc.o
-	gcc -I. -std=c99 -c -o StandardPrelude.gcn StandardPrelude.c
+	gcc $(CFLAGS) -I. -c -o StandardPrelude.gcn StandardPrelude.c
 	ld -o gracelib-final.o -r gracelib-basic.a StandardPrelude.gcn debugger.o
 
 install: selfhost

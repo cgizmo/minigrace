@@ -50,6 +50,8 @@ var linkfiles := collections.list.new
 var dialectHasAtModuleEnd := false
 var dialectHasAtModuleStart := false
 
+def cflags = "-pthread -g -std=c99" 
+
 method out(s) {
     output.push(s)
 }
@@ -2160,7 +2162,7 @@ method compile(vl, of, mn, rm, bt) {
         log_verbose("compiling C code.")
         outfile.close
 
-        cmd := "gcc -std=c99 -g -I\"{util.gracelibPath}\" -I\"{sys.execPath}/../include\" -I\"{sys.execPath}\" -I\"{buildinfo.includepath}\" -o \"{modname}.gcn\" -c \"{modname}.c\""
+        cmd := "gcc {cflags} -I\"{util.gracelibPath}\" -I\"{sys.execPath}/../include\" -I\"{sys.execPath}\" -I\"{buildinfo.includepath}\" -o \"{modname}.gcn\" -c \"{modname}.c\""
         
         if ((io.system(cmd)).not) then {
             io.error.write("Fatal error: Failed C compilation of {modname}.\n")
@@ -2180,11 +2182,11 @@ method compile(vl, of, mn, rm, bt) {
             }
 
             if(io.exists("{util.gracelibPath}/gracelib-final.o")) then {
-                cmd := "gcc -g -o \"{modname}\" -fPIC {exportDynamicBit} "
+                cmd := "gcc {cflags} -o \"{modname}\" -fPIC {exportDynamicBit} "
                     ++ "\"{modname}.gcn\" "
                     ++ "\"" ++ util.gracelibPath ++ "/gracelib-final.o\" "
             } elseif(buildinfo.includepath != "") then {
-                cmd := "gcc -g -o \"{modname}\" -fPIC {exportDynamicBit} "
+                cmd := "gcc {cflags} -o \"{modname}\" -fPIC {exportDynamicBit} "
                     ++ "\"{modname}.gcn\" "
                     ++ "\"{buildinfo.objectpath}/gracelib-final.o\" "
             }else{
@@ -2218,7 +2220,7 @@ method compile(vl, of, mn, rm, bt) {
                     exportDynamicBit := "-Wl,-undefined -Wl,dynamic_lookup"
                 }
             }
-            cmd := "gcc -g -I\"{util.gracelibPath}\" -I\"{sys.execPath}/../include\" -I\"{sys.execPath}\" -I\"{buildinfo.includepath}\" -shared -o \"{modname}.gso\" -fPIC {exportDynamicBit} "
+            cmd := "gcc {cflags} -I\"{util.gracelibPath}\" -I\"{sys.execPath}/../include\" -I\"{sys.execPath}\" -I\"{buildinfo.includepath}\" -shared -o \"{modname}.gso\" -fPIC {exportDynamicBit} "
                 ++ "\"{modname}.c\" "
             if ((io.system(cmd)).not) then {
                 io.error.write("Failed producing dynamic module.")

@@ -26,7 +26,7 @@ buildinfo.grace: $(REALSOURCEFILES) StandardPrelude.grace gracelib.c gracelib_gc
 	echo "method objectpath { \"$(OBJECT_PATH)\" }" >> buildinfo.grace
 
 %.o: %.c
-	gcc -g -std=c99 -c -o $@ $<
+	gcc $(CFLAGS) -c -o $@ $<
 
 gracelib-basic.a: gracelib.o gracelib_gc.o $(CGRACELIB)
 	ar cr gracelib-basic.a gracelib.o gracelib_gc.o
@@ -36,22 +36,22 @@ gracelib-final.o: gracelib-basic.a debugger.o l1/minigrace StandardPrelude.grace
 	ld -o gracelib-final.o -r gracelib-basic.a StandardPrelude.gcn debugger.o
 
 curl.gso: curl.c gracelib.h gracelib_types.h
-	gcc -g -std=c99 $(UNICODE_LDFLAGS) -o curl.gso -shared -fPIC curl.c -lcurl
+	gcc $(CFLAGS) $(UNICODE_LDFLAGS) -o curl.gso -shared -fPIC curl.c -lcurl
 
 mirrors.gso: mirrors.c gracelib.h gracelib_types.h
-	gcc -g -std=c99 $(UNICODE_LDFLAGS) -o mirrors.gso -shared -fPIC mirrors.c
+	gcc $(CFLAGS) $(UNICODE_LDFLAGS) -o mirrors.gso -shared -fPIC mirrors.c
 
 math.gso: math.c gracelib.h gracelib_types.h
-	gcc -g -std=c99 $(UNICODE_LDFLAGS) -o math.gso -shared -fPIC math.c
+	gcc $(CFLAGS) $(UNICODE_LDFLAGS) -o math.gso -shared -fPIC math.c
 
 repl.gso: repl.c gracelib.h gracelib_types.h
-	gcc -g -std=c99 $(UNICODE_LDFLAGS) -o repl.gso -shared -fPIC repl.c
+	gcc $(CFLAGS) $(UNICODE_LDFLAGS) -o repl.gso -shared -fPIC repl.c
 
 unicode.gso: unicode.c unicodedata.h gracelib.h gracelib_types.h
-	gcc -g -std=c99 $(UNICODE_LDFLAGS) -fPIC -shared -o unicode.gso unicode.c
+	gcc $(CFLAGS) $(UNICODE_LDFLAGS) -fPIC -shared -o unicode.gso unicode.c
 
 unicode.gcn: unicode.c unicodedata.h gracelib.h gracelib_types.h
-	gcc -g -std=c99 -fPIC -c -o unicode.gcn unicode.c
+	gcc $(CFLAGS) -fPIC -c -o unicode.gcn unicode.c
 
 l1/minigrace: known-good/$(ARCH)/$(STABLE)/minigrace $(SOURCEFILES) $(UNICODE_MODULE) $(CGRACELIB)
 	( mkdir -p l1 ; cd l1 ; for f in $(SOURCEFILES) gracelib-final.o gracelib.h gracelib_gc.h gracelib_types.h ; do ln -sf ../$$f . ; done ; ln -sf ../known-good/$(ARCH)/$(STABLE)/$(UNICODE_MODULE) . ; for x in $(OTHER_MODULES) ; do ln -sf ../known-good/$(ARCH)/$(STABLE)/$$x . ; done ; ../known-good/$(ARCH)/$(STABLE)/minigrace --verbose --make --native --module minigrace --gracelib ../known-good/$(ARCH)/$(STABLE) --vtag kg -j $(MINIGRACE_BUILD_SUBPROCESSES) compiler.grace )
