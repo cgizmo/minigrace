@@ -325,6 +325,32 @@ Object alloc_AndPattern(Object l, Object r);
 Object alloc_ExceptionPacket(Object msg, Object exception);
 Object alloc_Exception(char *name, Object parent);
 
+// Initialisers
+static void init_Number(void);
+static void init_Boolean(void);
+static void init_String(void);
+static void init_ConcatString(void);
+static void init_Octets(void);
+static void init_BuiltinList(void);
+static void init_BuiltinListIter(void);
+static void init_PrimitiveArray(void);
+static void init_StringIter(void);
+static void init_Undefined(void);
+static void init_Done(void);
+static void init_EllipsisClass(void);
+static void init_File(void);
+static void init_IOModule(void);
+static void init_SysModule(void);
+static void init_Type(void);
+static void init_Class(void);
+static void init_MatchResult(void);
+static void init_OrPattern(void);
+static void init_AndPattern(void);
+static void init_GreaterThanPattern(void);
+static void init_LessThanPattern(void);
+static void init_ExceptionPacket(void);
+static void init_Exception(void);
+
 int find_resource(const char *name, char *buf);
 
 char *grcstring(Object s);
@@ -418,7 +444,37 @@ int calldepth = 0;
 struct StackFrameObject **frame_stack;
 struct ClosureEnvObject **closure_stack;
 
-static inline void init_Number() {
+// Everything except block, which is still initialised in the alloc_Block function.
+static void init_class_data() {
+    // Important that this is initialized first !
+    init_Class();
+
+    init_Number();
+    init_Boolean();
+    init_String();
+    init_ConcatString();
+    init_StringIter();
+    init_Octets();
+    init_BuiltinList();
+    init_BuiltinListIter();
+    init_PrimitiveArray();
+    init_Undefined();
+    init_Done();
+    init_EllipsisClass();
+    init_File();
+    init_IOModule();
+    init_SysModule();
+    init_Type();
+    init_MatchResult();
+    init_OrPattern();
+    init_AndPattern();
+    init_GreaterThanPattern();
+    init_LessThanPattern();
+    init_ExceptionPacket();
+    init_Exception();
+}
+
+static void init_Number() {
     if (Number == NULL) {
         Number = alloc_class2("Number", 27, (void*)&Float64__mark);
         add_Method(Number, "+", &Float64_Add);
@@ -449,7 +505,7 @@ static inline void init_Number() {
     }
 }
 
-static inline void init_Boolean() {
+static void init_Boolean() {
     if (Boolean == NULL) {
         Boolean = alloc_class("Boolean", 13);
         add_Method(Boolean, "asString", &Boolean_asString);
@@ -467,7 +523,7 @@ static inline void init_Boolean() {
     }
 }
 
-static inline void init_String() {
+static void init_String() {
     if (String == NULL) {
         String = alloc_class("String", 25);
         add_Method(String, "asString", &identity_function);
@@ -495,7 +551,7 @@ static inline void init_String() {
     }
 }
 
-static inline void init_ConcatString() {
+static void init_ConcatString() {
     if (ConcatString == NULL) {
         ConcatString = alloc_class3("ConcatString", 24,
                 (void*)&ConcatString__mark,
@@ -526,7 +582,7 @@ static inline void init_ConcatString() {
     }
 }
 
-static inline void init_Octets() {
+static void init_Octets() {
     if (Octets == NULL) {
         Octets = alloc_class("Octets", 8);
         add_Method(Octets, "asString", &Octets_asString);
@@ -540,7 +596,7 @@ static inline void init_Octets() {
     }
 }
 
-static inline void init_BuiltinList() {
+static void init_BuiltinList() {
     if (BuiltinList == NULL) {
         BuiltinList = alloc_class3("BuiltinList", 20, (void*)&BuiltinList_mark,
                 (void*)&BuiltinList__release);
@@ -567,7 +623,7 @@ static inline void init_BuiltinList() {
     }
 }
 
-static inline void init_BuiltinListIter() {
+static void init_BuiltinListIter() {
     if (BuiltinListIter == NULL) {
         BuiltinListIter = alloc_class2("BuiltinListIter", 2, (void*)&BuiltinListIter_mark);
         add_Method(BuiltinListIter, "havemore", &BuiltinListIter_havemore);
@@ -575,7 +631,7 @@ static inline void init_BuiltinListIter() {
     }
 }
 
-static inline void init_PrimitiveArray() {
+static void init_PrimitiveArray() {
     if (PrimitiveArray == NULL) {
         PrimitiveArray = alloc_class3("PrimitiveArray", 9, (void*)&BuiltinList_mark,
                 (void*)&BuiltinList__release);
@@ -590,7 +646,7 @@ static inline void init_PrimitiveArray() {
     }
 }
 
-static inline void init_StringIter() {
+static void init_StringIter() {
     if (StringIter == NULL) {
         StringIter = alloc_class2("StringIter", 4, (void *)&StringIter__mark);
         add_Method(StringIter, "havemore", &StringIter_havemore);
@@ -598,13 +654,13 @@ static inline void init_StringIter() {
     }
 }
 
-static inline void init_Undefined() {
+static void init_Undefined() {
     if (Undefined == NULL) {
         Undefined = alloc_class("Undefined", 0);
     }
 }
 
-static inline void init_Done() {
+static void init_Done() {
     if (Done == NULL) {
         Done = alloc_class("done", 4);
         add_Method(Done, "==", &Object_Equals);
@@ -614,7 +670,7 @@ static inline void init_Done() {
     }
 }
 
-static inline void init_EllipsisClass() {
+static void init_EllipsisClass() {
     if (ellipsisClass == NULL) {
         ellipsisClass = alloc_class("ellipsis", 4);
         add_Method(ellipsisClass, "asString", &Object_asString);
@@ -624,7 +680,7 @@ static inline void init_EllipsisClass() {
     }
 }
 
-static inline void init_File() {
+static void init_File() {
     if (File == NULL) {
         File = alloc_class("File", 16);
         add_Method(File, "read", &File_read);
@@ -646,7 +702,7 @@ static inline void init_File() {
     }
 }
 
-static inline void init_IOModule() {
+static void init_IOModule() {
     if (IOModule == NULL) {
         IOModule = alloc_class2("Module<io>", 12, (void*)&io__mark);
         add_Method(IOModule, "input", &io_input);
@@ -664,7 +720,7 @@ static inline void init_IOModule() {
     }
 }
 
-static inline void init_SysModule() {
+static void init_SysModule() {
     if (SysModule == NULL) {
         SysModule = alloc_class2("Module<sys>", 6, (void*)*sys__mark);
         add_Method(SysModule, "argv", &sys_argv);
@@ -676,7 +732,7 @@ static inline void init_SysModule() {
     }
 }
 
-static inline void init_Type() {
+static void init_Type() {
     if (Type == NULL) {
         Type = alloc_class("Type", 6);
         add_Method(Type, "==", &Object_Equals);
@@ -688,7 +744,7 @@ static inline void init_Type() {
     }
 }
 
-static inline void init_Class() {
+static void init_Class() {
     if (Class == NULL) {
         Class = glmalloc(sizeof(struct ClassData));
         Class->flags = 3;
@@ -705,7 +761,7 @@ static inline void init_Class() {
     }
 }
 
-static inline void init_MatchResult() {
+static void init_MatchResult() {
     if (MatchResult == NULL) {
         // TODO : why "4" ?
         // Old code used to be MatchResult = alloc_userobj2(3, 2, MatchResult) 
@@ -720,7 +776,7 @@ static inline void init_MatchResult() {
 }
 
 // TODO : Same comments as init_MatchResult, why "4" ?
-static inline void init_OrPattern() {
+static void init_OrPattern() {
     if (OrPattern == NULL) {
         OrPattern = alloc_class3("OrPattern", 4,
                 (void*)&UserObj__mark, (void*)&UserObj__release);
@@ -732,7 +788,7 @@ static inline void init_OrPattern() {
 
 
 // TODO : Same comments as init_MatchResult, why "4" ?
-static inline void init_AndPattern() {
+static void init_AndPattern() {
     if (AndPattern == NULL) {
         AndPattern = alloc_class3("AndPattern", 4,
                 (void*)&UserObj__mark, (void*)&UserObj__release);
@@ -743,7 +799,7 @@ static inline void init_AndPattern() {
 }
 
 // TODO : Same comments as init_MatchResult, why "4" ?
-static inline void init_GreaterThanPattern() {
+static void init_GreaterThanPattern() {
     if (GreaterThanPattern == NULL) {
         GreaterThanPattern = alloc_class3("GreaterThanPattern", 4,
                 (void*)&UserObj__mark, (void*)&UserObj__release);
@@ -754,7 +810,7 @@ static inline void init_GreaterThanPattern() {
 }
 
 // TODO : Same comments as init_MatchResult, why "4" ?
-static inline void init_LessThanPattern() {
+static void init_LessThanPattern() {
     if (LessThanPattern == NULL) {
         LessThanPattern = alloc_class3("LessThanPattern", 4,
                 (void*)&UserObj__mark, (void*)&UserObj__release);
@@ -764,7 +820,7 @@ static inline void init_LessThanPattern() {
     }
 }
 
-static inline void init_ExceptionPacket() {
+static void init_ExceptionPacket() {
     if (ExceptionPacket == NULL) {
         ExceptionPacket = alloc_class3("ExceptionPacket", 6,
                 (void*)&ExceptionPacket__mark,
@@ -779,7 +835,7 @@ static inline void init_ExceptionPacket() {
     }
 }
 
-static inline void init_Exception() {
+static void init_Exception() {
     if (!Exception) {
         Exception = alloc_class("Exception", 10);
         add_Method(Exception, "match", &Exception_match);
@@ -1078,8 +1134,6 @@ Object alloc_MatchResult(Object result, Object bindings) {
     if (bindings == NULL)
         bindings = alloc_BuiltinList();
 
-    // TODO : check that this is equivalent to the old code.
-    init_MatchResult();
     Object o = alloc_userobj2(3, 2, MatchResult);
     struct UserObject *uo = (struct UserObject *)o;
     uo->data[0] = result;
@@ -1153,9 +1207,6 @@ Object OrPattern_match(Object self, int nparts, int *argcv, Object *argv,
     return alloc_FailedMatch(target, NULL);
 }
 Object alloc_OrPattern(Object l, Object r) {
-    // TODO : check correctness wrt old version
-    init_OrPattern();
-
     Object o = alloc_userobj2(3, 2, OrPattern);
     struct UserObject *b = (struct UserObject *)o;
     b->data[0] = l;
@@ -1163,9 +1214,6 @@ Object alloc_OrPattern(Object l, Object r) {
     return o;
 }
 Object alloc_AndPattern(Object l, Object r) {
-    // TODO : check correctness wrt old version
-    init_AndPattern();
-
     Object o = alloc_userobj2(3, 2, AndPattern);
     struct UserObject *b = (struct UserObject *)o;
     b->data[0] = l;
@@ -1184,8 +1232,6 @@ Object LessThanPattern_match(Object self, int nparts, int *argcv, Object *argv,
     return alloc_FailedMatch(target, NULL);
 }
 Object alloc_LessThanPattern(Object r) {
-    init_LessThanPattern();
-
     Object o = alloc_userobj2(3, 2, LessThanPattern);
     struct UserObject *b = (struct UserObject *)o;
     b->data[0] = r;
@@ -1203,9 +1249,6 @@ Object GreaterThanPattern_match(Object self, int nparts, int *argcv, Object *arg
     return alloc_FailedMatch(target, NULL);
 }
 Object alloc_GreaterThanPattern(Object r) {
-    // TODO : check correctness wrt old version
-    init_GreaterThanPattern();
-
     Object o = alloc_userobj2(3, 2, GreaterThanPattern);
     struct UserObject *b = (struct UserObject *)o;
     b->data[0] = r;
@@ -1282,8 +1325,6 @@ Object ExceptionPacket_printBacktrace(Object self, int argc, int *argcv,
     return alloc_done();
 }
 Object alloc_ExceptionPacket(Object msg, Object exception) {
-    init_ExceptionPacket();
-
     Object o = alloc_obj(sizeof(struct ExceptionPacketObject)
             - sizeof(struct Object), ExceptionPacket);
     struct ExceptionPacketObject *e = (struct ExceptionPacketObject *)o;
@@ -1359,8 +1400,6 @@ Object Exception_asString(Object self, int argc, int *argcv, Object *argv,
     return alloc_String(e->name);
 }
 Object alloc_Exception(char *name, Object parent) {
-    init_Exception();
-
     Object o = alloc_obj(sizeof (struct ExceptionObject)
             - sizeof(struct Object), Exception);
     struct ExceptionObject *e = (struct ExceptionObject *)o;
@@ -1409,8 +1448,6 @@ void BuiltinListIter_mark(Object o) {
     gc_mark(*lst);
 }
 Object alloc_BuiltinListIter(Object array) {
-    init_BuiltinListIter();
-
     Object o = alloc_obj(sizeof(int) + sizeof(Object), BuiltinListIter);
     int *pos = (int*)o->data;
     Object *lst = (Object*)(o->data + sizeof(int));
@@ -1607,8 +1644,6 @@ void BuiltinList_mark(Object o) {
         gc_mark(s->items[i]);
 }
 Object alloc_BuiltinList() {
-    init_BuiltinList();
-
     Object o = alloc_obj(sizeof(Object*) + sizeof(int) * 2, BuiltinList);
     struct BuiltinListObject *lo = (struct BuiltinListObject*)o;
     lo->size = 0;
@@ -1651,8 +1686,6 @@ Object PrimitiveArray_index(Object self, int nparts, int *argcv,
     return sself->items[index];
 }
 Object alloc_PrimitiveArray(int size) {
-    init_PrimitiveArray();
-
     int i;
     Object o = alloc_obj(sizeof(Object*) + sizeof(int) * 2, PrimitiveArray);
     struct PrimitiveArrayObject *lo = (struct PrimitiveArrayObject*)o;
@@ -1769,7 +1802,6 @@ void StringIter__mark(Object o) {
     gc_mark(*strp);
 }
 Object alloc_StringIter(Object string) {
-    init_StringIter();
     Object o = alloc_obj(sizeof(int) + sizeof(Object), StringIter);
     int *pos = (int*)o->data;
     *pos = 0;
@@ -1955,7 +1987,6 @@ Object String_encode(Object self, int nparts, int *argcv,
             sself->blen);
 }
 Object alloc_ConcatString(Object left, Object right) {
-    init_ConcatString();
     struct StringObject *lefts = (struct StringObject*)left;
     struct StringObject *rights = (struct StringObject*)right;
     int depth = 1;
@@ -2123,7 +2154,6 @@ Object String_replace_with(Object self,
 }
 Object alloc_String(const char *data) {
     int blen = strlen(data);
-    init_String();
     if (blen == 1) {
         if (String_Interned_1[data[0]] != NULL)
             return String_Interned_1[data[0]];
@@ -2287,8 +2317,6 @@ Object Octets_decode(Object receiver, int nparts, int *argcv,
     return alloc_String(newdata);
 }
 Object alloc_Octets(const char *data, int len) {
-    init_Octets();
-
     Object o = alloc_obj(sizeof(int) + len, Octets);
     struct OctetsObject *oo = (struct OctetsObject*)o;
     oo->blen = len;
@@ -2527,7 +2555,6 @@ Object alloc_Float64(double num) {
             && ival < FLOAT64_INTERN_MAX
             && Float64_Interned[ival-FLOAT64_INTERN_MIN] != NULL)
         return Float64_Interned[ival-FLOAT64_INTERN_MIN];
-    init_Number();
     Object o = alloc_obj(sizeof(double) + sizeof(Object), Number);
     double *d = (double*)o->data;
     *d = num;
@@ -2642,7 +2669,6 @@ Object alloc_Boolean(int val) {
         return BOOLEAN_TRUE;
     if (!val && BOOLEAN_FALSE != NULL)
         return BOOLEAN_FALSE;
-    init_Boolean();
     Object o = alloc_obj(sizeof(int8_t), Boolean);
     int8_t *d = (int8_t*)o->data;
     *d = (int8_t)val;
@@ -2789,8 +2815,6 @@ Object File_isatty(Object self, int nparts, int *argcv,
     return alloc_Boolean(isatty(fileno(s->file)));
 }
 Object alloc_File_from_stream(FILE *stream) {
-    init_File();
-
     Object o = alloc_obj(sizeof(FILE*) + sizeof(int), File);
     struct FileObject* so = (struct FileObject*)o;
     so->file = stream;
@@ -2996,7 +3020,6 @@ Object module_io_init() {
     if (iomodule != NULL)
         return iomodule;
 
-    init_IOModule();
     Object o = alloc_obj(sizeof(Object) * 3, IOModule);
     struct IOModuleObject *so = (struct IOModuleObject*)o;
     so->_stdin = alloc_File_from_stream(stdin);
@@ -3126,7 +3149,6 @@ Object module_sys_init() {
     if (sysmodule != NULL)
         return sysmodule;
 
-    init_SysModule();
     Object o = alloc_obj(sizeof(Object), SysModule);
     struct SysModule *so = (struct SysModule*)o;
     so->argv = argv_List;
@@ -3233,7 +3255,6 @@ Object alloc_done() {
     if (done != NULL)
         return done;
 
-    init_Done();
     Object o = alloc_obj(0, Done);
     done = o;
     gc_root(o);
@@ -3243,7 +3264,6 @@ Object alloc_ellipsis() {
     if (ellipsis != NULL)
         return ellipsis;
 
-    init_EllipsisClass();
     Object o = alloc_obj(0, ellipsisClass);
     gc_root(o);
     ellipsis = o;
@@ -3253,7 +3273,6 @@ Object alloc_Undefined() {
     if (undefined != NULL)
         return undefined;
 
-    init_Undefined();
     Object o = alloc_obj(0, Undefined);
     undefined = o;
     gc_root(o);
@@ -3770,8 +3789,6 @@ Object Type_asString(Object self, int nparts, int *argcv,
     return alloc_String(buf);
 }
 Object alloc_Type(const char *name, int nummethods) {
-    init_Type();
-
     Object o = alloc_obj(sizeof(struct TypeObject)
             - sizeof(int32_t) - sizeof(ClassData), Type);
     struct TypeObject *t = (struct TypeObject *)o;
@@ -3800,7 +3817,6 @@ Object Class_asString(Object self, int nparts, int *argcv,
 }
 
 ClassData alloc_class(const char *name, int nummethods) {
-    init_Class();
     ClassData c = glmalloc(sizeof(struct ClassData));
     c->name = glmalloc(strlen(name) + 1);
     strcpy(c->name, name);
@@ -3822,7 +3838,6 @@ ClassData alloc_class(const char *name, int nummethods) {
     return c;
 }
 ClassData alloc_class2(const char *name, int nummethods, void (*mark)(void*)) {
-    init_Class();
     ClassData c = glmalloc(sizeof(struct ClassData));
     c->name = glmalloc(strlen(name) + 1);
     strcpy(c->name, name);
@@ -4351,6 +4366,9 @@ void gracelib_stats() {
 // Called once on init - no threading.
 void gracelib_argv(char **argv) {
     ARGV = argv;
+
+    // ClassData initialisation
+    init_class_data();
 
     // Threading init
     pthread_mutex_init(&gracelib_mutex, NULL);
