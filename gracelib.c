@@ -18,6 +18,8 @@
 #include <unistd.h>
 #include <dirent.h>
 
+#include <pthread.h>
+
 #include "gracelib_types.h"
 #include "gracelib.h"
 #include "gracelib_gc.h"
@@ -25,98 +27,6 @@
 #define IN_GRACELIB 1
 #include "definitions.h"
 #define max(x,y) (x>y?x:y)
-
-void debugger();
-
-Object Float64_asString(Object, int nparts, int *argcv,
-        Object*, int flags);
-Object Float64_Add(Object, int nparts, int *argcv,
-        Object*, int flags);
-Object Object_asString(Object, int nparts, int *argcv,
-        Object*, int flags);
-Object Singleton_asString(Object, int nparts, int *argcv,
-        Object*, int);
-Object Object_Equals(Object, int, int*,
-        Object*, int flags);
-Object Object_NotEquals(Object, int, int*,
-        Object*, int);
-Object String_concat(Object, int nparts, int *argcv,
-        Object*, int flags);
-Object String_index(Object, int nparts, int *argcv,
-        Object*, int flags);
-FILE *debugfp;
-int debug_enabled = 0;
-
-Object String_size(Object , int, int*, Object *, int flags);
-Object String_at(Object , int, int*, Object *, int flags);
-Object String_replace_with(Object , int, int*, Object *, int flags);
-Object String_substringFrom_to(Object , int, int*, Object *, int flags);
-Object String_startsWith(Object , int, int*, Object *, int flags);
-Object makeEscapedString(char *);
-void ConcatString__FillBuffer(Object s, char *c, int len);
-
-Object alloc_OrPattern(Object l, Object r);
-Object alloc_AndPattern(Object l, Object r);
-
-Object alloc_ExceptionPacket(Object msg, Object exception);
-Object alloc_Exception(char *name, Object parent);
-
-int find_resource(const char *name, char *buf);
-
-char *grcstring(Object s);
-
-int hash_init = 0;
-
-Object undefined = NULL;
-Object done = NULL;
-Object ellipsis = NULL;
-Object iomodule;
-Object sysmodule;
-
-Object BOOLEAN_TRUE = NULL;
-Object BOOLEAN_FALSE = NULL;
-Object FLOAT64_ZERO = NULL;
-Object FLOAT64_ONE = NULL;
-Object FLOAT64_TWO = NULL;
-
-#define FLOAT64_INTERN_MIN -10
-#define FLOAT64_INTERN_MAX 10000
-#define FLOAT64_INTERN_SIZE FLOAT64_INTERN_MAX-FLOAT64_INTERN_MIN
-
-Object Float64_Interned[FLOAT64_INTERN_SIZE];
-Object String_Interned_1[256];
-
-ClassData Number;
-ClassData Boolean;
-ClassData String;
-ClassData ConcatString;
-ClassData StringIter;
-ClassData Block;
-ClassData Octets;
-ClassData BuiltinList;
-ClassData BuiltinListIter;
-ClassData PrimitiveArray;
-ClassData Undefined;
-ClassData Done;
-ClassData Nothing;
-ClassData ellipsisClass;
-ClassData File;
-ClassData IOModule;
-ClassData SysModule;
-ClassData Type;
-ClassData Class;
-ClassData MatchResult;
-ClassData OrPattern;
-ClassData AndPattern;
-ClassData GreaterThanPattern;
-ClassData LessThanPattern;
-ClassData ExceptionPacket;
-ClassData Exception;
-
-Object Dynamic;
-Object Unknown;
-Object List;
-Object prelude = NULL;
 
 struct StringObject {
     OBJECT_HEADER;
@@ -208,6 +118,278 @@ struct ExceptionObject {
 
 struct SFLinkList *shutdown_functions;
 
+void debugger();
+
+/* Class data prototypes */
+Object AndPattern_match(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object Block_apply(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Block_applyIndirectly(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Block_match(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Block_pattern(Object self, int argc, int *argcv, Object *argv, int flags);
+Object Boolean_And(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Boolean_AndAnd(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Boolean_Equals(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Boolean_NotEquals(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Boolean_Or(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Boolean_OrOr(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Boolean_andAlso(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object Boolean_asString(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Boolean_not(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Boolean_orElse(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object BuiltinListIter_havemore(Object self, int nparts, int *argcv, Object *args, int flags);
+Object BuiltinListIter_next(Object self, int nparts, int *argcv, Object *args, int flags);
+Object BuiltinList_asString(Object self, int nparts, int *argcv, Object *args, int flags);
+Object BuiltinList_concat(Object self, int nparts, int *argcv, Object *args, int flags);
+Object BuiltinList_contains(Object self, int nparts, int *argcv, Object *args, int flags);
+Object BuiltinList_first(Object self, int nparts, int *argcv, Object *args, int flags);
+Object BuiltinList_index(Object self, int nparts, int *argcv, Object *args, int flags);
+Object BuiltinList_indexAssign(Object self, int nparts, int *argcv, Object *args, int flags);
+Object BuiltinList_indices(Object self, int nparts, int *argcv, Object *args, int flags);
+Object BuiltinList_iter(Object self, int nparts, int *argcv, Object *args, int flags);
+Object BuiltinList_last(Object self, int nparts, int *argcv, Object *args, int flags);
+Object BuiltinList_length(Object self, int nparts, int *argcv, Object *args, int flags);
+Object BuiltinList_pop(Object self, int nparts, int *argcv, Object *args, int flags);
+Object BuiltinList_prepended(Object self, int nparts, int *argcv, Object *args, int flags);
+Object BuiltinList_push(Object self, int nparts, int *argcv, Object *args, int flags);
+Object BuiltinList_reduce(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Class_asString(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object ConcatString_Equals(Object self, int nparts, int *argcv, Object *args, int flags);
+Object ConcatString__escape(Object self, int nparts, int *argcv, Object *args, int flags);
+Object ConcatString_at(Object self, int nparts, int *argcv, Object *args, int flags);
+Object ConcatString_iter(Object self, int nparts, int *argcv, Object *args, int flags);
+Object ConcatString_length(Object self, int nparts, int *argcv, Object *args, int flags);
+Object ConcatString_ord(Object self, int nparts, int *argcv, Object *args, int flags);
+Object ConcatString_substringFrom_to(Object self, int nparts, int *argcv, Object *args, int flags);
+Object ExceptionPacket_asString(Object self, int argc, int *argcv, Object *argv, int flags);
+Object ExceptionPacket_data(Object self, int argc, int *argcv, Object *argv, int flags);
+Object ExceptionPacket_exception(Object self, int argc, int *argcv, Object *argv, int flags);
+Object ExceptionPacket_message(Object self, int argc, int *argcv, Object *argv, int flags);
+Object ExceptionPacket_printBacktrace(Object self, int argc, int *argcv, Object *argv, int flags);
+Object Exception_asString(Object self, int argc, int *argcv, Object *argv, int flags);
+Object Exception_match(Object self, int argc, int *argcv, Object *argv, int flags);
+Object Exception_raise(Object self, int argc, int *argcv, Object *argv, int flags);
+Object Exception_raiseWith(Object self, int argc, int *argcv, Object *argv, int flags);
+Object Exception_refine(Object self, int argc, int *argcv, Object *argv, int flags);
+Object File_close(Object self, int nparts, int *argcv, Object *args, int flags);
+Object File_eof(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object File_getline(Object self, int nparts, int *argcv, Object *args, int flags);
+Object File_havemore(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object File_isatty(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object File_iter(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object File_next(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object File_read(Object self, int nparts, int *argcv, Object *args, int flags);
+Object File_readBinary(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object File_seek(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object File_seekBackward(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object File_seekForward(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object File_write(Object self, int nparts, int *argcv, Object *args, int flags);
+Object File_writeBinary(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object Float64_Add(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Float64_Div(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Float64_Equals(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Float64_Exp(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Float64_GreaterOrEqual(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Float64_GreaterThan(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Float64_LessOrEqual(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Float64_LessThan(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Float64_Mod(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Float64_Mul(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Float64_Negate(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Float64_Range(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Float64_Sub(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Float64_asInteger32(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Float64_asString(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Float64_hashcode(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Float64_inBase(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Float64_prefixGreaterThan(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Float64_prefixLessThan(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Float64_truncate(Object self, int nparts, int *argcv, Object *args, int flags);
+Object GreaterThanPattern_match(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object Integer32_And(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Integer32_DividedBy(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Integer32_Equals(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Integer32_GreaterThan(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Integer32_LShift(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Integer32_LessThan(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Integer32_Minus(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Integer32_NotEquals(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Integer32_Or(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Integer32_Plus(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Integer32_RShift(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Integer32_Times(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Integer32_asString(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Integer32_isInteger32(Object self, int nparts, int *argcv, Object *args, int flags);
+Object LessThanPattern_match(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object MatchResult_asString(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object MatchResult_bindings(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object MatchResult_result(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object Object_Equals(Object receiver, int nparts, int *argcv, Object *params, int flags);
+Object Object_NotEquals(Object receiver, int nparts, int *argcv, Object *params, int flags);
+Object Object_asString(Object receiver, int nparts, int *argcv, Object *params, int flags);
+Object Object_concat(Object receiver, int nparts, int *argcv, Object *params, int flags);
+Object Octets_Concat(Object receiver, int nparts, int *argcv, Object *args, int flags);
+Object Octets_Equals(Object receiver, int nparts, int *argcv, Object *args, int flags);
+Object Octets_asString(Object receiver, int nparts, int *argcv, Object *args, int flags);
+Object Octets_at(Object receiver, int nparts, int *argcv, Object *args, int flags);
+Object Octets_decode(Object receiver, int nparts, int *argcv, Object *args, int flags);
+Object Octets_size(Object receiver, int nparts, int *argcv, Object *args, int flags);
+Object OrPattern_match(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object PrimitiveArrayClassObject_new(Object self, int nparts, int *argcv, Object *args, int flags);
+Object PrimitiveArray_index(Object self, int nparts, int *argcv, Object *args, int flags);
+Object PrimitiveArray_indexAssign(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Process_status(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object Process_success(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object Process_terminated(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object Process_wait(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object Singleton_asString(Object receiver, int nparts, int *argcv, Object *params, int flags);
+Object StringIter_havemore(Object self, int nparts, int *argcv, Object *args, int flags);
+Object StringIter_next(Object self, int nparts, int *argcv, Object *args, int flags);
+Object StringResourceHandler_loadResource(Object self, int nparts, int *argcv, Object *args, int flags);
+Object String_Equals(Object self, int nparts, int *argcv, Object *params, int flags);
+Object String__escape(Object self, int nparts, int *argcv, Object *args, int flags);
+Object String_asNumber(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object String_at(Object self, int nparts, int *argcv, Object *args, int flags);
+Object String_concat(Object self, int nparts, int *argcv, Object *args, int flags);
+Object String_encode(Object self, int nparts, int *argcv, Object *args, int flags);
+Object String_hashcode(Object self, int nparts, int *argcv, Object *args, int flags);
+Object String_index(Object self, int nparts, int *argcv, Object *args, int flags);
+Object String_indices(Object self, int nparts, int *argcv, Object *args, int flags);
+Object String_iter(Object receiver, int nparts, int *argcv, Object *args, int flags);
+Object String_length(Object self, int nparts, int *argcv, Object *args, int flags);
+Object String_ord(Object self, int nparts, int *argcv, Object *args, int flags);
+Object String_replace_with(Object self, int nparts, int *argcv, Object *args, int flags);
+Object String_size(Object self, int nparts, int *argcv, Object *args, int flags);
+Object String_startsWith(Object self, int nparts, int *argcv, Object *args, int flags);
+Object String_substringFrom_to(Object self, int nparts, int *argcv, Object *args, int flags);
+Object Type_asString(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object Type_match(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object UserObj_Equals(Object self, int nparts, int *argcv, Object *args, int flags);
+Object identity_function(Object receiver, int nparts, int *argcv, Object *params, int flags);
+Object io_error(Object self, int nparts, int *argcv, Object *args, int flags);
+Object io_exists(Object self, int nparts, int *argcv, Object *args, int flags);
+Object io_findResource(Object self, int nparts, int *argcv, Object *args, int flags);
+Object io_input(Object self, int nparts, int *argcv, Object *args, int flags);
+Object io_listdir(Object self, int nparts, int *argcv, Object *args, int flags);
+Object io_newer(Object self, int nparts, int *argcv, Object *args, int flags);
+Object io_open(Object self, int nparts, int *argcv, Object *args, int flags);
+Object io_output(Object self, int nparts, int *argcv, Object *args, int flags);
+Object io_realpath(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object io_spawn(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object io_spawnv(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object io_system(Object self, int nparts, int *argcv, Object *args, int flags);
+Object literal_and(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object literal_match(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object literal_or(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object sys_argv(Object self, int nparts, int *argcv, Object *args, int flags);
+Object sys_cputime(Object self, int nparts, int *argcv, Object *args, int flags);
+Object sys_elapsed(Object self, int nparts, int *argcv, Object *args, int flags);
+Object sys_environ(Object self, int nparts, int *argcv, Object *args, int flags);
+Object sys_execPath(Object self, int nparts, int *argcv, Object *args, int flags);
+Object sys_exit(Object self, int nparts, int *argcv, Object *args, int flags);
+
+void Block__mark(struct BlockObject *o);
+void Block__release(struct BlockObject *o);
+void BuiltinListIter_mark(Object o);
+void BuiltinList__release(Object o);
+void BuiltinList_mark(Object o);
+void ClassData__release(struct ClassData *c);
+void ClosureEnv__mark(struct ClosureEnvObject *o);
+void ConcatString__FillBuffer(Object self, char *buf, int len);
+void ConcatString__mark(Object o);
+void ConcatString__release(Object o);
+void ExceptionPacket__mark(struct ExceptionPacketObject *e);
+void ExceptionPacket__release(struct ExceptionPacketObject *e);
+void Float64__mark(Object self);
+void StackFrame__mark(struct StackFrameObject *o);
+void StackFrame__release(struct StackFrameObject *o);
+void StringIter__mark(Object o);
+void UserObj__mark(struct UserObject *o);
+void UserObj__release(struct UserObject *o);
+void io__mark(struct IOModuleObject *o);
+void sys__mark(struct SysModule *o);
+
+FILE *debugfp;
+int debug_enabled = 0;
+
+Object String_size(Object , int, int*, Object *, int flags);
+Object String_at(Object , int, int*, Object *, int flags);
+Object String_replace_with(Object , int, int*, Object *, int flags);
+Object String_substringFrom_to(Object , int, int*, Object *, int flags);
+Object String_startsWith(Object , int, int*, Object *, int flags);
+Object makeEscapedString(char *);
+void ConcatString__FillBuffer(Object s, char *c, int len);
+
+Object alloc_OrPattern(Object l, Object r);
+Object alloc_AndPattern(Object l, Object r);
+
+Object alloc_ExceptionPacket(Object msg, Object exception);
+Object alloc_Exception(char *name, Object parent);
+
+int find_resource(const char *name, char *buf);
+
+char *grcstring(Object s);
+
+// General "gracelib" mutex.
+pthread_mutex_t gracelib_mutex;
+
+char *compilerModulePath;
+char *modulePath = NULL;
+
+int hash_init = 0;
+
+// Constant objects
+Object undefined = NULL;
+Object done = NULL;
+Object ellipsis = NULL;
+Object iomodule; // TODO: This one is never set. It should probable be in module_io_init.
+Object sysmodule;
+
+Object BOOLEAN_TRUE = NULL;
+Object BOOLEAN_FALSE = NULL;
+Object FLOAT64_ZERO = NULL;
+Object FLOAT64_ONE = NULL;
+Object FLOAT64_TWO = NULL;
+
+#define FLOAT64_INTERN_MIN -10
+#define FLOAT64_INTERN_MAX 10000
+#define FLOAT64_INTERN_SIZE FLOAT64_INTERN_MAX-FLOAT64_INTERN_MIN
+
+Object Float64_Interned[FLOAT64_INTERN_SIZE];
+Object String_Interned_1[256];
+
+ClassData Number;
+ClassData Boolean;
+ClassData String;
+ClassData ConcatString;
+ClassData StringIter;
+ClassData Block;
+ClassData Octets;
+ClassData BuiltinList;
+ClassData BuiltinListIter;
+ClassData PrimitiveArray;
+ClassData Undefined;
+ClassData Done;
+//ClassData Nothing;      // Never initialized, never used. TODO: Figure out why this is here.
+ClassData ellipsisClass;
+ClassData File;
+ClassData IOModule;
+ClassData SysModule;
+ClassData Type;
+ClassData Class;
+ClassData MatchResult;
+ClassData OrPattern;
+ClassData AndPattern;
+ClassData GreaterThanPattern;
+ClassData LessThanPattern;
+ClassData ExceptionPacket;
+ClassData Exception;
+
+Object GraceDefaultObject;
+Object Dynamic;
+Object Unknown;
+Object List;
+Object prelude = NULL;
+
 int linenumber = 0;
 const char *modulename;
 char **moduleSourceLines;
@@ -216,8 +398,6 @@ int Strings_allocated = 0;
 
 int start_clocks = 0;
 double start_time = 0;
-
-
 
 char **ARGV = NULL;
 
@@ -237,6 +417,392 @@ char (*callstack)[256];
 int calldepth = 0;
 struct StackFrameObject **frame_stack;
 struct ClosureEnvObject **closure_stack;
+
+static inline void init_Number() {
+    if (Number == NULL) {
+        Number = alloc_class2("Number", 27, (void*)&Float64__mark);
+        add_Method(Number, "+", &Float64_Add);
+        add_Method(Number, "*", &Float64_Mul);
+        add_Method(Number, "-", &Float64_Sub);
+        add_Method(Number, "/", &Float64_Div);
+        add_Method(Number, "^", &Float64_Exp);
+        add_Method(Number, "%", &Float64_Mod);
+        add_Method(Number, "==", &Float64_Equals);
+        add_Method(Number, "!=", &Object_NotEquals);
+        add_Method(Number, "hashcode", &Float64_hashcode);
+        add_Method(Number, "++", &Object_concat);
+        add_Method(Number, "<", &Float64_LessThan);
+        add_Method(Number, ">", &Float64_GreaterThan);
+        add_Method(Number, "<=", &Float64_LessOrEqual);
+        add_Method(Number, ">=", &Float64_GreaterOrEqual);
+        add_Method(Number, "..", &Float64_Range);
+        add_Method(Number, "asString", &Float64_asString);
+        add_Method(Number, "asInteger32", &Float64_asInteger32);
+        add_Method(Number, "prefix-", &Float64_Negate);
+        add_Method(Number, "inBase", &Float64_inBase);
+        add_Method(Number, "truncate", &Float64_truncate);
+        add_Method(Number, "match", &literal_match);
+        add_Method(Number, "|", &literal_or);
+        add_Method(Number, "&", &literal_and);
+        add_Method(Number, "prefix<", &Float64_prefixLessThan);
+        add_Method(Number, "prefix>", &Float64_prefixGreaterThan);
+    }
+}
+
+static inline void init_Boolean() {
+    if (Boolean == NULL) {
+        Boolean = alloc_class("Boolean", 13);
+        add_Method(Boolean, "asString", &Boolean_asString);
+        add_Method(Boolean, "&", &literal_and);
+        add_Method(Boolean, "|", &literal_or);
+        add_Method(Boolean, "&&", &Boolean_AndAnd);
+        add_Method(Boolean, "||", &Boolean_OrOr);
+        add_Method(Boolean, "prefix!", &Boolean_not);
+        add_Method(Boolean, "not", &Boolean_not);
+        add_Method(Boolean, "andAlso", &Boolean_andAlso);
+        add_Method(Boolean, "==", &Boolean_Equals);
+        add_Method(Boolean, "!=", &Boolean_NotEquals);
+        add_Method(Boolean, "orElse", &Boolean_orElse);
+        add_Method(Boolean, "match", &literal_match);
+    }
+}
+
+static inline void init_String() {
+    if (String == NULL) {
+        String = alloc_class("String", 25);
+        add_Method(String, "asString", &identity_function);
+        add_Method(String, "++", &String_concat);
+        add_Method(String, "at", &String_at);
+        add_Method(String, "[]", &String_at);
+        add_Method(String, "==", &String_Equals);
+        add_Method(String, "!=", &Object_NotEquals);
+        add_Method(String, "iterator", &String_iter);
+        add_Method(String, "_escape", &String__escape);
+        add_Method(String, "length", &String_length);
+        add_Method(String, "size", &String_size);
+        add_Method(String, "iter", &String_iter);
+        add_Method(String, "ord", &String_ord);
+        add_Method(String, "encode", &String_encode);
+        add_Method(String, "substringFrom()to", &String_substringFrom_to);
+        add_Method(String, "startsWith", &String_startsWith);
+        add_Method(String, "replace()with", &String_replace_with);
+        add_Method(String, "hashcode", &String_hashcode);
+        add_Method(String, "indices", &String_indices);
+        add_Method(String, "asNumber", &String_asNumber);
+        add_Method(String, "match", &literal_match);
+        add_Method(String, "|", &literal_or);
+        add_Method(String, "&", &literal_and);
+    }
+}
+
+static inline void init_ConcatString() {
+    if (ConcatString == NULL) {
+        ConcatString = alloc_class3("ConcatString", 24,
+                (void*)&ConcatString__mark,
+                (void*)&ConcatString__release);
+        add_Method(ConcatString, "asString", &identity_function);
+        add_Method(ConcatString, "++", &String_concat);
+        add_Method(ConcatString, "size", &String_size);
+        add_Method(ConcatString, "at", &ConcatString_at);
+        add_Method(ConcatString, "[]", &ConcatString_at);
+        add_Method(ConcatString, "==", &ConcatString_Equals);
+        add_Method(ConcatString, "!=", &Object_NotEquals);
+        add_Method(ConcatString, "iterator", &ConcatString_iter);
+        add_Method(ConcatString, "_escape", &ConcatString__escape);
+        add_Method(ConcatString, "length", &ConcatString_length);
+        add_Method(ConcatString, "iter", &ConcatString_iter);
+        add_Method(ConcatString, "encode", &String_encode);
+        add_Method(ConcatString, "substringFrom()to",
+                &ConcatString_substringFrom_to);
+        add_Method(ConcatString, "startsWith", &String_startsWith);
+        add_Method(ConcatString, "replace()with", &String_replace_with);
+        add_Method(ConcatString, "hashcode", &String_hashcode);
+        add_Method(ConcatString, "indices", &String_indices);
+        add_Method(ConcatString, "ord", &ConcatString_ord);
+        add_Method(ConcatString, "asNumber", &String_asNumber);
+        add_Method(ConcatString, "match", &literal_match);
+        add_Method(ConcatString, "|", &literal_or);
+        add_Method(ConcatString, "&", &literal_and);
+    }
+}
+
+static inline void init_Octets() {
+    if (Octets == NULL) {
+        Octets = alloc_class("Octets", 8);
+        add_Method(Octets, "asString", &Octets_asString);
+        add_Method(Octets, "++", &Octets_Concat);
+        add_Method(Octets, "at", &Octets_at);
+        add_Method(Octets, "[]", &Octets_at);
+        add_Method(Octets, "==", &Octets_Equals);
+        add_Method(Octets, "!=", &Object_NotEquals);
+        add_Method(Octets, "size", &Octets_size);
+        add_Method(Octets, "decode", &Octets_decode);
+    }
+}
+
+static inline void init_BuiltinList() {
+    if (BuiltinList == NULL) {
+        BuiltinList = alloc_class3("BuiltinList", 20, (void*)&BuiltinList_mark,
+                (void*)&BuiltinList__release);
+        add_Method(BuiltinList, "asString", &BuiltinList_asString);
+        add_Method(BuiltinList, "at", &BuiltinList_index);
+        add_Method(BuiltinList, "[]", &BuiltinList_index);
+        add_Method(BuiltinList, "at()put", &BuiltinList_indexAssign);
+        add_Method(BuiltinList, "[]:=", &BuiltinList_indexAssign);
+        add_Method(BuiltinList, "push", &BuiltinList_push);
+        add_Method(BuiltinList, "pop", &BuiltinList_pop);
+        add_Method(BuiltinList, "length", &BuiltinList_length);
+        add_Method(BuiltinList, "size", &BuiltinList_length);
+        add_Method(BuiltinList, "iter", &BuiltinList_iter);
+        add_Method(BuiltinList, "iterator", &BuiltinList_iter);
+        add_Method(BuiltinList, "contains", &BuiltinList_contains);
+        add_Method(BuiltinList, "==", &Object_Equals);
+        add_Method(BuiltinList, "!=", &Object_NotEquals);
+        add_Method(BuiltinList, "indices", &BuiltinList_indices);
+        add_Method(BuiltinList, "first", &BuiltinList_first);
+        add_Method(BuiltinList, "last", &BuiltinList_last);
+        add_Method(BuiltinList, "prepended", &BuiltinList_prepended);
+        add_Method(BuiltinList, "++", &BuiltinList_concat);
+        add_Method(BuiltinList, "reduce", &BuiltinList_reduce);
+    }
+}
+
+static inline void init_BuiltinListIter() {
+    if (BuiltinListIter == NULL) {
+        BuiltinListIter = alloc_class2("BuiltinListIter", 2, (void*)&BuiltinListIter_mark);
+        add_Method(BuiltinListIter, "havemore", &BuiltinListIter_havemore);
+        add_Method(BuiltinListIter, "next", &BuiltinListIter_next);
+    }
+}
+
+static inline void init_PrimitiveArray() {
+    if (PrimitiveArray == NULL) {
+        PrimitiveArray = alloc_class3("PrimitiveArray", 9, (void*)&BuiltinList_mark,
+                (void*)&BuiltinList__release);
+        add_Method(PrimitiveArray, "at", &PrimitiveArray_index);
+        add_Method(PrimitiveArray, "[]", &PrimitiveArray_index);
+        add_Method(PrimitiveArray, "at()put", &PrimitiveArray_indexAssign);
+        add_Method(PrimitiveArray, "[]:=", &PrimitiveArray_indexAssign);
+        add_Method(PrimitiveArray, "asString", &BuiltinList_asString);
+        add_Method(PrimitiveArray, "size", &BuiltinList_length);
+        add_Method(PrimitiveArray, "==", &Object_Equals);
+        add_Method(PrimitiveArray, "!=", &Object_NotEquals);
+    }
+}
+
+static inline void init_StringIter() {
+    if (StringIter == NULL) {
+        StringIter = alloc_class2("StringIter", 4, (void *)&StringIter__mark);
+        add_Method(StringIter, "havemore", &StringIter_havemore);
+        add_Method(StringIter, "next", &StringIter_next);
+    }
+}
+
+static inline void init_Undefined() {
+    if (Undefined == NULL) {
+        Undefined = alloc_class("Undefined", 0);
+    }
+}
+
+static inline void init_Done() {
+    if (Done == NULL) {
+        Done = alloc_class("done", 4);
+        add_Method(Done, "==", &Object_Equals);
+        add_Method(Done, "!=", &Object_NotEquals);
+        add_Method(Done, "asDebugString", &Singleton_asString);
+        add_Method(Done, "asString", &Singleton_asString);
+    }
+}
+
+static inline void init_EllipsisClass() {
+    if (ellipsisClass == NULL) {
+        ellipsisClass = alloc_class("ellipsis", 4);
+        add_Method(ellipsisClass, "asString", &Object_asString);
+        add_Method(ellipsisClass, "++", &Object_concat);
+        add_Method(ellipsisClass, "==", &Object_Equals);
+        add_Method(ellipsisClass, "!=", &Object_NotEquals);
+    }
+}
+
+static inline void init_File() {
+    if (File == NULL) {
+        File = alloc_class("File", 16);
+        add_Method(File, "read", &File_read);
+        add_Method(File, "getline", &File_getline);
+        add_Method(File, "write", &File_write);
+        add_Method(File, "close", &File_close);
+        add_Method(File, "seek", &File_seek);
+        add_Method(File, "seekForward", &File_seekForward);
+        add_Method(File, "seekBackward", &File_seekBackward);
+        add_Method(File, "iter", &File_iter);
+        add_Method(File, "havemore", &File_havemore);
+        add_Method(File, "next", &File_next);
+        add_Method(File, "readBinary", &File_readBinary);
+        add_Method(File, "writeBinary", &File_writeBinary);
+        add_Method(File, "eof", &File_eof);
+        add_Method(File, "isatty", &File_isatty);
+        add_Method(File, "==", &Object_Equals);
+        add_Method(File, "!=", &Object_NotEquals);
+    }
+}
+
+static inline void init_IOModule() {
+    if (IOModule == NULL) {
+        IOModule = alloc_class2("Module<io>", 12, (void*)&io__mark);
+        add_Method(IOModule, "input", &io_input);
+        add_Method(IOModule, "output", &io_output);
+        add_Method(IOModule, "error", &io_error);
+        add_Method(IOModule, "open", &io_open);
+        add_Method(IOModule, "system", &io_system);
+        add_Method(IOModule, "exists", &io_exists);
+        add_Method(IOModule, "newer", &io_newer);
+        add_Method(IOModule, "spawn", &io_spawn);
+        add_Method(IOModule, "spawnv", &io_spawnv);
+        add_Method(IOModule, "realpath", &io_realpath);
+        add_Method(IOModule, "listdir", &io_listdir);
+        add_Method(IOModule, "findResource", &io_findResource);
+    }
+}
+
+static inline void init_SysModule() {
+    if (SysModule == NULL) {
+        SysModule = alloc_class2("Module<sys>", 6, (void*)*sys__mark);
+        add_Method(SysModule, "argv", &sys_argv);
+        add_Method(SysModule, "cputime", &sys_cputime);
+        add_Method(SysModule, "elapsed", &sys_elapsed);
+        add_Method(SysModule, "exit", &sys_exit);
+        add_Method(SysModule, "execPath", &sys_execPath);
+        add_Method(SysModule, "environ", &sys_environ);
+    }
+}
+
+static inline void init_Type() {
+    if (Type == NULL) {
+        Type = alloc_class("Type", 6);
+        add_Method(Type, "==", &Object_Equals);
+        add_Method(Type, "!=", &Object_NotEquals);
+        add_Method(Type, "asString", &Type_asString);
+        add_Method(Type, "match", &Type_match);
+        add_Method(Type, "&", &literal_and);
+        add_Method(Type, "|", &literal_or);
+    }
+}
+
+static inline void init_Class() {
+    if (Class == NULL) {
+        Class = glmalloc(sizeof(struct ClassData));
+        Class->flags = 3;
+        Class->class = Class;
+        Class->name = "ClassOf<Class>";
+        Class->methods = glmalloc(sizeof(Method) * 4);
+        Class->nummethods = 3;
+        Class->mark = NULL;
+        Class->release = (void *)&ClassData__release;
+        add_Method(Class, "match", &Type_match);
+        add_Method(Class, "&", &literal_and);
+        add_Method(Class, "|", &literal_or);
+        add_Method(Class, "asString", &Class_asString);
+    }
+}
+
+static inline void init_MatchResult() {
+    if (MatchResult == NULL) {
+        // TODO : why "4" ?
+        // Old code used to be MatchResult = alloc_userobj2(3, 2, MatchResult) 
+        // with MatchResult = NULL. So numMethods + 1 = 4.
+        // TODO : also, why is it not renamed to "MatchResult" ?
+        MatchResult = alloc_class3("Object", 4,
+                (void*)&UserObj__mark, (void*)&UserObj__release);
+        add_Method(MatchResult, "result", &MatchResult_result);
+        add_Method(MatchResult, "bindings", &MatchResult_bindings);
+        add_Method(MatchResult, "asString", &MatchResult_asString);
+    }
+}
+
+// TODO : Same comments as init_MatchResult, why "4" ?
+static inline void init_OrPattern() {
+    if (OrPattern == NULL) {
+        OrPattern = alloc_class3("OrPattern", 4,
+                (void*)&UserObj__mark, (void*)&UserObj__release);
+        add_Method(OrPattern, "|", &literal_or);
+        add_Method(OrPattern, "&", &literal_and);
+        add_Method(OrPattern, "match", &OrPattern_match);
+    }
+}
+
+
+// TODO : Same comments as init_MatchResult, why "4" ?
+static inline void init_AndPattern() {
+    if (AndPattern == NULL) {
+        AndPattern = alloc_class3("AndPattern", 4,
+                (void*)&UserObj__mark, (void*)&UserObj__release);
+        add_Method(AndPattern, "|", &literal_or);
+        add_Method(AndPattern, "&", &literal_and);
+        add_Method(AndPattern, "match", &AndPattern_match);
+    }
+}
+
+// TODO : Same comments as init_MatchResult, why "4" ?
+static inline void init_GreaterThanPattern() {
+    if (GreaterThanPattern == NULL) {
+        GreaterThanPattern = alloc_class3("GreaterThanPattern", 4,
+                (void*)&UserObj__mark, (void*)&UserObj__release);
+        add_Method(GreaterThanPattern, "|", &literal_or);
+        add_Method(GreaterThanPattern, "&", &literal_and);
+        add_Method(GreaterThanPattern, "match", &GreaterThanPattern_match);
+    }
+}
+
+// TODO : Same comments as init_MatchResult, why "4" ?
+static inline void init_LessThanPattern() {
+    if (LessThanPattern == NULL) {
+        LessThanPattern = alloc_class3("LessThanPattern", 4,
+                (void*)&UserObj__mark, (void*)&UserObj__release);
+        add_Method(LessThanPattern, "|", &literal_or);
+        add_Method(LessThanPattern, "&", &literal_and);
+        add_Method(LessThanPattern, "match", &LessThanPattern_match);
+    }
+}
+
+static inline void init_ExceptionPacket() {
+    if (ExceptionPacket == NULL) {
+        ExceptionPacket = alloc_class3("ExceptionPacket", 6,
+                (void*)&ExceptionPacket__mark,
+                (void*)&ExceptionPacket__release);
+        add_Method(ExceptionPacket, "message", &ExceptionPacket_message);
+        add_Method(ExceptionPacket, "exception", &ExceptionPacket_exception);
+        add_Method(ExceptionPacket, "asString", &ExceptionPacket_asString);
+        add_Method(ExceptionPacket, "data", &ExceptionPacket_data);
+        add_Method(ExceptionPacket, "asDebugString", &Object_asString);
+        add_Method(ExceptionPacket, "printBacktrace",
+                &ExceptionPacket_printBacktrace);
+    }
+}
+
+static inline void init_Exception() {
+    if (!Exception) {
+        Exception = alloc_class("Exception", 10);
+        add_Method(Exception, "match", &Exception_match);
+        add_Method(Exception, "refine", &Exception_refine);
+        add_Method(Exception, "raise", &Exception_raise);
+        add_Method(Exception, "raiseWith", &Exception_raiseWith);
+        add_Method(Exception, "==", &Object_Equals);
+        add_Method(Exception, "!=", &Object_NotEquals);
+        add_Method(Exception, "asString", &Exception_asString);
+        add_Method(Exception, "asDebugString", &Object_asString);
+        add_Method(Exception, "|", &literal_or);
+        add_Method(Exception, "&", &literal_and);
+    }
+}
+
+// Called by alloc_Block. Not sure if it can be initialised early
+// because block depends on "self" object and line number.
+static inline void init_Block(ClassData block) {
+    if (Block == NULL) {
+        Block = block;
+    }
+}
+
 void backtrace() {
     int i;
     for (i=0; i<calldepth; i++) {
@@ -325,6 +891,7 @@ void assertClass(Object obj, ClassData cl) {
                 obj->class->name);
 }
 
+// Called once on init - no threading.
 void initprofiling() {
     start_clocks = clock();
     struct timeval ar;
@@ -510,13 +1077,10 @@ Object alloc_MatchResult(Object result, Object bindings) {
     gc_pause();
     if (bindings == NULL)
         bindings = alloc_BuiltinList();
+
+    // TODO : check that this is equivalent to the old code.
+    init_MatchResult();
     Object o = alloc_userobj2(3, 2, MatchResult);
-    if (!MatchResult) {
-        MatchResult = o->class;
-        add_Method(MatchResult, "result", &MatchResult_result);
-        add_Method(MatchResult, "bindings", &MatchResult_bindings);
-        add_Method(MatchResult, "asString", &MatchResult_asString);
-    }
     struct UserObject *uo = (struct UserObject *)o;
     uo->data[0] = result;
     uo->data[1] = bindings;
@@ -589,30 +1153,20 @@ Object OrPattern_match(Object self, int nparts, int *argcv, Object *argv,
     return alloc_FailedMatch(target, NULL);
 }
 Object alloc_OrPattern(Object l, Object r) {
+    // TODO : check correctness wrt old version
+    init_OrPattern();
+
     Object o = alloc_userobj2(3, 2, OrPattern);
-    if (!OrPattern) {
-        OrPattern = o->class;
-        glfree(o->class->name);
-        o->class->name = "OrPattern";
-        add_Method(OrPattern, "|", &literal_or);
-        add_Method(OrPattern, "&", &literal_and);
-        add_Method(OrPattern, "match", &OrPattern_match);
-    }
     struct UserObject *b = (struct UserObject *)o;
     b->data[0] = l;
     b->data[1] = r;
     return o;
 }
 Object alloc_AndPattern(Object l, Object r) {
+    // TODO : check correctness wrt old version
+    init_AndPattern();
+
     Object o = alloc_userobj2(3, 2, AndPattern);
-    if (!AndPattern) {
-        AndPattern = o->class;
-        glfree(o->class->name);
-        o->class->name = "AndPattern";
-        add_Method(AndPattern, "|", &literal_or);
-        add_Method(AndPattern, "&", &literal_and);
-        add_Method(AndPattern, "match", &AndPattern_match);
-    }
     struct UserObject *b = (struct UserObject *)o;
     b->data[0] = l;
     b->data[1] = r;
@@ -630,15 +1184,9 @@ Object LessThanPattern_match(Object self, int nparts, int *argcv, Object *argv,
     return alloc_FailedMatch(target, NULL);
 }
 Object alloc_LessThanPattern(Object r) {
+    init_LessThanPattern();
+
     Object o = alloc_userobj2(3, 2, LessThanPattern);
-    if (!LessThanPattern) {
-        LessThanPattern = o->class;
-        glfree(o->class->name);
-        o->class->name = "LessThanPattern";
-        add_Method(LessThanPattern, "|", &literal_or);
-        add_Method(LessThanPattern, "&", &literal_and);
-        add_Method(LessThanPattern, "match", &LessThanPattern_match);
-    }
     struct UserObject *b = (struct UserObject *)o;
     b->data[0] = r;
     return o;
@@ -655,15 +1203,10 @@ Object GreaterThanPattern_match(Object self, int nparts, int *argcv, Object *arg
     return alloc_FailedMatch(target, NULL);
 }
 Object alloc_GreaterThanPattern(Object r) {
+    // TODO : check correctness wrt old version
+    init_GreaterThanPattern();
+
     Object o = alloc_userobj2(3, 2, GreaterThanPattern);
-    if (!GreaterThanPattern) {
-        GreaterThanPattern = o->class;
-        glfree(o->class->name);
-        o->class->name = "GreaterThanPattern";
-        add_Method(GreaterThanPattern, "|", &literal_or);
-        add_Method(GreaterThanPattern, "&", &literal_and);
-        add_Method(GreaterThanPattern, "match", &GreaterThanPattern_match);
-    }
     struct UserObject *b = (struct UserObject *)o;
     b->data[0] = r;
     return o;
@@ -739,18 +1282,8 @@ Object ExceptionPacket_printBacktrace(Object self, int argc, int *argcv,
     return alloc_done();
 }
 Object alloc_ExceptionPacket(Object msg, Object exception) {
-    if (!ExceptionPacket) {
-        ExceptionPacket = alloc_class3("ExceptionPacket", 6,
-                (void*)&ExceptionPacket__mark,
-                (void*)&ExceptionPacket__release);
-        add_Method(ExceptionPacket, "message", &ExceptionPacket_message);
-        add_Method(ExceptionPacket, "exception", &ExceptionPacket_exception);
-        add_Method(ExceptionPacket, "asString", &ExceptionPacket_asString);
-        add_Method(ExceptionPacket, "data", &ExceptionPacket_data);
-        add_Method(ExceptionPacket, "asDebugString", &Object_asString);
-        add_Method(ExceptionPacket, "printBacktrace",
-                &ExceptionPacket_printBacktrace);
-    }
+    init_ExceptionPacket();
+
     Object o = alloc_obj(sizeof(struct ExceptionPacketObject)
             - sizeof(struct Object), ExceptionPacket);
     struct ExceptionPacketObject *e = (struct ExceptionPacketObject *)o;
@@ -826,19 +1359,8 @@ Object Exception_asString(Object self, int argc, int *argcv, Object *argv,
     return alloc_String(e->name);
 }
 Object alloc_Exception(char *name, Object parent) {
-    if (!Exception) {
-        Exception = alloc_class("Exception", 10);
-        add_Method(Exception, "match", &Exception_match);
-        add_Method(Exception, "refine", &Exception_refine);
-        add_Method(Exception, "raise", &Exception_raise);
-        add_Method(Exception, "raiseWith", &Exception_raiseWith);
-        add_Method(Exception, "==", &Object_Equals);
-        add_Method(Exception, "!=", &Object_NotEquals);
-        add_Method(Exception, "asString", &Exception_asString);
-        add_Method(Exception, "asDebugString", &Object_asString);
-        add_Method(Exception, "|", &literal_or);
-        add_Method(Exception, "&", &literal_and);
-    }
+    init_Exception();
+
     Object o = alloc_obj(sizeof (struct ExceptionObject)
             - sizeof(struct Object), Exception);
     struct ExceptionObject *e = (struct ExceptionObject *)o;
@@ -887,11 +1409,8 @@ void BuiltinListIter_mark(Object o) {
     gc_mark(*lst);
 }
 Object alloc_BuiltinListIter(Object array) {
-    if (BuiltinListIter == NULL) {
-        BuiltinListIter = alloc_class2("BuiltinListIter", 2, (void*)&BuiltinListIter_mark);
-        add_Method(BuiltinListIter, "havemore", &BuiltinListIter_havemore);
-        add_Method(BuiltinListIter, "next", &BuiltinListIter_next);
-    }
+    init_BuiltinListIter();
+
     Object o = alloc_obj(sizeof(int) + sizeof(Object), BuiltinListIter);
     int *pos = (int*)o->data;
     Object *lst = (Object*)(o->data + sizeof(int));
@@ -1088,30 +1607,8 @@ void BuiltinList_mark(Object o) {
         gc_mark(s->items[i]);
 }
 Object alloc_BuiltinList() {
-    if (BuiltinList == NULL) {
-        BuiltinList = alloc_class3("BuiltinList", 20, (void*)&BuiltinList_mark,
-                (void*)&BuiltinList__release);
-        add_Method(BuiltinList, "asString", &BuiltinList_asString);
-        add_Method(BuiltinList, "at", &BuiltinList_index);
-        add_Method(BuiltinList, "[]", &BuiltinList_index);
-        add_Method(BuiltinList, "at()put", &BuiltinList_indexAssign);
-        add_Method(BuiltinList, "[]:=", &BuiltinList_indexAssign);
-        add_Method(BuiltinList, "push", &BuiltinList_push);
-        add_Method(BuiltinList, "pop", &BuiltinList_pop);
-        add_Method(BuiltinList, "length", &BuiltinList_length);
-        add_Method(BuiltinList, "size", &BuiltinList_length);
-        add_Method(BuiltinList, "iter", &BuiltinList_iter);
-        add_Method(BuiltinList, "iterator", &BuiltinList_iter);
-        add_Method(BuiltinList, "contains", &BuiltinList_contains);
-        add_Method(BuiltinList, "==", &Object_Equals);
-        add_Method(BuiltinList, "!=", &Object_NotEquals);
-        add_Method(BuiltinList, "indices", &BuiltinList_indices);
-        add_Method(BuiltinList, "first", &BuiltinList_first);
-        add_Method(BuiltinList, "last", &BuiltinList_last);
-        add_Method(BuiltinList, "prepended", &BuiltinList_prepended);
-        add_Method(BuiltinList, "++", &BuiltinList_concat);
-        add_Method(BuiltinList, "reduce", &BuiltinList_reduce);
-    }
+    init_BuiltinList();
+
     Object o = alloc_obj(sizeof(Object*) + sizeof(int) * 2, BuiltinList);
     struct BuiltinListObject *lo = (struct BuiltinListObject*)o;
     lo->size = 0;
@@ -1154,18 +1651,8 @@ Object PrimitiveArray_index(Object self, int nparts, int *argcv,
     return sself->items[index];
 }
 Object alloc_PrimitiveArray(int size) {
-    if (PrimitiveArray == NULL) {
-        PrimitiveArray = alloc_class3("PrimitiveArray", 9, (void*)&BuiltinList_mark,
-                (void*)&BuiltinList__release);
-        add_Method(PrimitiveArray, "at", &PrimitiveArray_index);
-        add_Method(PrimitiveArray, "[]", &PrimitiveArray_index);
-        add_Method(PrimitiveArray, "at()put", &PrimitiveArray_indexAssign);
-        add_Method(PrimitiveArray, "[]:=", &PrimitiveArray_indexAssign);
-        add_Method(PrimitiveArray, "asString", &BuiltinList_asString);
-        add_Method(PrimitiveArray, "size", &BuiltinList_length);
-        add_Method(PrimitiveArray, "==", &Object_Equals);
-        add_Method(PrimitiveArray, "!=", &Object_NotEquals);
-    }
+    init_PrimitiveArray();
+
     int i;
     Object o = alloc_obj(sizeof(Object*) + sizeof(int) * 2, PrimitiveArray);
     struct PrimitiveArrayObject *lo = (struct PrimitiveArrayObject*)o;
@@ -1282,11 +1769,7 @@ void StringIter__mark(Object o) {
     gc_mark(*strp);
 }
 Object alloc_StringIter(Object string) {
-    if (StringIter == NULL) {
-        StringIter = alloc_class2("StringIter", 4, (void *)&StringIter__mark);
-        add_Method(StringIter, "havemore", &StringIter_havemore);
-        add_Method(StringIter, "next", &StringIter_next);
-    }
+    init_StringIter();
     Object o = alloc_obj(sizeof(int) + sizeof(Object), StringIter);
     int *pos = (int*)o->data;
     *pos = 0;
@@ -1472,34 +1955,7 @@ Object String_encode(Object self, int nparts, int *argcv,
             sself->blen);
 }
 Object alloc_ConcatString(Object left, Object right) {
-    if (ConcatString == NULL) {
-        ConcatString = alloc_class3("ConcatString", 24,
-                (void*)&ConcatString__mark,
-                (void*)&ConcatString__release);
-        add_Method(ConcatString, "asString", &identity_function);
-        add_Method(ConcatString, "++", &String_concat);
-        add_Method(ConcatString, "size", &String_size);
-        add_Method(ConcatString, "at", &ConcatString_at);
-        add_Method(ConcatString, "[]", &ConcatString_at);
-        add_Method(ConcatString, "==", &ConcatString_Equals);
-        add_Method(ConcatString, "!=", &Object_NotEquals);
-        add_Method(ConcatString, "iterator", &ConcatString_iter);
-        add_Method(ConcatString, "_escape", &ConcatString__escape);
-        add_Method(ConcatString, "length", &ConcatString_length);
-        add_Method(ConcatString, "iter", &ConcatString_iter);
-        add_Method(ConcatString, "encode", &String_encode);
-        add_Method(ConcatString, "substringFrom()to",
-                &ConcatString_substringFrom_to);
-        add_Method(ConcatString, "startsWith", &String_startsWith);
-        add_Method(ConcatString, "replace()with", &String_replace_with);
-        add_Method(ConcatString, "hashcode", &String_hashcode);
-        add_Method(ConcatString, "indices", &String_indices);
-        add_Method(ConcatString, "ord", &ConcatString_ord);
-        add_Method(ConcatString, "asNumber", &String_asNumber);
-        add_Method(ConcatString, "match", &literal_match);
-        add_Method(ConcatString, "|", &literal_or);
-        add_Method(ConcatString, "&", &literal_and);
-    }
+    init_ConcatString();
     struct StringObject *lefts = (struct StringObject*)left;
     struct StringObject *rights = (struct StringObject*)right;
     int depth = 1;
@@ -1667,31 +2123,7 @@ Object String_replace_with(Object self,
 }
 Object alloc_String(const char *data) {
     int blen = strlen(data);
-    if (String == NULL) {
-        String = alloc_class("String", 25);
-        add_Method(String, "asString", &identity_function);
-        add_Method(String, "++", &String_concat);
-        add_Method(String, "at", &String_at);
-        add_Method(String, "[]", &String_at);
-        add_Method(String, "==", &String_Equals);
-        add_Method(String, "!=", &Object_NotEquals);
-        add_Method(String, "iterator", &String_iter);
-        add_Method(String, "_escape", &String__escape);
-        add_Method(String, "length", &String_length);
-        add_Method(String, "size", &String_size);
-        add_Method(String, "iter", &String_iter);
-        add_Method(String, "ord", &String_ord);
-        add_Method(String, "encode", &String_encode);
-        add_Method(String, "substringFrom()to", &String_substringFrom_to);
-        add_Method(String, "startsWith", &String_startsWith);
-        add_Method(String, "replace()with", &String_replace_with);
-        add_Method(String, "hashcode", &String_hashcode);
-        add_Method(String, "indices", &String_indices);
-        add_Method(String, "asNumber", &String_asNumber);
-        add_Method(String, "match", &literal_match);
-        add_Method(String, "|", &literal_or);
-        add_Method(String, "&", &literal_and);
-    }
+    init_String();
     if (blen == 1) {
         if (String_Interned_1[data[0]] != NULL)
             return String_Interned_1[data[0]];
@@ -1855,17 +2287,8 @@ Object Octets_decode(Object receiver, int nparts, int *argcv,
     return alloc_String(newdata);
 }
 Object alloc_Octets(const char *data, int len) {
-    if (Octets == NULL) {
-        Octets = alloc_class("Octets", 8);
-        add_Method(Octets, "asString", &Octets_asString);
-        add_Method(Octets, "++", &Octets_Concat);
-        add_Method(Octets, "at", &Octets_at);
-        add_Method(Octets, "[]", &Octets_at);
-        add_Method(Octets, "==", &Octets_Equals);
-        add_Method(Octets, "!=", &Object_NotEquals);
-        add_Method(Octets, "size", &Octets_size);
-        add_Method(Octets, "decode", &Octets_decode);
-    }
+    init_Octets();
+
     Object o = alloc_obj(sizeof(int) + len, Octets);
     struct OctetsObject *oo = (struct OctetsObject*)o;
     oo->blen = len;
@@ -2104,34 +2527,7 @@ Object alloc_Float64(double num) {
             && ival < FLOAT64_INTERN_MAX
             && Float64_Interned[ival-FLOAT64_INTERN_MIN] != NULL)
         return Float64_Interned[ival-FLOAT64_INTERN_MIN];
-    if (Number == NULL) {
-        Number = alloc_class2("Number", 27, (void*)&Float64__mark);
-        add_Method(Number, "+", &Float64_Add);
-        add_Method(Number, "*", &Float64_Mul);
-        add_Method(Number, "-", &Float64_Sub);
-        add_Method(Number, "/", &Float64_Div);
-        add_Method(Number, "^", &Float64_Exp);
-        add_Method(Number, "%", &Float64_Mod);
-        add_Method(Number, "==", &Float64_Equals);
-        add_Method(Number, "!=", &Object_NotEquals);
-        add_Method(Number, "hashcode", &Float64_hashcode);
-        add_Method(Number, "++", &Object_concat);
-        add_Method(Number, "<", &Float64_LessThan);
-        add_Method(Number, ">", &Float64_GreaterThan);
-        add_Method(Number, "<=", &Float64_LessOrEqual);
-        add_Method(Number, ">=", &Float64_GreaterOrEqual);
-        add_Method(Number, "..", &Float64_Range);
-        add_Method(Number, "asString", &Float64_asString);
-        add_Method(Number, "asInteger32", &Float64_asInteger32);
-        add_Method(Number, "prefix-", &Float64_Negate);
-        add_Method(Number, "inBase", &Float64_inBase);
-        add_Method(Number, "truncate", &Float64_truncate);
-        add_Method(Number, "match", &literal_match);
-        add_Method(Number, "|", &literal_or);
-        add_Method(Number, "&", &literal_and);
-        add_Method(Number, "prefix<", &Float64_prefixLessThan);
-        add_Method(Number, "prefix>", &Float64_prefixGreaterThan);
-    }
+    init_Number();
     Object o = alloc_obj(sizeof(double) + sizeof(Object), Number);
     double *d = (double*)o->data;
     *d = num;
@@ -2246,21 +2642,7 @@ Object alloc_Boolean(int val) {
         return BOOLEAN_TRUE;
     if (!val && BOOLEAN_FALSE != NULL)
         return BOOLEAN_FALSE;
-    if (Boolean == NULL) {
-        Boolean = alloc_class("Boolean", 13);
-        add_Method(Boolean, "asString", &Boolean_asString);
-        add_Method(Boolean, "&", &literal_and);
-        add_Method(Boolean, "|", &literal_or);
-        add_Method(Boolean, "&&", &Boolean_AndAnd);
-        add_Method(Boolean, "||", &Boolean_OrOr);
-        add_Method(Boolean, "prefix!", &Boolean_not);
-        add_Method(Boolean, "not", &Boolean_not);
-        add_Method(Boolean, "andAlso", &Boolean_andAlso);
-        add_Method(Boolean, "==", &Boolean_Equals);
-        add_Method(Boolean, "!=", &Boolean_NotEquals);
-        add_Method(Boolean, "orElse", &Boolean_orElse);
-        add_Method(Boolean, "match", &literal_match);
-    }
+    init_Boolean();
     Object o = alloc_obj(sizeof(int8_t), Boolean);
     int8_t *d = (int8_t*)o->data;
     *d = (int8_t)val;
@@ -2407,25 +2789,8 @@ Object File_isatty(Object self, int nparts, int *argcv,
     return alloc_Boolean(isatty(fileno(s->file)));
 }
 Object alloc_File_from_stream(FILE *stream) {
-    if (File == NULL) {
-        File = alloc_class("File", 16);
-        add_Method(File, "read", &File_read);
-        add_Method(File, "getline", &File_getline);
-        add_Method(File, "write", &File_write);
-        add_Method(File, "close", &File_close);
-        add_Method(File, "seek", &File_seek);
-        add_Method(File, "seekForward", &File_seekForward);
-        add_Method(File, "seekBackward", &File_seekBackward);
-        add_Method(File, "iter", &File_iter);
-        add_Method(File, "havemore", &File_havemore);
-        add_Method(File, "next", &File_next);
-        add_Method(File, "readBinary", &File_readBinary);
-        add_Method(File, "writeBinary", &File_writeBinary);
-        add_Method(File, "eof", &File_eof);
-        add_Method(File, "isatty", &File_isatty);
-        add_Method(File, "==", &Object_Equals);
-        add_Method(File, "!=", &Object_NotEquals);
-    }
+    init_File();
+
     Object o = alloc_obj(sizeof(FILE*) + sizeof(int), File);
     struct FileObject* so = (struct FileObject*)o;
     so->file = stream;
@@ -2630,19 +2995,8 @@ void io__mark(struct IOModuleObject *o) {
 Object module_io_init() {
     if (iomodule != NULL)
         return iomodule;
-    IOModule = alloc_class2("Module<io>", 12, (void*)&io__mark);
-    add_Method(IOModule, "input", &io_input);
-    add_Method(IOModule, "output", &io_output);
-    add_Method(IOModule, "error", &io_error);
-    add_Method(IOModule, "open", &io_open);
-    add_Method(IOModule, "system", &io_system);
-    add_Method(IOModule, "exists", &io_exists);
-    add_Method(IOModule, "newer", &io_newer);
-    add_Method(IOModule, "spawn", &io_spawn);
-    add_Method(IOModule, "spawnv", &io_spawnv);
-    add_Method(IOModule, "realpath", &io_realpath);
-    add_Method(IOModule, "listdir", &io_listdir);
-    add_Method(IOModule, "findResource", &io_findResource);
+
+    init_IOModule();
     Object o = alloc_obj(sizeof(Object) * 3, IOModule);
     struct IOModuleObject *so = (struct IOModuleObject*)o;
     so->_stdin = alloc_File_from_stream(stdin);
@@ -2771,13 +3125,8 @@ void sys__mark(struct SysModule *o) {
 Object module_sys_init() {
     if (sysmodule != NULL)
         return sysmodule;
-    SysModule = alloc_class2("Module<sys>", 6, (void*)*sys__mark);
-    add_Method(SysModule, "argv", &sys_argv);
-    add_Method(SysModule, "cputime", &sys_cputime);
-    add_Method(SysModule, "elapsed", &sys_elapsed);
-    add_Method(SysModule, "exit", &sys_exit);
-    add_Method(SysModule, "execPath", &sys_execPath);
-    add_Method(SysModule, "environ", &sys_environ);
+
+    init_SysModule();
     Object o = alloc_obj(sizeof(Object), SysModule);
     struct SysModule *so = (struct SysModule*)o;
     so->argv = argv_List;
@@ -2883,11 +3232,8 @@ Object module_imports_init() {
 Object alloc_done() {
     if (done != NULL)
         return done;
-    Done = alloc_class("done", 4);
-    add_Method(Done, "==", &Object_Equals);
-    add_Method(Done, "!=", &Object_NotEquals);
-    add_Method(Done, "asDebugString", &Singleton_asString);
-    add_Method(Done, "asString", &Singleton_asString);
+
+    init_Done();
     Object o = alloc_obj(0, Done);
     done = o;
     gc_root(o);
@@ -2896,11 +3242,8 @@ Object alloc_done() {
 Object alloc_ellipsis() {
     if (ellipsis != NULL)
         return ellipsis;
-    ellipsisClass = alloc_class("ellipsis", 4);
-    add_Method(ellipsisClass, "asString", &Object_asString);
-    add_Method(ellipsisClass, "++", &Object_concat);
-    add_Method(ellipsisClass, "==", &Object_Equals);
-    add_Method(ellipsisClass, "!=", &Object_NotEquals);
+
+    init_EllipsisClass();
     Object o = alloc_obj(0, ellipsisClass);
     gc_root(o);
     ellipsis = o;
@@ -2909,7 +3252,8 @@ Object alloc_ellipsis() {
 Object alloc_Undefined() {
     if (undefined != NULL)
         return undefined;
-    Undefined = alloc_class("Undefined", 0);
+
+    init_Undefined();
     Object o = alloc_obj(0, Undefined);
     undefined = o;
     gc_root(o);
@@ -3426,15 +3770,8 @@ Object Type_asString(Object self, int nparts, int *argcv,
     return alloc_String(buf);
 }
 Object alloc_Type(const char *name, int nummethods) {
-    if (Type == NULL) {
-        Type = alloc_class("Type", 6);
-        add_Method(Type, "==", &Object_Equals);
-        add_Method(Type, "!=", &Object_NotEquals);
-        add_Method(Type, "asString", &Type_asString);
-        add_Method(Type, "match", &Type_match);
-        add_Method(Type, "&", &literal_and);
-        add_Method(Type, "|", &literal_or);
-    }
+    init_Type();
+
     Object o = alloc_obj(sizeof(struct TypeObject)
             - sizeof(int32_t) - sizeof(ClassData), Type);
     struct TypeObject *t = (struct TypeObject *)o;
@@ -3461,24 +3798,9 @@ Object Class_asString(Object self, int nparts, int *argcv,
     strcat(buf, ">");
     return alloc_String(buf);
 }
-static inline void initialise_Class() {
-    if (Class == NULL) {
-        Class = glmalloc(sizeof(struct ClassData));
-        Class->flags = 3;
-        Class->class = Class;
-        Class->name = "ClassOf<Class>";
-        Class->methods = glmalloc(sizeof(Method) * 4);
-        Class->nummethods = 3;
-        Class->mark = NULL;
-        Class->release = (void *)&ClassData__release;
-        add_Method(Class, "match", &Type_match);
-        add_Method(Class, "&", &literal_and);
-        add_Method(Class, "|", &literal_or);
-        add_Method(Class, "asString", &Class_asString);
-    }
-}
+
 ClassData alloc_class(const char *name, int nummethods) {
-    initialise_Class();
+    init_Class();
     ClassData c = glmalloc(sizeof(struct ClassData));
     c->name = glmalloc(strlen(name) + 1);
     strcpy(c->name, name);
@@ -3500,7 +3822,7 @@ ClassData alloc_class(const char *name, int nummethods) {
     return c;
 }
 ClassData alloc_class2(const char *name, int nummethods, void (*mark)(void*)) {
-    initialise_Class();
+    init_Class();
     ClassData c = glmalloc(sizeof(struct ClassData));
     c->name = glmalloc(strlen(name) + 1);
     strcpy(c->name, name);
@@ -3716,14 +4038,16 @@ void Block__release(struct BlockObject *o) {
     glfree(o->class);
     glfree(o->data);
 }
+
 Object alloc_Block(Object self, Object(*body)(Object, int, Object*, int),
         const char *modname, int line) {
     char buf[strlen(modname) + 15];
     sprintf(buf, "Block[%s:%i]", modname, line);
     ClassData c = alloc_class3(buf, 10, (void*)&Block__mark,
             (void*)&Block__release);
-    if (!Block)
-        Block = c;
+
+    init_Block(c);
+
     add_Method(c, "apply", &Block_apply);
     add_Method(c, "applyIndirectly", &Block_applyIndirectly);
     add_Method(c, "match", &Block_match);
@@ -3817,9 +4141,12 @@ void UserObj__release(struct UserObject *o) {
     int i;
     glfree(o->data);
 }
-Object GraceDefaultObject;
-Object alloc_userobj3(int numMethods, int numFields, int numAnnotations,
-      ClassData c) {
+
+// TODO : init the default object before threading system to avoid having to
+// lock.
+static inline void init_default_object() {
+    pthread_mutex_lock(&gracelib_mutex);
+
     if (GraceDefaultObject == NULL) {
         ClassData dc = alloc_class2("DefaultObject", 6,
                 (void*)&UserObj__mark);
@@ -3836,6 +4163,14 @@ Object alloc_userobj3(int numMethods, int numFields, int numAnnotations,
         addmethod2(GraceDefaultObject, "!=", &Object_NotEquals);
         addmethod2(GraceDefaultObject, "asDebugString", &Object_asString);
     }
+
+    pthread_mutex_unlock(&gracelib_mutex);
+}
+
+Object alloc_userobj3(int numMethods, int numFields, int numAnnotations,
+      ClassData c) {
+    init_default_object();
+
     if (c == NULL) {
         c = alloc_class3("Object", numMethods + 1,
                 (void*)&UserObj__mark, (void*)&UserObj__release);
@@ -3855,6 +4190,7 @@ Object alloc_userobj3(int numMethods, int numFields, int numAnnotations,
     uo->ndata = numFields;
     return o;
 }
+
 Object alloc_userobj2(int numMethods, int numFields, ClassData c) {
     return alloc_userobj3(numMethods, numFields, 0, c);
 }
@@ -3892,15 +4228,17 @@ Object process_varargs(Object *args, int fixed, int nargs) {
     }
     return lst;
 }
-char * compilerModulePath;
+
+// Called once on init - no threading.
 void setCompilerModulePath(char *s) {
     compilerModulePath = s;
 }
 
-char *modulePath = NULL;
+// Called once on init - no threading.
 void setModulePath(char *s) {
     modulePath = s;
 }
+
 int find_resource(const char *name, char *buf) {
 
     char *sep = execPathHelper();
@@ -4009,8 +4347,14 @@ void gracelib_stats() {
     fprintf(stderr, "CPU time: %f\n", clocks);
     fprintf(stderr, "Elapsed time: %f\n", etime);
 }
+
+// Called once on init - no threading.
 void gracelib_argv(char **argv) {
     ARGV = argv;
+
+    // Threading init
+    pthread_mutex_init(&gracelib_mutex, NULL);
+
     if (getenv("GRACE_STACK") != NULL) {
         set_stack_size(atoi(getenv("GRACE_STACK")));
     }
@@ -4075,6 +4419,8 @@ void gracelib_argv(char **argv) {
 // Gracelib cleanup on destruction
 void gracelib_destroy() {
     gc_destroy();
+
+    pthread_mutex_destroy(&gracelib_mutex);
 }
 
 void setline(int l) {

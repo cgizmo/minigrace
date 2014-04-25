@@ -17,7 +17,7 @@
 int expand_living();
 int rungc();
 
-// GC mutex for gc_* functions
+// GC mutex for gc_* functions.
 pthread_mutex_t gc_mutex;
 // Alloc/dealloc mutex for gcmalloc/glfree functions.
 pthread_mutex_t alloc_mutex;
