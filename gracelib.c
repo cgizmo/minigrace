@@ -363,7 +363,7 @@ char *modulePath = NULL;
 
 int hash_init = 0;
 
-// Constant objects
+// Constant singleton objects
 Object undefined = NULL;
 Object done = NULL;
 Object ellipsis = NULL;
@@ -426,6 +426,7 @@ int start_clocks = 0;
 double start_time = 0;
 
 char **ARGV = NULL;
+Object argv_List = NULL;
 
 static jmp_buf error_jump;
 static int error_jump_set;
@@ -443,6 +444,18 @@ char (*callstack)[256];
 int calldepth = 0;
 struct StackFrameObject **frame_stack;
 struct ClosureEnvObject **closure_stack;
+
+// TODO : add sysmodule, iomodule ?
+// sysmodule pbly has to be initialised after module_sys_init_argv
+static void init_singletons() {
+    undefined = alloc_obj(0, Undefined);
+    ellipsis = alloc_obj(0, ellipsisClass);
+    done = alloc_obj(0, Done);
+
+    gc_root(undefined);
+    gc_root(ellipsis);
+    gc_root(done);
+}
 
 // Everything except block, which is still initialised in the alloc_Block function.
 static void init_class_data() {
@@ -3073,7 +3086,6 @@ Object sys_argv(Object self, int nparts, int *argcv,
     struct SysModule *so = (struct SysModule*)self;
     return so->argv;
 }
-Object argv_List = NULL;
 void module_sys_init_argv(Object argv) {
     argv_List = argv;
 }
@@ -3252,31 +3264,31 @@ Object module_imports_init() {
     return o;
 }
 Object alloc_done() {
-    if (done != NULL)
+    if (done != NULL) {
         return done;
-
-    Object o = alloc_obj(0, Done);
-    done = o;
-    gc_root(o);
-    return o;
+    }
+    else {
+        die("done singleton constant was not initialised.");
+        return NULL;
+    }
 }
 Object alloc_ellipsis() {
-    if (ellipsis != NULL)
+    if (ellipsis != NULL) {
         return ellipsis;
-
-    Object o = alloc_obj(0, ellipsisClass);
-    gc_root(o);
-    ellipsis = o;
-    return o;
+    }
+    else {
+        die("ellipsis singleton constant was not initialised.");
+        return NULL;
+    }
 }
 Object alloc_Undefined() {
-    if (undefined != NULL)
+    if (undefined != NULL) {
         return undefined;
-
-    Object o = alloc_obj(0, Undefined);
-    undefined = o;
-    gc_root(o);
-    return o;
+    }
+    else {
+        die("undefined singleton constant was not initialised.");
+        return NULL;
+    }
 }
 void block_return(Object self, Object obj) {
     struct UserObject *uo = (struct UserObject*)self;
@@ -4367,9 +4379,6 @@ void gracelib_stats() {
 void gracelib_argv(char **argv) {
     ARGV = argv;
 
-    // ClassData initialisation
-    init_class_data();
-
     // Threading init
     pthread_mutex_init(&gracelib_mutex, NULL);
 
@@ -4403,6 +4412,10 @@ void gracelib_argv(char **argv) {
     else
         gc_period = 100000;
     gc_init(gc_dofree, gc_dowarn, gc_period);
+
+    // ClassData and singleton initialisation
+    init_class_data();
+    init_singletons();
 
     srand(time(NULL));
     hash_init = rand();
