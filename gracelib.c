@@ -120,7 +120,6 @@ struct ExceptionObject {
     Object parent;
 };
 
-struct SFLinkList *shutdown_functions;
 
 void debugger();
 
@@ -420,7 +419,10 @@ Object GraceDefaultObject;
 Object Dynamic;
 Object Unknown;
 Object List;
+
+// TODO : handle those
 Object prelude = NULL;
+Object _prelude = NULL;
 
 int linenumber = 0;
 const char *modulename;
@@ -450,6 +452,36 @@ char (*callstack)[256];
 int calldepth = 0;
 struct StackFrameObject **frame_stack;
 struct ClosureEnvObject **closure_stack;
+
+struct SFLinkList *shutdown_functions;
+
+int callcount = 0;
+int tailcount = 0;
+
+// TODO : sort this with the default/singleton/constants and the global ClassData.
+ClassData ImportsModule;
+Object importsmodule;
+Object stringResourceHandler;
+
+Object sourceObject;
+
+Object minigrace_obj;
+
+Object environObject;
+
+ClassData StackFrame;
+
+ClassData Process;
+
+Object PrimitiveArrayClassObject;
+
+Object MatchFailed;
+
+ClassData Integer32 = NULL;
+
+ClassData EnvironObject;
+
+ClassData ClosureEnv;
 
 static void init_default_objects() {
     init_default_object();
@@ -1791,7 +1823,6 @@ Object PrimitiveArrayClassObject_new(Object self, int nparts, int *argcv,
         die("array construction requires size argument");
     return alloc_PrimitiveArray(integerfromAny(args[0]));
 }
-Object PrimitiveArrayClassObject;
 Object alloc_PrimitiveArrayClassObject() {
     if (PrimitiveArrayClassObject)
         return PrimitiveArrayClassObject;
@@ -2986,7 +3017,6 @@ struct ProcessObject {
     int status;
     int done;
 };
-ClassData Process;
 Object Process_wait(Object self, int nparts, int *argcv,
         Object *argv, int flags) {
     struct ProcessObject *p = (struct ProcessObject *)self;
@@ -3118,8 +3148,6 @@ Object module_io_init() {
     gc_root(o);
     return o;
 }
-ClassData EnvironObject;
-Object environObject;
 Object environObject_at(Object self, int nparts, int *argcv,
         Object *args, int flags) {
     char *s = grcstring(args[0]);
@@ -3245,9 +3273,7 @@ Object module_sys_init() {
     gc_root(o);
     return o;
 }
-ClassData ImportsModule;
-Object importsmodule;
-Object stringResourceHandler;
+
 struct ImportsModule {
     OBJECT_HEADER;
     struct imports_extension_pair *extensions;
@@ -3378,7 +3404,6 @@ void block_savedest(Object self) {
     uo->retpoint = (void *)&return_stack[calldepth-1];
 }
 
-Object sourceObject;
 Method *findmethod(Object *selfp, Object *realselfp, const char *name,
         int superdepth, int *cflags) {
     Object self = *selfp;
@@ -3461,8 +3486,6 @@ int checkmethodcall(Method *m, int nparts, int *argcv, Object *argv) {
     }
     return 1;
 }
-int callcount = 0;
-int tailcount = 0;
 Object callmethod4(Object self, const char *name,
         int partc, int *argcv, Object *argv, int superdepth, int callflags) {
     debug("callmethod %s on %p (%s)", name, self, self->class->name);
@@ -3628,7 +3651,6 @@ Object callmethodself(Object receiver, const char *name,
         int nparts, int *nparamsv, Object *args) {
     return callmethodflags(receiver, name, nparts, nparamsv, args, CFLAG_SELF);
 }
-Object MatchFailed;
 Object alloc_MatchFailed() {
     if (!MatchFailed) {
         MatchFailed = alloc_userobj(0, 0);
@@ -3711,7 +3733,6 @@ Object gracelib_print(Object receiver, int nparams,
     return done;
 }
 
-ClassData StackFrame;
 void StackFrame__mark(struct StackFrameObject *o) {
     int i;
     for (i=0; i<o->size; i++)
@@ -3743,7 +3764,6 @@ struct StackFrameObject *alloc_StackFrame(int size,
 }
 
 
-ClassData ClosureEnv;
 void ClosureEnv__mark(struct ClosureEnvObject *o) {
     int i;
     if (o->frame != NULL)
@@ -4059,7 +4079,6 @@ Object Integer32_isInteger32(Object self, int nparts, int *argcv,
         Object *args, int flags) {
     return (Object)alloc_Boolean(1);
 }
-ClassData Integer32 = NULL;
 Object alloc_Integer32(int i) {
     if (Integer32 == NULL) {
         Integer32 = alloc_class("Integer32", 15);
@@ -4587,7 +4606,6 @@ Object prelude__methods(Object self, int argc, int *argcv,
     gc_unpause();
     return l;
 }
-Object minigrace_obj;
 Object minigrace_warranty(Object self, int argc, int *argcv,
         Object *argv, int flags) {
     char *w =
@@ -4672,7 +4690,6 @@ Object prelude_clone(Object self, int argc, int *argcv, Object *argv,
     uret->super = prelude_clone(self, argc, argcv, &uo->super, flags);
   return ret;
 }
-Object _prelude = NULL;
 Object grace_prelude() {
     if (prelude != NULL)
         return prelude;
