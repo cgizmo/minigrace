@@ -120,6 +120,15 @@ struct ExceptionObject {
     Object parent;
 };
 
+struct ImportsModule {
+    OBJECT_HEADER;
+    struct imports_extension_pair *extensions;
+};
+struct imports_extension_pair {
+    char extension[32];
+    Object handler;
+    struct imports_extension_pair *next;
+};
 
 void debugger();
 
@@ -289,6 +298,13 @@ Object sys_elapsed(Object self, int nparts, int *argcv, Object *args, int flags)
 Object sys_environ(Object self, int nparts, int *argcv, Object *args, int flags);
 Object sys_execPath(Object self, int nparts, int *argcv, Object *args, int flags);
 Object sys_exit(Object self, int nparts, int *argcv, Object *args, int flags);
+Object minigrace_credits(Object self, int argc, int *argcv, Object *argv, int flags);
+Object minigrace_warranty(Object self, int argc, int *argcv, Object *argv, int flags);
+Object environObject_at(Object self, int nparts, int *argcv, Object *args, int flags);
+Object environObject_atPut(Object self, int nparts, int *argcv, Object *args, int flags);
+Object environObject_contains(Object self, int nparts, int *argcv, Object *args, int flags);
+Object imports_loadResource(Object self, int nparts, int *argcv, Object *args, int flags);
+Object imports_registerExtension(Object self, int nparts, int *argcv, Object *args, int flags);
 
 void Block__mark(struct BlockObject *o);
 void Block__release(struct BlockObject *o);
@@ -310,6 +326,7 @@ void UserObj__mark(struct UserObject *o);
 void UserObj__release(struct UserObject *o);
 void io__mark(struct IOModuleObject *o);
 void sys__mark(struct SysModule *o);
+void imports__mark(struct ImportsModule *o);
 
 Object String_size(Object , int, int*, Object *, int flags);
 Object String_at(Object , int, int*, Object *, int flags);
@@ -324,6 +341,8 @@ Object alloc_AndPattern(Object l, Object r);
 
 Object alloc_ExceptionPacket(Object msg, Object exception);
 Object alloc_Exception(char *name, Object parent);
+
+struct imports_extension_pair *alloc_imports_extension(const char *ext, Object handler);
 
 // Initialisers
 static void init_Number(void);
@@ -350,7 +369,18 @@ static void init_GreaterThanPattern(void);
 static void init_LessThanPattern(void);
 static void init_ExceptionPacket(void);
 static void init_Exception(void);
+static void init_ImportsModule(void);
+static void init_EnvironObject(void);
+static void init_StackFrame(void);
+static void init_Process(void);
+static void init_Integer32(void);
+static void init_ClosureEnv(void);
+
 static void init_default_object(void);
+static void init_imports_module_object(void);
+static void init_list_object(void);
+static void init_minigrace_object(void);
+static void init_prim_array_class_object(void);
 
 static inline void intern_float(int ival, Object o);
 
@@ -368,15 +398,11 @@ char *modulePath = NULL;
 
 int hash_init = 0;
 
-// Constant singleton objects
-Object undefined = NULL;
-Object done = NULL;
-Object ellipsis = NULL;
-
 // TODO : lock around those
 Object iomodule; // TODO: This one is never set. It should probable be in module_io_init.
 Object sysmodule;
 
+// Singleton constants
 Object BOOLEAN_TRUE = NULL;
 Object BOOLEAN_FALSE = NULL;
 Object FLOAT64_ZERO = NULL;
@@ -413,12 +439,27 @@ ClassData GreaterThanPattern;
 ClassData LessThanPattern;
 ClassData ExceptionPacket;
 ClassData Exception;
+ClassData ImportsModule;
+ClassData EnvironObject;
+ClassData StackFrame;
+ClassData Process;
+ClassData Integer32;
+ClassData ClosureEnv;
 
 // "Default objects"
+Object undefined;
+Object done;
+Object ellipsis;
 Object GraceDefaultObject;
 Object Dynamic;
 Object Unknown;
 Object List;
+Object importsmodule;
+Object stringResourceHandler;
+Object minigrace_obj;
+Object environObject;
+Object PrimitiveArrayClassObject;
+Object MatchFailed;
 
 // TODO : handle those
 Object prelude = NULL;
@@ -458,36 +499,57 @@ struct SFLinkList *shutdown_functions;
 int callcount = 0;
 int tailcount = 0;
 
-// TODO : sort this with the default/singleton/constants and the global ClassData.
-ClassData ImportsModule;
-Object importsmodule;
-Object stringResourceHandler;
-
+// Used by callmethod4.
 Object sourceObject;
 
-Object minigrace_obj;
-
-Object environObject;
-
-ClassData StackFrame;
-
-ClassData Process;
-
-Object PrimitiveArrayClassObject;
-
-Object MatchFailed;
-
-ClassData Integer32 = NULL;
-
-ClassData EnvironObject;
-
-ClassData ClosureEnv;
-
+// TODO : add sysmodule, iomodule ?
+// sysmodule pbly has to be initialised after module_sys_init_argv
 static void init_default_objects() {
     init_default_object();
+    init_imports_module_object();
+    init_list_object();
+    init_minigrace_object();
+    init_prim_array_class_object();
 
+    undefined = alloc_obj(0, Undefined);
+    ellipsis = alloc_obj(0, ellipsisClass);
+    done = alloc_obj(0, Done);
     Unknown = alloc_Type("Unknown", 0);
     Dynamic = Unknown;
+    environObject = alloc_obj(0, EnvironObject);
+    MatchFailed = alloc_userobj(0, 0);
+
+    gc_root(undefined);
+    gc_root(ellipsis);
+    gc_root(done);
+    gc_root(Unknown);
+    gc_root(environObject);
+    gc_root(MatchFailed);
+}
+
+static void init_prim_array_class_object() {
+    ClassData c = alloc_class("Class<PrimitiveArray>", 3);
+    add_Method(c, "==", &Object_Equals);
+    add_Method(c, "!=", &Object_NotEquals);
+    add_Method(c, "new", &PrimitiveArrayClassObject_new);
+
+    PrimitiveArrayClassObject = alloc_obj(0, c);
+    gc_root(PrimitiveArrayClassObject);
+}
+
+// Pre : GraceDefaultObject is initialised (b/c call to alloc_userobj).
+static void init_minigrace_object() {
+    ClassData c = alloc_class("Minigrace", 3);
+    add_Method(c, "warranty", &minigrace_warranty);
+    add_Method(c, "w", &minigrace_warranty);
+    add_Method(c, "credits", &minigrace_credits);
+
+    minigrace_obj = alloc_userobj2(0, 0, c);
+
+    gc_root(minigrace_obj);
+}
+
+static void init_list_object() {
     List = alloc_Type("List", 14);
 
     add_Method((ClassData)List, "==", NULL);
@@ -504,8 +566,19 @@ static void init_default_objects() {
     add_Method((ClassData)List, "asString", NULL);
     add_Method((ClassData)List, "asDebugString", NULL);
 
-    gc_root(Unknown);
     gc_root(List);
+}
+
+// Pre : GraceDefaultObject is initialised (b/c call to alloc_userobj).
+static void init_imports_module_object() {
+    stringResourceHandler = alloc_userobj(1, 0);
+    add_Method(stringResourceHandler->class, "loadResource", &StringResourceHandler_loadResource);
+
+    importsmodule = alloc_obj(sizeof(struct imports_extension_pair*), ImportsModule);
+    struct ImportsModule *im = (struct ImportsModule *)importsmodule;
+    im->extensions = alloc_imports_extension("txt", stringResourceHandler);
+
+    gc_root(importsmodule);
 }
 
 static void init_default_object() {
@@ -523,18 +596,6 @@ static void init_default_object() {
     addmethod2(GraceDefaultObject, "==", &UserObj_Equals);
     addmethod2(GraceDefaultObject, "!=", &Object_NotEquals);
     addmethod2(GraceDefaultObject, "asDebugString", &Object_asString);
-}
-
-// TODO : add sysmodule, iomodule ?
-// sysmodule pbly has to be initialised after module_sys_init_argv
-static void init_singletons() {
-    undefined = alloc_obj(0, Undefined);
-    ellipsis = alloc_obj(0, ellipsisClass);
-    done = alloc_obj(0, Done);
-
-    gc_root(undefined);
-    gc_root(ellipsis);
-    gc_root(done);
 }
 
 static void init_constants() {
@@ -593,6 +654,12 @@ static void init_class_data() {
     init_LessThanPattern();
     init_ExceptionPacket();
     init_Exception();
+    init_ImportsModule();
+    init_EnvironObject();
+    init_StackFrame();
+    init_Process();
+    init_Integer32();
+    init_ClosureEnv();
 }
 
 static void init_Number() {
@@ -957,7 +1024,7 @@ static void init_ExceptionPacket() {
 }
 
 static void init_Exception() {
-    if (!Exception) {
+    if (Exception == NULL) {
         Exception = alloc_class("Exception", 10);
         add_Method(Exception, "match", &Exception_match);
         add_Method(Exception, "refine", &Exception_refine);
@@ -969,6 +1036,71 @@ static void init_Exception() {
         add_Method(Exception, "asDebugString", &Object_asString);
         add_Method(Exception, "|", &literal_or);
         add_Method(Exception, "&", &literal_and);
+    }
+}
+
+static void init_ImportsModule() {
+    if (ImportsModule == NULL) {
+        ImportsModule = alloc_class2("Module<imports>", 2, (void*)&imports__mark);
+        add_Method(ImportsModule, "registerExtension", &imports_registerExtension);
+        add_Method(ImportsModule, "loadResource", &imports_loadResource);
+    }
+}
+
+static void init_EnvironObject() {
+    if (EnvironObject == NULL) {
+        EnvironObject = alloc_class("Environ", 5);
+        add_Method(EnvironObject, "at", &environObject_at);
+        add_Method(EnvironObject, "[]", &environObject_at);
+        add_Method(EnvironObject, "at()put", &environObject_atPut);
+        add_Method(EnvironObject, "[]:=", &environObject_atPut);
+        add_Method(EnvironObject, "contains", &environObject_contains);
+    }
+}
+
+static void init_StackFrame() {
+    if (StackFrame == NULL) {
+        StackFrame = alloc_class3("StackFrame", 0, (void*)&StackFrame__mark,
+                (void*)&StackFrame__release);
+    }
+}
+
+static void init_Process() {
+    if (Process == NULL) {
+        Process = alloc_class("Process", 6);
+        add_Method(Process, "wait", &Process_wait);
+        add_Method(Process, "success", &Process_success);
+        add_Method(Process, "terminated", &Process_terminated);
+        add_Method(Process, "status", &Process_status);
+        add_Method(Process, "==", &Object_Equals);
+        add_Method(Process, "!=", &Object_NotEquals);
+    }
+}
+
+static void init_Integer32() {
+    if (Integer32 == NULL) {
+        Integer32 = alloc_class("Integer32", 15);
+        add_Method(Integer32, "==", &Integer32_Equals);
+        add_Method(Integer32, "!=", &Integer32_NotEquals);
+        add_Method(Integer32, "/=", &Integer32_NotEquals);
+        add_Method(Integer32, "+", &Integer32_Plus);
+        add_Method(Integer32, "*", &Integer32_Times);
+        add_Method(Integer32, "-", &Integer32_Minus);
+        add_Method(Integer32, "/", &Integer32_DividedBy);
+        add_Method(Integer32, "<", &Integer32_LessThan);
+        add_Method(Integer32, ">", &Integer32_GreaterThan);
+        add_Method(Integer32, "<<", &Integer32_LShift);
+        add_Method(Integer32, ">>", &Integer32_RShift);
+        add_Method(Integer32, "&", &Integer32_And);
+        add_Method(Integer32, "|", &Integer32_Or);
+        add_Method(Integer32, "asString", &Integer32_asString);
+        add_Method(Integer32, "isInteger32", &Integer32_isInteger32);
+    }
+}
+
+static void init_ClosureEnv() {
+    if (ClosureEnv == NULL) {
+        ClosureEnv = alloc_class2("ClosureEnv", 0, (void*)&ClosureEnv__mark);
     }
 }
 
@@ -1824,16 +1956,13 @@ Object PrimitiveArrayClassObject_new(Object self, int nparts, int *argcv,
     return alloc_PrimitiveArray(integerfromAny(args[0]));
 }
 Object alloc_PrimitiveArrayClassObject() {
-    if (PrimitiveArrayClassObject)
+    if (PrimitiveArrayClassObject) {
         return PrimitiveArrayClassObject;
-    ClassData c = alloc_class("Class<PrimitiveArray>", 3);
-    add_Method(c, "==", &Object_Equals);
-    add_Method(c, "!=", &Object_NotEquals);
-    add_Method(c, "new", &PrimitiveArrayClassObject_new);
-    Object o = alloc_obj(0, c);
-    gc_root(o);
-    PrimitiveArrayClassObject = o;
-    return o;
+    }
+    else {
+        die("PrimitiveArrayClassObject singleton constant was not initialised.");
+        return NULL;
+    }
 }
 int getutf8charlen(const char *s) {
     int i;
@@ -3056,15 +3185,6 @@ Object Process_terminated(Object self, int nparts, int *argcv,
     return alloc_Boolean(1);
 }
 Object alloc_Process(pid_t pid) {
-    if (Process == NULL) {
-        Process = alloc_class("Process", 6);
-        add_Method(Process, "wait", &Process_wait);
-        add_Method(Process, "success", &Process_success);
-        add_Method(Process, "terminated", &Process_terminated);
-        add_Method(Process, "status", &Process_status);
-        add_Method(Process, "==", &Object_Equals);
-        add_Method(Process, "!=", &Object_NotEquals);
-    }
     Object o = alloc_obj(sizeof(pid_t) + sizeof(int) * 2, Process);
     struct ProcessObject *p = (struct ProcessObject *)o;
     p->pid = pid;
@@ -3172,19 +3292,13 @@ Object environObject_contains(Object self, int nparts, int *argcv,
     return alloc_Boolean(0);
 }
 Object alloc_environObject() {
-    if (environObject)
+    if (environObject) {
         return environObject;
-    if (!EnvironObject) {
-        EnvironObject = alloc_class("Environ", 5);
-        add_Method(EnvironObject, "at", &environObject_at);
-        add_Method(EnvironObject, "[]", &environObject_at);
-        add_Method(EnvironObject, "at()put", &environObject_atPut);
-        add_Method(EnvironObject, "[]:=", &environObject_atPut);
-        add_Method(EnvironObject, "contains", &environObject_contains);
     }
-    environObject = alloc_obj(0, EnvironObject);
-    gc_root(environObject);
-    return environObject;
+    else {
+        die("environObject singleton constant was not initialised.");
+        return NULL;
+    }
 }
 Object sys_argv(Object self, int nparts, int *argcv,
         Object *args, int flags) {
@@ -3274,15 +3388,6 @@ Object module_sys_init() {
     return o;
 }
 
-struct ImportsModule {
-    OBJECT_HEADER;
-    struct imports_extension_pair *extensions;
-};
-struct imports_extension_pair {
-    char extension[32];
-    Object handler;
-    struct imports_extension_pair *next;
-};
 struct imports_extension_pair *alloc_imports_extension(const char *ext,
         Object handler) {
     struct imports_extension_pair *ret = glmalloc(sizeof(struct imports_extension_pair));
@@ -3352,19 +3457,13 @@ Object imports_registerExtension(Object self, int nparts, int *argcv,
     return done;
 }
 Object module_imports_init() {
-    if (importsmodule != NULL)
+    if (importsmodule != NULL) {
         return importsmodule;
-    stringResourceHandler = alloc_userobj(1, 0);
-    add_Method(stringResourceHandler->class, "loadResource", &StringResourceHandler_loadResource);
-    ImportsModule = alloc_class2("Module<imports>", 2, (void*)&imports__mark);
-    add_Method(ImportsModule, "registerExtension", &imports_registerExtension);
-    add_Method(ImportsModule, "loadResource", &imports_loadResource);
-    Object o = alloc_obj(sizeof(struct imports_extension_pair*), ImportsModule);
-    struct ImportsModule *im = (struct ImportsModule *)o;
-    im->extensions = alloc_imports_extension("txt", stringResourceHandler);
-    importsmodule = o;
-    gc_root(o);
-    return o;
+    }
+    else {
+        die("importsmodule singleton constant was not initialised.");
+        return NULL;
+    }
 }
 Object alloc_done() {
     if (done != NULL) {
@@ -3653,8 +3752,7 @@ Object callmethodself(Object receiver, const char *name,
 }
 Object alloc_MatchFailed() {
     if (!MatchFailed) {
-        MatchFailed = alloc_userobj(0, 0);
-        gc_root(MatchFailed);
+        die("MatchFailed singleton constant was not initialised.");
     }
     return MatchFailed;
 }
@@ -3746,10 +3844,6 @@ void StackFrame__release(struct StackFrameObject *o) {
 struct StackFrameObject *alloc_StackFrame(int size,
         struct StackFrameObject *parent) {
     int i;
-    if (StackFrame == NULL) {
-        StackFrame = alloc_class3("StackFrame", 0, (void*)&StackFrame__mark,
-                (void*)&StackFrame__release);
-    }
     Object o = alloc_obj(sizeof(struct StackFrameObject) + sizeof(Object)*size
             - sizeof(struct Object), StackFrame);
     struct StackFrameObject *s = (struct StackFrameObject *)o;
@@ -3776,9 +3870,6 @@ struct StackFrameObject *getclosureframe(Object c) {
     return (struct StackFrameObject *)(((struct ClosureEnvObject*)c)->frame);
 }
 Object createclosure(int size, char *name) {
-    if (ClosureEnv == NULL) {
-        ClosureEnv = alloc_class2("ClosureEnv", 0, (void*)&ClosureEnv__mark);
-    }
     Object o = alloc_obj(sizeof(struct ClosureEnvObject)
             + sizeof(Object *) * size, ClosureEnv);
     struct ClosureEnvObject *oo = (struct ClosureEnvObject *)o;
@@ -4080,24 +4171,6 @@ Object Integer32_isInteger32(Object self, int nparts, int *argcv,
     return (Object)alloc_Boolean(1);
 }
 Object alloc_Integer32(int i) {
-    if (Integer32 == NULL) {
-        Integer32 = alloc_class("Integer32", 15);
-        add_Method(Integer32, "==", &Integer32_Equals);
-        add_Method(Integer32, "!=", &Integer32_NotEquals);
-        add_Method(Integer32, "/=", &Integer32_NotEquals);
-        add_Method(Integer32, "+", &Integer32_Plus);
-        add_Method(Integer32, "*", &Integer32_Times);
-        add_Method(Integer32, "-", &Integer32_Minus);
-        add_Method(Integer32, "/", &Integer32_DividedBy);
-        add_Method(Integer32, "<", &Integer32_LessThan);
-        add_Method(Integer32, ">", &Integer32_GreaterThan);
-        add_Method(Integer32, "<<", &Integer32_LShift);
-        add_Method(Integer32, ">>", &Integer32_RShift);
-        add_Method(Integer32, "&", &Integer32_And);
-        add_Method(Integer32, "|", &Integer32_Or);
-        add_Method(Integer32, "asString", &Integer32_asString);
-        add_Method(Integer32, "isInteger32", &Integer32_isInteger32);
-    }
     Object o = alloc_obj(sizeof(int32_t), Integer32);
     int32_t *d = (int32_t*)o->data;
     *d = i;
@@ -4484,7 +4557,6 @@ void gracelib_argv(char **argv) {
 
     // ClassData and singleton initialisation
     init_class_data();
-    init_singletons();
     init_constants();
     init_default_objects();
 
@@ -4641,13 +4713,9 @@ Object minigrace_credits(Object self, int argc, int *argcv,
 Object grace_minigrace(Object self, int argc, int *argcv,
         Object *argv, int flags) {
     if (!minigrace_obj) {
-        ClassData c = alloc_class("Minigrace", 3);
-        add_Method(c, "warranty", &minigrace_warranty);
-        add_Method(c, "w", &minigrace_warranty);
-        add_Method(c, "credits", &minigrace_credits);
-        minigrace_obj = alloc_userobj2(0, 0, c);
-        gc_root(minigrace_obj);
+        die("minigrace_obj singleton constant was not initialised.");
     }
+
     return minigrace_obj;
 }
 Object prelude_PrimitiveArray(Object self, int argc, int *argcv,
