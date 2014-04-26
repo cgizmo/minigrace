@@ -28,6 +28,10 @@
 #include "definitions.h"
 #define max(x,y) (x>y?x:y)
 
+#define FLOAT64_INTERN_MIN -10
+#define FLOAT64_INTERN_MAX 10000
+#define FLOAT64_INTERN_SIZE FLOAT64_INTERN_MAX-FLOAT64_INTERN_MIN
+
 struct StringObject {
     OBJECT_HEADER;
     int blen;
@@ -348,12 +352,13 @@ static void init_LessThanPattern(void);
 static void init_ExceptionPacket(void);
 static void init_Exception(void);
 
+static inline void intern_float(int ival, Object o);
+
 int find_resource(const char *name, char *buf);
+char *grcstring(Object s);
 
 FILE *debugfp;
 int debug_enabled = 0;
-
-char *grcstring(Object s);
 
 // General "gracelib" mutex.
 pthread_mutex_t gracelib_mutex;
@@ -367,6 +372,8 @@ int hash_init = 0;
 Object undefined = NULL;
 Object done = NULL;
 Object ellipsis = NULL;
+
+// TODO : lock around those
 Object iomodule; // TODO: This one is never set. It should probable be in module_io_init.
 Object sysmodule;
 
@@ -376,10 +383,7 @@ Object FLOAT64_ZERO = NULL;
 Object FLOAT64_ONE = NULL;
 Object FLOAT64_TWO = NULL;
 
-#define FLOAT64_INTERN_MIN -10
-#define FLOAT64_INTERN_MAX 10000
-#define FLOAT64_INTERN_SIZE FLOAT64_INTERN_MAX-FLOAT64_INTERN_MIN
-
+// TODO : lock around those
 Object Float64_Interned[FLOAT64_INTERN_SIZE];
 Object String_Interned_1[256];
 
@@ -455,6 +459,34 @@ static void init_singletons() {
     gc_root(undefined);
     gc_root(ellipsis);
     gc_root(done);
+}
+
+static void init_constants() {
+    BOOLEAN_TRUE = alloc_obj(sizeof(int8_t), Boolean);
+    BOOLEAN_FALSE = alloc_obj(sizeof(int8_t), Boolean);
+    FLOAT64_ZERO = alloc_obj(sizeof(double) + sizeof(Object), Number);
+    FLOAT64_ONE = alloc_obj(sizeof(double) + sizeof(Object), Number);
+    FLOAT64_TWO = alloc_obj(sizeof(double) + sizeof(Object), Number);
+
+    *((int8_t*)BOOLEAN_TRUE->data) = (int8_t)1;
+    *((int8_t*)BOOLEAN_FALSE->data) = (int8_t)0;
+    *((double*)FLOAT64_ZERO->data) = (double)0.0;
+    *((double*)FLOAT64_ONE->data) = (double)1.0;
+    *((double*)FLOAT64_TWO->data) = (double)2.0;
+    *((Object*)(FLOAT64_ZERO->data + sizeof(double))) = NULL;
+    *((Object*)(FLOAT64_ONE->data + sizeof(double))) = NULL;
+    *((Object*)(FLOAT64_TWO->data + sizeof(double))) = NULL;
+
+    // Intern the floats for consistency
+    intern_float(0, FLOAT64_ZERO);
+    intern_float(1, FLOAT64_ONE);
+    intern_float(2, FLOAT64_TWO);
+
+    gc_root(BOOLEAN_TRUE);
+    gc_root(BOOLEAN_FALSE);
+    gc_root(FLOAT64_ZERO);
+    gc_root(FLOAT64_ONE);
+    gc_root(FLOAT64_TWO);
 }
 
 // Everything except block, which is still initialised in the alloc_Block function.
@@ -2563,29 +2595,34 @@ Object alloc_Float64(double num) {
         return FLOAT64_ONE;
     if (num == 2 && FLOAT64_TWO != NULL)
         return FLOAT64_TWO;
+
     int ival = num;
     if (ival == num && ival >= FLOAT64_INTERN_MIN
             && ival < FLOAT64_INTERN_MAX
             && Float64_Interned[ival-FLOAT64_INTERN_MIN] != NULL)
         return Float64_Interned[ival-FLOAT64_INTERN_MIN];
+
     Object o = alloc_obj(sizeof(double) + sizeof(Object), Number);
     double *d = (double*)o->data;
     *d = num;
     Object *str = (Object*)(o->data + sizeof(double));
     *str = NULL;
-    if (ival == num && ival >= FLOAT64_INTERN_MIN
-            && ival < FLOAT64_INTERN_MAX) {
-        Float64_Interned[ival-FLOAT64_INTERN_MIN] = o;
-        gc_root(o);
-    }
-    if (num == 0)
-        FLOAT64_ZERO = o;
-    if (num == 1)
-        FLOAT64_ONE = o;
-    if (num == 2)
-        FLOAT64_TWO = o;
+
+    if (ival == num)
+        intern_float(ival, o);
+    gc_root(o);
+
     return o;
 }
+
+// Pre : ival is the int value of the float Object.
+static inline void intern_float(int ival, Object o) {
+    if (ival >= FLOAT64_INTERN_MIN
+            && ival < FLOAT64_INTERN_MAX) {
+        Float64_Interned[ival-FLOAT64_INTERN_MIN] = o;
+    }
+}
+
 Object Float64_asString(Object self, int nparts, int *argcv,
         Object *args, int flags) {
     Object *strp = (Object*)(self->data + sizeof(double));
@@ -2682,15 +2719,11 @@ Object alloc_Boolean(int val) {
         return BOOLEAN_TRUE;
     if (!val && BOOLEAN_FALSE != NULL)
         return BOOLEAN_FALSE;
-    Object o = alloc_obj(sizeof(int8_t), Boolean);
-    int8_t *d = (int8_t*)o->data;
-    *d = (int8_t)val;
-    if (val)
-        BOOLEAN_TRUE = o;
-    else
-        BOOLEAN_FALSE = o;
-    gc_root(o);
-    return o;
+
+    if (BOOLEAN_FALSE == NULL || BOOLEAN_TRUE == NULL)
+        die("Constants not initilised by runtime.");
+
+    return NULL;
 }
 Object File_close(Object self, int nparts, int *argcv,
         Object *args, int flags) {
@@ -4416,6 +4449,7 @@ void gracelib_argv(char **argv) {
     // ClassData and singleton initialisation
     init_class_data();
     init_singletons();
+    init_constants();
 
     srand(time(NULL));
     hash_init = rand();
