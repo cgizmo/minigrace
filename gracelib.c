@@ -308,9 +308,6 @@ void UserObj__release(struct UserObject *o);
 void io__mark(struct IOModuleObject *o);
 void sys__mark(struct SysModule *o);
 
-FILE *debugfp;
-int debug_enabled = 0;
-
 Object String_size(Object , int, int*, Object *, int flags);
 Object String_at(Object , int, int*, Object *, int flags);
 Object String_replace_with(Object , int, int*, Object *, int flags);
@@ -352,6 +349,9 @@ static void init_ExceptionPacket(void);
 static void init_Exception(void);
 
 int find_resource(const char *name, char *buf);
+
+FILE *debugfp;
+int debug_enabled = 0;
 
 char *grcstring(Object s);
 
