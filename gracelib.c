@@ -3266,6 +3266,7 @@ Object module_io_init() {
     so->_stdout = alloc_File_from_stream(stdout);
     so->_stderr = alloc_File_from_stream(stderr);
     gc_root(o);
+    iomodule = o;
     return o;
 }
 Object environObject_at(Object self, int nparts, int *argcv,
