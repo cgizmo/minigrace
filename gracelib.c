@@ -351,6 +351,7 @@ static void init_GreaterThanPattern(void);
 static void init_LessThanPattern(void);
 static void init_ExceptionPacket(void);
 static void init_Exception(void);
+static void init_default_object(void);
 
 static inline void intern_float(int ival, Object o);
 
@@ -414,6 +415,7 @@ ClassData LessThanPattern;
 ClassData ExceptionPacket;
 ClassData Exception;
 
+// "Default objects"
 Object GraceDefaultObject;
 Object Dynamic;
 Object Unknown;
@@ -448,6 +450,48 @@ char (*callstack)[256];
 int calldepth = 0;
 struct StackFrameObject **frame_stack;
 struct ClosureEnvObject **closure_stack;
+
+static void init_default_objects() {
+    init_default_object();
+
+    Unknown = alloc_Type("Unknown", 0);
+    Dynamic = Unknown;
+    List = alloc_Type("List", 14);
+
+    add_Method((ClassData)List, "==", NULL);
+    add_Method((ClassData)List, "!=", NULL);
+    add_Method((ClassData)List, "push", NULL);
+    add_Method((ClassData)List, "pop", NULL);
+    add_Method((ClassData)List, "at", NULL);
+    add_Method((ClassData)List, "at()put", NULL);
+    add_Method((ClassData)List, "[]", NULL);
+    add_Method((ClassData)List, "[]:=", NULL);
+    add_Method((ClassData)List, "size", NULL);
+    add_Method((ClassData)List, "iterator", NULL);
+    add_Method((ClassData)List, "++", NULL);
+    add_Method((ClassData)List, "asString", NULL);
+    add_Method((ClassData)List, "asDebugString", NULL);
+
+    gc_root(Unknown);
+    gc_root(List);
+}
+
+static void init_default_object() {
+    ClassData dc = alloc_class2("DefaultObject", 6,
+            (void*)&UserObj__mark);
+    GraceDefaultObject = alloc_obj(sizeof(struct UserObject) -
+            sizeof(struct Object), dc);
+    GraceDefaultObject->flags |= FLAG_USEROBJ;
+    struct UserObject *duo = (struct UserObject *)GraceDefaultObject;
+    duo->super = NULL;
+    duo->data = glmalloc(sizeof(Object));
+    duo->data[0] = NULL;
+    addmethod2(GraceDefaultObject, "asString", &Object_asString);
+    addmethod2(GraceDefaultObject, "++", &Object_concat);
+    addmethod2(GraceDefaultObject, "==", &UserObj_Equals);
+    addmethod2(GraceDefaultObject, "!=", &Object_NotEquals);
+    addmethod2(GraceDefaultObject, "asDebugString", &Object_asString);
+}
 
 // TODO : add sysmodule, iomodule ?
 // sysmodule pbly has to be initialised after module_sys_init_argv
@@ -4202,35 +4246,8 @@ void UserObj__release(struct UserObject *o) {
     glfree(o->data);
 }
 
-// TODO : init the default object before threading system to avoid having to
-// lock.
-static inline void init_default_object() {
-    pthread_mutex_lock(&gracelib_mutex);
-
-    if (GraceDefaultObject == NULL) {
-        ClassData dc = alloc_class2("DefaultObject", 6,
-                (void*)&UserObj__mark);
-        GraceDefaultObject = alloc_obj(sizeof(struct UserObject) -
-                sizeof(struct Object), dc);
-        GraceDefaultObject->flags |= FLAG_USEROBJ;
-        struct UserObject *duo = (struct UserObject *)GraceDefaultObject;
-        duo->super = NULL;
-        duo->data = glmalloc(sizeof(Object));
-        duo->data[0] = NULL;
-        addmethod2(GraceDefaultObject, "asString", &Object_asString);
-        addmethod2(GraceDefaultObject, "++", &Object_concat);
-        addmethod2(GraceDefaultObject, "==", &UserObj_Equals);
-        addmethod2(GraceDefaultObject, "!=", &Object_NotEquals);
-        addmethod2(GraceDefaultObject, "asDebugString", &Object_asString);
-    }
-
-    pthread_mutex_unlock(&gracelib_mutex);
-}
-
 Object alloc_userobj3(int numMethods, int numFields, int numAnnotations,
       ClassData c) {
-    init_default_object();
-
     if (c == NULL) {
         c = alloc_class3("Object", numMethods + 1,
                 (void*)&UserObj__mark, (void*)&UserObj__release);
@@ -4450,29 +4467,11 @@ void gracelib_argv(char **argv) {
     init_class_data();
     init_singletons();
     init_constants();
+    init_default_objects();
 
     srand(time(NULL));
     hash_init = rand();
-    alloc_Float64(1);
-    alloc_Boolean(0);
-    Unknown = alloc_Type("Unknown", 0);
-    gc_root(Unknown);
-    Dynamic = Unknown;
-    List = alloc_Type("List", 14);
-    gc_root(List);
-    add_Method((ClassData)List, "==", NULL);
-    add_Method((ClassData)List, "!=", NULL);
-    add_Method((ClassData)List, "push", NULL);
-    add_Method((ClassData)List, "pop", NULL);
-    add_Method((ClassData)List, "at", NULL);
-    add_Method((ClassData)List, "at()put", NULL);
-    add_Method((ClassData)List, "[]", NULL);
-    add_Method((ClassData)List, "[]:=", NULL);
-    add_Method((ClassData)List, "size", NULL);
-    add_Method((ClassData)List, "iterator", NULL);
-    add_Method((ClassData)List, "++", NULL);
-    add_Method((ClassData)List, "asString", NULL);
-    add_Method((ClassData)List, "asDebugString", NULL);
+
     ExceptionObject = alloc_Exception("Exception", NULL);
     gc_root(ExceptionObject);
     ErrorObject = alloc_Exception("Error", ExceptionObject);
