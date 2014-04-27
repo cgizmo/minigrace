@@ -1980,7 +1980,7 @@ method compile(vl, of, mn, rm, bt) {
         outprint "#endif"
     }
     outprint("static char compilerRevision[] = \"{buildinfo.gitrevision}\";")
-    outprint("static Object undefined;")
+    outprint("extern Object undefined;")
     outprint("extern Object done;")
     outprint("extern Object _prelude;")
     outprint("extern Object String;")
@@ -2135,8 +2135,6 @@ method compile(vl, of, mn, rm, bt) {
         }
         out("  gracelib_argv(argv);")
         out("  Object params[1];")
-        out("  undefined = alloc_Undefined();")
-        out("  done = alloc_done();")
         out("  Object tmp_argv = alloc_BuiltinList();")
         out("  gc_root(tmp_argv);")
         out("  int partcv_push[] = \{1\};")
