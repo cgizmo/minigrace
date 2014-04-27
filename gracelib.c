@@ -305,6 +305,20 @@ Object environObject_atPut(Object self, int nparts, int *argcv, Object *args, in
 Object environObject_contains(Object self, int nparts, int *argcv, Object *args, int flags);
 Object imports_loadResource(Object self, int nparts, int *argcv, Object *args, int flags);
 Object imports_registerExtension(Object self, int nparts, int *argcv, Object *args, int flags);
+Object grace_for_do(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object grace_minigrace(Object self, int argc, int *argcv, Object *argv, int flags);
+Object grace_octets(Object self, int npart, int *argcv, Object *argv, int flags);
+Object grace_while_do(Object self, int nparts, int *argcv, Object *argv, int flags);
+Object prelude_Error(Object self, int argc, int *argcv, Object *argv, int flags);
+Object prelude_Exception(Object self, int argc, int *argcv, Object *argv, int flags);
+Object prelude_PrimitiveArray(Object self, int argc, int *argcv, Object *argv, int flags);
+Object prelude_RuntimeError(Object self, int argc, int *argcv, Object *argv, int flags);
+Object prelude__methods(Object self, int argc, int *argcv, Object *argv, int flags);
+Object prelude_become(Object self, int argc, int *argcv, Object *argv, int flags);
+Object prelude_clone(Object self, int argc, int *argcv, Object *argv, int flags);
+Object prelude_unbecome(Object self, int argc, int *argcv, Object *argv, int flags);
+
+Object grace_prelude(void);
 
 void Block__mark(struct BlockObject *o);
 void Block__release(struct BlockObject *o);
@@ -381,6 +395,7 @@ static void init_imports_module_object(void);
 static void init_list_object(void);
 static void init_minigrace_object(void);
 static void init_prim_array_class_object(void);
+static void init_prelude_objects(void);
 
 static inline void intern_float(int ival, Object o);
 
@@ -460,10 +475,8 @@ Object minigrace_obj;
 Object environObject;
 Object PrimitiveArrayClassObject;
 Object MatchFailed;
-
-// TODO : handle those
-Object prelude = NULL;
-Object _prelude = NULL;
+Object prelude;
+Object _prelude;
 
 int linenumber = 0;
 const char *modulename;
@@ -510,6 +523,7 @@ static void init_default_objects() {
     init_list_object();
     init_minigrace_object();
     init_prim_array_class_object();
+    init_prelude_objects();
 
     undefined = alloc_obj(0, Undefined);
     ellipsis = alloc_obj(0, ellipsisClass);
@@ -525,6 +539,32 @@ static void init_default_objects() {
     gc_root(Unknown);
     gc_root(environObject);
     gc_root(MatchFailed);
+}
+
+// Pre : GraceDefaultObject is initialised (b/c call to alloc_userobj).
+static void init_prelude_objects() {
+    ClassData c = alloc_class2("NativePrelude", 16, (void*)&UserObj__mark);
+    add_Method(c, "asString", &Object_asString);
+    add_Method(c, "++", &Object_concat);
+    add_Method(c, "==", &Object_Equals);
+    add_Method(c, "!=", &Object_NotEquals);
+    add_Method(c, "while()do", &grace_while_do);
+    add_Method(c, "for()do", &grace_for_do);
+    add_Method(c, "Exception", &prelude_Exception);
+    add_Method(c, "Error", &prelude_Error);
+    add_Method(c, "RuntimeError", &prelude_RuntimeError);
+    add_Method(c, "octets", &grace_octets);
+    add_Method(c, "minigrace", &grace_minigrace);
+    add_Method(c, "_methods", &prelude__methods)->flags ^= MFLAG_REALSELFONLY;
+    add_Method(c, "PrimitiveArray", &prelude_PrimitiveArray);
+    add_Method(c, "become", &prelude_become);
+    add_Method(c, "unbecome", &prelude_unbecome);
+    add_Method(c, "clone", &prelude_clone);
+
+    _prelude = alloc_userobj2(0, 0, c);
+    prelude = _prelude;
+
+    gc_root(_prelude);
 }
 
 static void init_prim_array_class_object() {
@@ -4760,28 +4800,11 @@ Object prelude_clone(Object self, int argc, int *argcv, Object *argv,
   return ret;
 }
 Object grace_prelude() {
-    if (prelude != NULL)
+    if (prelude != NULL) {
         return prelude;
-    ClassData c = alloc_class2("NativePrelude", 16, (void*)&UserObj__mark);
-    add_Method(c, "asString", &Object_asString);
-    add_Method(c, "++", &Object_concat);
-    add_Method(c, "==", &Object_Equals);
-    add_Method(c, "!=", &Object_NotEquals);
-    add_Method(c, "while()do", &grace_while_do);
-    add_Method(c, "for()do", &grace_for_do);
-    add_Method(c, "Exception", &prelude_Exception);
-    add_Method(c, "Error", &prelude_Error);
-    add_Method(c, "RuntimeError", &prelude_RuntimeError);
-    add_Method(c, "octets", &grace_octets);
-    add_Method(c, "minigrace", &grace_minigrace);
-    add_Method(c, "_methods", &prelude__methods)->flags ^= MFLAG_REALSELFONLY;
-    add_Method(c, "PrimitiveArray", &prelude_PrimitiveArray);
-    add_Method(c, "become", &prelude_become);
-    add_Method(c, "unbecome", &prelude_unbecome);
-    add_Method(c, "clone", &prelude_clone);
-    _prelude = alloc_userobj2(0, 0, c);
-    struct UserObject *uo = (struct UserObject *)_prelude;
-    gc_root(_prelude);
-    prelude = _prelude;
-    return _prelude;
+    }
+    else {
+        die("prelude singleton constant was not initialised.");
+        return NULL;
+    }
 }
