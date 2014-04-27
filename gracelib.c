@@ -402,19 +402,22 @@ static inline void intern_float(int ival, Object o);
 int find_resource(const char *name, char *buf);
 char *grcstring(Object s);
 
+// TODO : lock around debugfp ?
 FILE *debugfp;
 int debug_enabled = 0;
 
 // General "gracelib" mutex.
 pthread_mutex_t gracelib_mutex;
 
+// Constants init in single threaded context. No need to lock around reads.
 char *compilerModulePath;
-char *modulePath = NULL;
+char *modulePath;
 
+// Constant initialized by gracelib_argv. No need to lock around reads.
 int hash_init = 0;
 
 // TODO : lock around those
-Object iomodule; // TODO: This one is never set. It should probable be in module_io_init.
+Object iomodule;
 Object sysmodule;
 
 // Singleton constants
@@ -427,7 +430,11 @@ Object FLOAT64_TWO = NULL;
 // TODO : lock around those
 Object Float64_Interned[FLOAT64_INTERN_SIZE];
 Object String_Interned_1[256];
+//
+// TODO : lock around this
+int Strings_allocated = 0;
 
+// ClassData constants - init in single threaded context, read only access.
 ClassData Number;
 ClassData Boolean;
 ClassData String;
@@ -461,7 +468,7 @@ ClassData Process;
 ClassData Integer32;
 ClassData ClosureEnv;
 
-// "Default objects"
+// "Default objects" - init in single threaded context, read only access.
 Object undefined;
 Object done;
 Object ellipsis;
@@ -478,18 +485,21 @@ Object MatchFailed;
 Object prelude;
 Object _prelude;
 
+// TODO : make thread local
 int linenumber = 0;
 const char *modulename;
 char **moduleSourceLines;
 
-int Strings_allocated = 0;
-
+// Single threaded init, read only access. No need to lock.
 int start_clocks = 0;
 double start_time = 0;
 
+// Initialised once resp. by gracelib_argv and module_sys_init_argv.
+// Read only, no need to lock.
 char **ARGV = NULL;
 Object argv_List = NULL;
 
+// TODO : deal with those
 static jmp_buf error_jump;
 static int error_jump_set;
 static Object currentException;
@@ -500,6 +510,7 @@ static Object ExceptionObject;
 static Object ErrorObject;
 static Object RuntimeErrorObject;
 
+// TODO : handle those. Probably needs to be made thread local.
 static jmp_buf *return_stack;
 Object return_value;
 char (*callstack)[256];
@@ -507,8 +518,10 @@ int calldepth = 0;
 struct StackFrameObject **frame_stack;
 struct ClosureEnvObject **closure_stack;
 
+// TODO : lock around this
 struct SFLinkList *shutdown_functions;
 
+// TODO : probably needs to be thread local.
 int callcount = 0;
 int tailcount = 0;
 
@@ -1240,7 +1253,7 @@ void assertClass(Object obj, ClassData cl) {
                 obj->class->name);
 }
 
-// Called once on init - no threading.
+// Called once on init - single thread.
 void initprofiling() {
     start_clocks = clock();
     struct timeval ar;
@@ -3346,9 +3359,14 @@ Object sys_argv(Object self, int nparts, int *argcv,
     struct SysModule *so = (struct SysModule*)self;
     return so->argv;
 }
+
+// Single threaded init (see genc).
+// TODO : ensure that this is indeed called before the threading system
+// is initialised.
 void module_sys_init_argv(Object argv) {
     argv_List = argv;
 }
+
 Object sys_cputime(Object self, int nparts, int *argcv,
         Object *args, int flags) {
     int i = clock() - start_clocks;
@@ -4439,12 +4457,12 @@ Object process_varargs(Object *args, int fixed, int nargs) {
     return lst;
 }
 
-// Called once on init - no threading.
+// Called once on init - single threaded.
 void setCompilerModulePath(char *s) {
     compilerModulePath = s;
 }
 
-// Called once on init - no threading.
+// Called once on init - single threaded.
 void setModulePath(char *s) {
     modulePath = s;
 }
@@ -4558,7 +4576,7 @@ void gracelib_stats() {
     fprintf(stderr, "Elapsed time: %f\n", etime);
 }
 
-// Called once on init - no threading.
+// Called once on init - single threaded.
 void gracelib_argv(char **argv) {
     ARGV = argv;
 
