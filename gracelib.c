@@ -2859,7 +2859,7 @@ Object Float64_prefixGreaterThan(Object self, int nparts, int *argcv,
         Object *args, int flags) {
     return alloc_GreaterThanPattern(self);
 }
-Object alloc_Float64(double num) {
+Object alloc_Float64(const double num) {
     if (num == 0 && FLOAT64_ZERO != NULL)
         return FLOAT64_ZERO;
     if (num == 1 && FLOAT64_ONE != NULL)
@@ -2867,17 +2867,17 @@ Object alloc_Float64(double num) {
     if (num == 2 && FLOAT64_TWO != NULL)
         return FLOAT64_TWO;
 
-    int ival = num;
-    if (ival == num && ival >= FLOAT64_INTERN_MIN
-            && ival < FLOAT64_INTERN_MAX
-            && Float64_Interned[ival-FLOAT64_INTERN_MIN] != NULL) {
+    const int ival = num;
+    const int intern = ival == num && ival >= FLOAT64_INTERN_MIN
+        && ival < FLOAT64_INTERN_MAX;
+
+    if (intern && Float64_Interned[ival-FLOAT64_INTERN_MIN] != NULL) {
         return Float64_Interned[ival-FLOAT64_INTERN_MIN];
     }
 
     // We will only intern if this condition holds, so we only need to hold the
     // lock around Float64_Interned in this case.
-    if (ival == num && ival >= FLOAT64_INTERN_MIN
-            && ival < FLOAT64_INTERN_MAX) {
+    if (intern) {
         pthread_mutex_lock(&gracelib_mutex);
     }
 
@@ -2887,8 +2887,7 @@ Object alloc_Float64(double num) {
     Object *str = (Object*)(o->data + sizeof(double));
     *str = NULL;
 
-    if (ival == num && ival >= FLOAT64_INTERN_MIN
-            && ival < FLOAT64_INTERN_MAX) {
+    if (intern) {
         Float64_Interned[ival-FLOAT64_INTERN_MIN] = o;
         pthread_mutex_unlock(&gracelib_mutex);
     }
