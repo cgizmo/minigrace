@@ -516,7 +516,6 @@ int calldepth = 0;
 struct StackFrameObject **frame_stack;
 struct ClosureEnvObject **closure_stack;
 
-// TODO : lock around this
 struct SFLinkList *shutdown_functions;
 
 // TODO : probably needs to be thread local.
@@ -1265,14 +1264,21 @@ void initprofiling() {
 void grace_register_shutdown_function(void(*func)()) {
     struct SFLinkList *nw = glmalloc(sizeof(struct SFLinkList));
     nw->func = func;
+
+    pthread_mutex_lock(&gracelib_mutex);
     nw->next = shutdown_functions;
     shutdown_functions = nw;
+    pthread_mutex_unlock(&gracelib_mutex);
 }
 void grace_run_shutdown_functions() {
+    pthread_mutex_lock(&gracelib_mutex);
+
     while (shutdown_functions != NULL) {
         shutdown_functions->func();
         shutdown_functions = shutdown_functions->next;
     }
+
+    pthread_mutex_unlock(&gracelib_mutex);
 }
 
 int istrue(Object o) {
