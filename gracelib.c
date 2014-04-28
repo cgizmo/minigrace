@@ -402,12 +402,12 @@ static inline void intern_float(int ival, Object o);
 int find_resource(const char *name, char *buf);
 char *grcstring(Object s);
 
-// TODO : lock around debugfp ?
 FILE *debugfp;
 int debug_enabled = 0;
 
 // General "gracelib" mutex.
 pthread_mutex_t gracelib_mutex;
+pthread_mutex_t debug_mutex;
 
 // Constants init in single threaded context. No need to lock around reads.
 char *compilerModulePath;
@@ -416,7 +416,7 @@ char *modulePath;
 // Constant initialized by gracelib_argv. No need to lock around reads.
 int hash_init = 0;
 
-// TODO : lock around those
+// TODO : move those with the other default objects ?
 Object iomodule;
 Object sysmodule;
 
@@ -427,11 +427,9 @@ Object FLOAT64_ZERO = NULL;
 Object FLOAT64_ONE = NULL;
 Object FLOAT64_TWO = NULL;
 
-// TODO : lock around those
 Object Float64_Interned[FLOAT64_INTERN_SIZE];
 Object String_Interned_1[256];
-//
-// TODO : lock around this
+
 int Strings_allocated = 0;
 
 // ClassData constants - init in single threaded context, read only access.
@@ -1241,9 +1239,13 @@ void debug(char *msg, ...) {
         return;
     va_list args;
     va_start(args, msg);
+
+    pthread_mutex_lock(&debug_mutex);
     fprintf(debugfp, "%s:%i:", modulename, linenumber);
     vfprintf(debugfp, msg, args);
     fprintf(debugfp, "\n");
+    pthread_mutex_unlock(&debug_mutex);
+
     va_end(args);
 }
 
@@ -2455,11 +2457,17 @@ Object String_replace_with(Object self,
     return alloc_String(result);
 }
 Object alloc_String(const char *data) {
-    int blen = strlen(data);
+    const int blen = strlen(data);
     if (blen == 1) {
         if (String_Interned_1[data[0]] != NULL)
             return String_Interned_1[data[0]];
     }
+
+    // We only intern strings of length 1.
+    if (blen == 1) {
+        pthread_mutex_lock(&gracelib_mutex);
+    }
+
     Object o = alloc_obj(sizeof(int) * 4 + sizeof(char*) + blen + 1, String);
     struct StringObject* so = (struct StringObject*)o;
     so->blen = blen;
@@ -2484,11 +2492,17 @@ Object alloc_String(const char *data) {
     so->size = size;
     so->ascii = ascii;
     so->flat = so->body;
-    Strings_allocated++;
+
     if (blen == 1) {
         gc_root(o);
         String_Interned_1[data[0]] = o;
+        pthread_mutex_unlock(&gracelib_mutex);
     }
+
+    pthread_mutex_lock(&gracelib_mutex);
+    Strings_allocated++;
+    pthread_mutex_unlock(&gracelib_mutex);
+
     return o;
 }
 Object makeEscapedString(char *p) {
@@ -2856,8 +2870,16 @@ Object alloc_Float64(double num) {
     int ival = num;
     if (ival == num && ival >= FLOAT64_INTERN_MIN
             && ival < FLOAT64_INTERN_MAX
-            && Float64_Interned[ival-FLOAT64_INTERN_MIN] != NULL)
+            && Float64_Interned[ival-FLOAT64_INTERN_MIN] != NULL) {
         return Float64_Interned[ival-FLOAT64_INTERN_MIN];
+    }
+
+    // We will only intern if this condition holds, so we only need to hold the
+    // lock around Float64_Interned in this case.
+    if (ival == num && ival >= FLOAT64_INTERN_MIN
+            && ival < FLOAT64_INTERN_MAX) {
+        pthread_mutex_lock(&gracelib_mutex);
+    }
 
     Object o = alloc_obj(sizeof(double) + sizeof(Object), Number);
     double *d = (double*)o->data;
@@ -2865,13 +2887,17 @@ Object alloc_Float64(double num) {
     Object *str = (Object*)(o->data + sizeof(double));
     *str = NULL;
 
-    if (ival == num)
-        intern_float(ival, o);
-    gc_root(o);
+    if (ival == num && ival >= FLOAT64_INTERN_MIN
+            && ival < FLOAT64_INTERN_MAX) {
+        Float64_Interned[ival-FLOAT64_INTERN_MIN] = o;
+        pthread_mutex_unlock(&gracelib_mutex);
+    }
 
+    gc_root(o);
     return o;
 }
 
+// Pre : locked access to Float64_Interned.
 // Pre : ival is the int value of the float Object.
 static inline void intern_float(int ival, Object o) {
     if (ival >= FLOAT64_INTERN_MIN
@@ -3310,8 +3336,12 @@ void io__mark(struct IOModuleObject *o) {
     gc_mark(o->_stderr);
 }
 Object module_io_init() {
-    if (iomodule != NULL)
+    pthread_mutex_lock(&gracelib_mutex);
+
+    if (iomodule != NULL) {
+        pthread_mutex_unlock(&gracelib_mutex);
         return iomodule;
+    }
 
     Object o = alloc_obj(sizeof(Object) * 3, IOModule);
     struct IOModuleObject *so = (struct IOModuleObject*)o;
@@ -3319,7 +3349,10 @@ Object module_io_init() {
     so->_stdout = alloc_File_from_stream(stdout);
     so->_stderr = alloc_File_from_stream(stderr);
     gc_root(o);
+
     iomodule = o;
+    pthread_mutex_unlock(&gracelib_mutex);
+
     return o;
 }
 Object environObject_at(Object self, int nparts, int *argcv,
@@ -3436,14 +3469,20 @@ void sys__mark(struct SysModule *o) {
     gc_mark(o->argv);
 }
 Object module_sys_init() {
-    if (sysmodule != NULL)
+    pthread_mutex_lock(&gracelib_mutex);
+
+    if (sysmodule != NULL) {
+        pthread_mutex_unlock(&gracelib_mutex);
         return sysmodule;
+    }
 
     Object o = alloc_obj(sizeof(Object), SysModule);
     struct SysModule *so = (struct SysModule*)o;
     so->argv = argv_List;
     sysmodule = o;
     gc_root(o);
+
+    pthread_mutex_unlock(&gracelib_mutex);
     return o;
 }
 
@@ -4582,6 +4621,7 @@ void gracelib_argv(char **argv) {
 
     // Threading init
     pthread_mutex_init(&gracelib_mutex, NULL);
+    pthread_mutex_init(&debug_mutex, NULL);
 
     if (getenv("GRACE_STACK") != NULL) {
         set_stack_size(atoi(getenv("GRACE_STACK")));
@@ -4635,6 +4675,7 @@ void gracelib_destroy() {
     gc_destroy();
 
     pthread_mutex_destroy(&gracelib_mutex);
+    pthread_mutex_destroy(&debug_mutex);
 }
 
 void setline(int l) {
