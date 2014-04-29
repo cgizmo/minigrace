@@ -5,6 +5,7 @@
 #include <setjmp.h>
 
 #include "gracelib_types.h"
+#include "gracelib_threads.h"
 
 #define MFLAG_REALSELFONLY 2
 #define MFLAG_REALSELFALSO 4
@@ -25,23 +26,6 @@ struct UserObject {
     Object *annotations;
     int ndata;
     int numannotations;
-};
-
-struct StackFrameObject {
-    OBJECT_HEADER;
-    struct StackFrameObject *parent;
-    int size;
-    char *name;
-    char **names;
-    Object slots[];
-};
-
-struct ClosureEnvObject {
-    OBJECT_HEADER;
-    char name[256];
-    int size;
-    Object frame;
-    Object *data[];
 };
 
 struct OctetsObject {
@@ -147,8 +131,9 @@ void block_savedest(Object);
 void block_return(Object, Object);
 void setclassname(Object, char*);
 void pushstackframe(struct StackFrameObject *, char *name);
+void pushclosure(Object);
+void set_source_object(Object);
 void setframeelementname(struct StackFrameObject *, int, char *);
-void pushclosure(Object c);
 void gracelib_stats();
 int istrue(Object);
 void setmodule(const char *);
@@ -159,5 +144,7 @@ Object grace_prelude();
 // Used by GC
 void debug(char*, ...);
 void die(char*, ...);
+
+ThreadState get_state(void);
 
 #endif

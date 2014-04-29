@@ -538,7 +538,7 @@ method compileobject(o, outerRef) {
     }
     pos := 1
     for (o.value) do { e ->
-        out "  sourceObject = {selfr};"
+        out "  set_source_object({selfr});"
         if (e.kind == "method") then {
         } elseif (e.kind == "vardec") then {
             compileobjvardecdata(e, selfr, pos)
@@ -857,7 +857,7 @@ method compilemethod(o, selfobj, pos) {
     for (closurevars) do { cv ->
         if (cv == "self") then {
             out("  Object self = *(getfromclosure(closure, {j}));")
-            out("  sourceObject = self;")
+            out("  set_source_object(self);")
         } else {
             out("  Object *var_{cv} = getfromclosure(closure, {j});")
         }
@@ -970,7 +970,7 @@ method compilefreshmethod(o, nm, body, closurevars, selfobj, pos, numslots,
     for (closurevars) do { cv ->
         if (cv == "self") then {
             out("  Object self = *(getfromclosure(closure, {j}));")
-            out("  sourceObject = self;")
+            out("  set_source_object(self);")
         } else {
             out("  Object *var_{cv} = getfromclosure(closure, {j});")
         }
@@ -1972,6 +1972,7 @@ method compile(vl, of, mn, rm, bt) {
     buildtype := bt
     outprint("#include <gracelib.h>")
     outprint("#include <gracelib_gc.h>")
+    outprint("#include <gracelib_threads.h>")
     outprint("#include <gracelib_types.h>")
     outprint("#include <stdlib.h>")
     if (!util.extensions.contains("NoMain")) then {
@@ -1993,7 +1994,6 @@ method compile(vl, of, mn, rm, bt) {
     outprint("extern Object Done;")
     outprint("extern Object Type;")
     outprint("extern Object GraceDefaultObject;")
-    outprint("extern Object sourceObject;")
     outprint("static Object type_String;")
     outprint("static Object type_Number;")
     outprint("static Object type_Boolean;")

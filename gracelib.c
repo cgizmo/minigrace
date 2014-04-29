@@ -23,6 +23,7 @@
 #include "gracelib_types.h"
 #include "gracelib.h"
 #include "gracelib_gc.h"
+#include "gracelib_threads.h"
 
 #define IN_GRACELIB 1
 #include "definitions.h"
@@ -508,22 +509,11 @@ static Object ExceptionObject;
 static Object ErrorObject;
 static Object RuntimeErrorObject;
 
-// TODO : handle those. Probably needs to be made thread local.
-static jmp_buf *return_stack;
-Object return_value;
-char (*callstack)[256];
-int calldepth = 0;
-struct StackFrameObject **frame_stack;
-struct ClosureEnvObject **closure_stack;
-
 struct SFLinkList *shutdown_functions;
 
-// TODO : probably needs to be thread local.
-int callcount = 0;
-int tailcount = 0;
-
-// Used by callmethod4.
-Object sourceObject;
+// Threading
+static pthread_key_t thread_state;
+static int num_threads;
 
 // TODO : add sysmodule, iomodule ?
 // sysmodule pbly has to be initialised after module_sys_init_argv
@@ -1162,18 +1152,47 @@ static inline void init_Block(ClassData block) {
     }
 }
 
-void backtrace() {
-    int i;
-    for (i=0; i<calldepth; i++) {
-        fprintf(stderr, "  Called %s\n", callstack[i]);
+/* Thread specific functions */
+static int init_thread_state() {
+    if (pthread_getspecific(thread_state) == NULL) {
+        pthread_setspecific(thread_state, thread_alloc(num_threads));
     }
+    else {
+        die("Thread state initialised more than once.");
+    }
+
+    return num_threads++;
 }
+
+static void destroy_thread_state() {
+    void *ptr = pthread_getspecific(thread_state);
+    free(ptr);
+    pthread_setspecific(thread_state, NULL);
+}
+
+ThreadState get_state() {
+    return (ThreadState)pthread_getspecific(thread_state);
+}
+
 void pushstackframe(struct StackFrameObject *f, char *name) {
-    frame_stack[calldepth-1] = f;
-    f->name = name;
+    thread_pushstackframe(get_state(), f, name);
 }
+
 void pushclosure(Object c) {
-    closure_stack[calldepth-1] = (struct ClosureEnvObject *)c;
+    thread_pushclosure(get_state(), c);
+}
+
+void set_source_object(Object o) {
+    get_state()->sourceObject = 0;
+}
+
+/* Rest of functions */
+void backtrace() {
+    ThreadState st = get_state();
+    int i;
+    for (i=0; i<st->calldepth; i++) {
+        fprintf(stderr, "  Called %s\n", st->callstack[i]);
+    }
 }
 void setframeelementname(struct StackFrameObject *f, int p, char *name) {
     if (getenv("GRACE_FOO"))
@@ -1570,14 +1589,15 @@ Object alloc_GreaterThanPattern(Object r) {
 }
 
 void printExceptionBacktrace(Object o) {
+    ThreadState st = get_state();
     struct ExceptionPacketObject *e = (struct ExceptionPacketObject *)o;
     struct ExceptionObject *x = (struct ExceptionObject *)e->exception;
     fprintf(stderr, "Error around line %i: %s: %s\n", e->lineNumber,
             x->name, grcstring(e->message));
-    int start_calldepth = calldepth;
+    int start_calldepth = st->calldepth;
     int start_linenumber = linenumber;
     char **start_moduleSourceLines = moduleSourceLines;
-    calldepth = e->calldepth;
+    st->calldepth = e->calldepth;
     linenumber = e->lineNumber;
     moduleSourceLines = e->moduleSourceLines;
     for (int i=0; e->backtrace[i] != NULL; i++) {
@@ -1590,7 +1610,7 @@ void printExceptionBacktrace(Object o) {
             fprintf(stderr, "    %i: %s\n", fl + 1, moduleSourceLines[fl]);
         else
             break;
-    calldepth = start_calldepth;
+    st->calldepth = start_calldepth;
     linenumber = start_linenumber;
     moduleSourceLines = start_moduleSourceLines;
 }
@@ -1639,6 +1659,7 @@ Object ExceptionPacket_printBacktrace(Object self, int argc, int *argcv,
     return alloc_done();
 }
 Object alloc_ExceptionPacket(Object msg, Object exception) {
+    ThreadState st = get_state();
     Object o = alloc_obj(sizeof(struct ExceptionPacketObject)
             - sizeof(struct Object), ExceptionPacket);
     struct ExceptionPacketObject *e = (struct ExceptionPacketObject *)o;
@@ -1647,12 +1668,12 @@ Object alloc_ExceptionPacket(Object msg, Object exception) {
     e->data = NULL;
     e->moduleSourceLines = moduleSourceLines;
     e->lineNumber = linenumber;
-    e->calldepth = calldepth;
-    e->backtrace = glmalloc(sizeof(char *) * (calldepth + 1));
+    e->calldepth = st->calldepth;
+    e->backtrace = glmalloc(sizeof(char *) * (st->calldepth + 1));
     int i;
-    for (i=0; i<calldepth; i++) {
+    for (i=0; i<st->calldepth; i++) {
         e->backtrace[i] = glmalloc(256);
-        strcpy(e->backtrace[i], callstack[i]);
+        strcpy(e->backtrace[i], st->callstack[i]);
     }
     return o;
 }
@@ -3598,12 +3619,13 @@ Object alloc_Undefined() {
 void block_return(Object self, Object obj) {
     struct UserObject *uo = (struct UserObject*)self;
     jmp_buf *buf = uo->retpoint;
-    return_value = obj;
+    get_state()->return_value = obj;
     longjmp(*buf, 1);
 }
 void block_savedest(Object self) {
+    ThreadState st = get_state();
     struct UserObject *uo = (struct UserObject*)self;
-    uo->retpoint = (void *)&return_stack[calldepth-1];
+    uo->retpoint = (void *)&st->return_stack[st->calldepth - 1];
 }
 
 Method *findmethod(Object *selfp, Object *realselfp, const char *name,
@@ -3691,10 +3713,11 @@ int checkmethodcall(Method *m, int nparts, int *argcv, Object *argv) {
 Object callmethod4(Object self, const char *name,
         int partc, int *argcv, Object *argv, int superdepth, int callflags) {
     debug("callmethod %s on %p (%s)", name, self, self->class->name);
+    ThreadState st = get_state();
     int frame = gc_frame_new();
     int istail = 0;
 start:
-    callcount++;
+    st->callcount++;
     int i, j;
     int k = 0;
     for (i = 0; i < partc; i++) {
@@ -3727,13 +3750,13 @@ start:
                 m->definitionLine);
     else
         strcpy(methDesc, "nowhere");
-    sprintf(callstack[calldepth], "%s.%s (defined %s%s) at %s:%i",
+    sprintf(st->callstack[st->calldepth], "%s.%s (defined %s%s) at %s:%i",
             self->class->name, name, methDesc,
             objDesc,
             modulename,
             linenumber);
-    calldepth++;
-    if (calldepth == STACK_SIZE) {
+    st->calldepth++;
+    if (st->calldepth == STACK_SIZE) {
         die("Maximum call stack depth exceeded.");
     }
     int searchdepth = (callflags >> 24) & 0xff;
@@ -3745,23 +3768,23 @@ start:
         if (!checkmethodcall(m, partc, argcv, argv))
             die("Type error.");
     }
-    Object prevSourceObject = sourceObject;
-    sourceObject = realself;
+    Object prevSourceObject = st->sourceObject;
+    st->sourceObject = realself;
     Object ret = NULL;
     if (m != NULL && (m->flags & MFLAG_REALSELFALSO)) {
-        calldepth--;
+        st->calldepth--;
         Object(*func)(Object, Object, int, int*, Object*, int);
         func = (Object(*)(Object, Object, int, int*, Object*, int))m->func;
         ret = func(self, realself, partc, argcv, argv, callflags);
     } else if (m != NULL) {
         ret = m->func(self, partc, argcv, argv, callflags);
-        calldepth--;
+        st->calldepth--;
         if (ret != NULL && (ret->flags & FLAG_DEAD)) {
             debug("returned freed object %p from %s.%s",
                     ret, self->class->name, name);
         }
     }
-    sourceObject = prevSourceObject;
+    st->sourceObject = prevSourceObject;
     if (ret != NULL) {
         gc_frame_end(frame);
         debug(" returned %p (%s) from %s on %p", ret, ret->class->name, name, self);
@@ -3805,8 +3828,9 @@ Object callmethod2(Object self, const char *name,
 }
 Object callmethodflags(Object receiver, const char *name,
         int nparts, int *nparamsv, Object *args, int callflags) {
+    ThreadState st = get_state();
     int i, j;
-    int start_calldepth = calldepth;
+    int start_calldepth = st->calldepth;
     int start_exceptionHandlerDepth = exceptionHandlerDepth;
     if (receiver->flags & FLAG_DEAD) {
         debug("called method on freed object %p: %s.%s",
@@ -3814,22 +3838,22 @@ Object callmethodflags(Object receiver, const char *name,
     }
     if (strcmp(name, "_apply") != 0 && strcmp(name, "apply") != 0
             && strcmp(name, "applyIndirectly") != 0) {
-        if (setjmp(return_stack[calldepth])) {
-            Object rv = return_value;
-            return_value = NULL;
-            for (i=calldepth; i>start_calldepth; i--)
+        if (setjmp(st->return_stack[st->calldepth])) {
+            Object rv = st->return_value;
+            st->return_value = NULL;
+            for (i=st->calldepth; i>start_calldepth; i--)
                 if (finally_stack[i]) {
                     callmethod(finally_stack[i], "apply", 0, NULL, NULL);
                     finally_stack[i] = NULL;
                     memcpy(error_jump, exceptionHandler_stack[i],
                             sizeof(jmp_buf));
                 }
-            calldepth = start_calldepth;
+            st->calldepth = start_calldepth;
             return rv;
         }
     } else {
-        memcpy(return_stack[calldepth], return_stack[calldepth-1],
-                sizeof(return_stack[calldepth]));
+        memcpy(st->return_stack[st->calldepth], st->return_stack[st->calldepth - 1],
+                sizeof(st->return_stack[st->calldepth]));
     }
     if (receiver == undefined) {
         die("method call on undefined value");
@@ -3873,15 +3897,16 @@ Object matchCase(Object matchee, Object *cases, int ncases, Object elsecase) {
 }
 Object catchCase(Object block, Object *caseList, int ncases,
         Object finally) {
+    ThreadState st = get_state();
     int old_error_jump_set = error_jump_set;
     error_jump_set = 1;
-    int start_calldepth = calldepth;
+    int start_calldepth = st->calldepth;
     if (!finally) {
         finally = alloc_Block(NULL, NULL, "implicit finally", -1);
         gc_frame_newslot(finally);
         block_savedest(finally);
     }
-    finally_stack[calldepth] = finally;
+    finally_stack[st->calldepth] = finally;
     int start_exceptionHandlerDepth = exceptionHandlerDepth++;
     jmp_buf old_error_jump;
     if (error_jump)
@@ -3889,7 +3914,7 @@ Object catchCase(Object block, Object *caseList, int ncases,
     if (setjmp(error_jump)) {
         memcpy(error_jump, old_error_jump, sizeof(jmp_buf));
         error_jump_set = old_error_jump_set;
-        calldepth = start_calldepth;
+        st->calldepth = start_calldepth;
         int partcv[1] = {1};
         for (int i=0; i<ncases; i++) {
             Object val = caseList[i];
@@ -3912,7 +3937,7 @@ Object catchCase(Object block, Object *caseList, int ncases,
         printExceptionBacktrace(currentException);
         exit(1);
     }
-    memcpy(exceptionHandler_stack[calldepth], error_jump,
+    memcpy(exceptionHandler_stack[st->calldepth], error_jump,
             sizeof(jmp_buf));
     Object rv = callmethod(block, "apply", 0, NULL, NULL);
     error_jump_set = old_error_jump_set;
@@ -4281,9 +4306,10 @@ Object alloc_Integer32(int i) {
 }
 Object Block_apply(Object self, int nparts, int *argcv,
         Object *args, int flags) {
+    ThreadState st = get_state();
     struct BlockObject *bo = (struct BlockObject*)self;
-    memcpy(return_stack[calldepth - 1], bo->retpoint,
-            sizeof(return_stack[calldepth - 1]));
+    memcpy(st->return_stack[st->calldepth - 1], bo->retpoint,
+            sizeof(st->return_stack[st->calldepth - 1]));
     if (argcv != NULL)
         return callmethod(self, "_apply", 1, argcv, args);
     else
@@ -4601,12 +4627,15 @@ Object dlmodule(const char *name) {
     return mod;
 }
 void gracelib_stats() {
+    ThreadState st = get_state();
+
     grace_run_shutdown_functions();
     if (getenv("GRACE_STATS") == NULL)
         return;
+    // TODO : lock around String_allocated.
     fprintf(stderr, "Total strings allocated: %i\n", Strings_allocated);
-    fprintf(stderr, "Total method calls made: %i\n", callcount);
-    fprintf(stderr, "Total tail calls made:   %i\n", tailcount);
+    fprintf(stderr, "Total method calls made: %i\n", st->callcount);
+    fprintf(stderr, "Total tail calls made:   %i\n", st->tailcount);
     gc_stats();
 
     int nowclocks = (clock() - start_clocks);
@@ -4624,21 +4653,20 @@ void gracelib_stats() {
 void gracelib_argv(char **argv) {
     ARGV = argv;
 
-    // Threading init
-    pthread_mutex_init(&gracelib_mutex, NULL);
-    pthread_mutex_init(&debug_mutex, NULL);
-
     if (getenv("GRACE_STACK") != NULL) {
         set_stack_size(atoi(getenv("GRACE_STACK")));
     }
-    callstack = calloc(STACK_SIZE, 256);
-    // We need return_stack[-1] to be available.
-    return_stack = calloc(STACK_SIZE + 1, sizeof(jmp_buf));
-    return_stack++;
-    frame_stack = calloc(STACK_SIZE + 1, sizeof(struct StackFrameObject *));
-    frame_stack++;
-    closure_stack = calloc(STACK_SIZE + 1, sizeof(struct ClosureEnvObject *));
-    closure_stack++;
+
+    // Threading init
+    pthread_mutex_init(&gracelib_mutex, NULL);
+    pthread_mutex_init(&debug_mutex, NULL);
+    pthread_key_create(&thread_state, NULL);
+    num_threads = 0;
+
+    // Make the initial thread
+    init_thread_state();
+
+    // TODO : make thread local ?
     exceptionHandler_stack = calloc(STACK_SIZE + 1, sizeof(jmp_buf));
     exceptionHandler_stack++;
     finally_stack = calloc(STACK_SIZE + 1, sizeof(Object));
@@ -4681,6 +4709,13 @@ void gracelib_destroy() {
 
     pthread_mutex_destroy(&gracelib_mutex);
     pthread_mutex_destroy(&debug_mutex);
+
+    // Free memory allocated for the initial thread.
+    destroy_thread_state();
+
+    // Remove the key (all threads should have freed their thread state at
+    // this point).
+    pthread_key_delete(thread_state);
 }
 
 void setline(int l) {

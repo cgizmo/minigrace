@@ -8,10 +8,6 @@
 #include "gracelib.h"
 #include "definitions.h"
 
-extern char (*callstack)[256];
-extern struct StackFrameObject **frame_stack;
-extern struct ClosureEnvObject **closure_stack;
-extern int calldepth;
 extern ClassData Number;
 extern ClassData String;
 extern ClassData ConcatString;
@@ -146,11 +142,13 @@ int countclosurenames() {
 }
 
 static void changeframe() {
-    frame = frame_stack[framedepth];
-    closure = closure_stack[framedepth];
+    ThreadState st = get_state();
+
+    frame = st->frame_stack[framedepth];
+    closure = st->closure_stack[framedepth];
     printf("In frame %s. There are %i higher and %i lower frames.\n",
             frame->name, framedepth + 1, lowestframe - framedepth);
-    printf("  %s\n", callstack[framedepth]);
+    printf("  %s\n", st->callstack[framedepth]);
     printf("Scope has %i local names and %i closure names.\n",
             countframenames(), countclosurenames());
 }
@@ -165,7 +163,7 @@ static void upcmd(char *rest) {
 }
 
 static void downcmd(char *rest) {
-    if (framedepth == calldepth) {
+    if (framedepth == get_state()->calldepth) {
         printf("Already at bottommost frame.\n");
         return;
     }
@@ -294,6 +292,7 @@ static void runcommand(char *str) {
 }
 
 int debugger() {
+    ThreadState st = get_state();
     addcommand("help", "List available commands", &help);
     addcommand("frame", "Show contents of current frame", &framecmd);
     addcommand("closure", "Show contents of current closure", &closurecmd);
@@ -302,20 +301,20 @@ int debugger() {
     addcommand("down", "Go down to callee frame", &downcmd);
     addcommand("field", "Show value of field #2 on object #1", &fieldcmd);
     addcommand("methods", "List methods on argument", &methodscmd);
-    for (framedepth=calldepth; framedepth>=-1; framedepth--)
-        if (frame_stack[framedepth]) {
-            frame = frame_stack[framedepth];
+    for (framedepth=st->calldepth; framedepth>=-1; framedepth--)
+        if (st->frame_stack[framedepth]) {
+            frame = st->frame_stack[framedepth];
             break;
         }
     if (!frame)
         printf("No debugging frame information available.\n");
     else {
         lowestframe = framedepth;
-        closure = closure_stack[framedepth];
+        closure = st->closure_stack[framedepth];
         printf("Minigrace debugger\n");
         printf("Closest stack frame is for %s. There are %i higher frames.\n",
                 frame->name, framedepth + 1);
-        printf("  %s\n", callstack[framedepth]);
+        printf("  %s\n", st->callstack[framedepth]);
         printf("Scope has %i local names and %i closure names.\n",
                 countframenames(), countclosurenames());
     }

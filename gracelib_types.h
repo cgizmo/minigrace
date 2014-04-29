@@ -42,4 +42,21 @@ struct Object {
     char data[];
 };
 
+struct StackFrameObject {
+    OBJECT_HEADER;
+    struct StackFrameObject *parent;
+    int size;
+    char *name;
+    char **names;
+    Object slots[];
+};
+
+struct ClosureEnvObject {
+    OBJECT_HEADER;
+    char name[256];
+    int size;
+    Object frame;
+    Object *data[];
+};
+
 #endif
