@@ -6,27 +6,30 @@
 #define OBJECT_HEADER int32_t flags; \
                       ClassData class;
 
-typedef struct Object* Object;
-typedef struct ClassData* ClassData;
+typedef struct Object *Object;
+typedef struct ClassData *ClassData;
 
-struct MethodType {
+struct MethodType
+{
     int nparts;
     int *argcv;
     Object *types;
     char **names;
 };
 
-typedef struct Method {
+typedef struct Method
+{
     const char *name;
     int32_t flags;
-    Object(*func)(Object, int, int*, Object*, int);
+    Object(*func)(Object, int, int *, Object *, int);
     int pos;
     struct MethodType *type;
     const char *definitionModule;
     int definitionLine;
 } Method;
 
-struct ClassData {
+struct ClassData
+{
     OBJECT_HEADER;
     char *name;
     Method *methods;
@@ -37,12 +40,14 @@ struct ClassData {
     int definitionLine;
 };
 
-struct Object {
+struct Object
+{
     OBJECT_HEADER;
     char data[];
 };
 
-struct StackFrameObject {
+struct StackFrameObject
+{
     OBJECT_HEADER;
     struct StackFrameObject *parent;
     int size;
@@ -51,7 +56,8 @@ struct StackFrameObject {
     Object slots[];
 };
 
-struct ClosureEnvObject {
+struct ClosureEnvObject
+{
     OBJECT_HEADER;
     char name[256];
     int size;

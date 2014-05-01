@@ -1,10 +1,13 @@
+#define _POSIX_C_SOURCE 200809L
+#define _XOPEN_SOURCE 700
 #include <stdlib.h>
 #include <setjmp.h>
 
 #include "gracelib_threads.h"
 #include "gracelib_gc.h"
 
-ThreadState thread_alloc(thread_id id) {
+ThreadState thread_alloc(thread_id id)
+{
     ThreadState state = malloc(sizeof(struct ThreadState));
 
     state->id = id;
@@ -30,11 +33,13 @@ ThreadState thread_alloc(thread_id id) {
     return state;
 }
 
-void thread_pushstackframe(ThreadState state, struct StackFrameObject *f, char *name) {
+void thread_pushstackframe(ThreadState state, struct StackFrameObject *f, char *name)
+{
     state->frame_stack[state->calldepth - 1] = f;
     f->name = name;
 }
 
-void thread_pushclosure(ThreadState state, Object c) {
+void thread_pushclosure(ThreadState state, Object c)
+{
     state->closure_stack[state->calldepth - 1] = (struct ClosureEnvObject *)c;
 }

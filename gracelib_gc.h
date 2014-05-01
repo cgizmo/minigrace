@@ -33,7 +33,7 @@ int gc_frame_newslot(Object);
 void gc_frame_setslot(int, Object);
 
 void *glmalloc(size_t);
-void glfree(void*);
+void glfree(void *);
 
 void gc_stats();
 

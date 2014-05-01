@@ -3,10 +3,11 @@
 
 #include "gracelib_types.h"
 
-typedef struct ThreadState* ThreadState;
+typedef struct ThreadState *ThreadState;
 typedef int thread_id;
 
-struct ThreadState {
+struct ThreadState
+{
     thread_id id;
 
     struct StackFrameObject **frame_stack;
@@ -23,8 +24,8 @@ struct ThreadState {
     int tailcount;
 };
 
-ThreadState thread_alloc(int); 
-void thread_pushstackframe(ThreadState, struct StackFrameObject*, char*);
+ThreadState thread_alloc(int);
+void thread_pushstackframe(ThreadState, struct StackFrameObject *, char *);
 void thread_pushclosure(ThreadState, Object);
 
 #endif
