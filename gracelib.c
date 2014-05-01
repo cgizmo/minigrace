@@ -27,11 +27,13 @@
 
 #define IN_GRACELIB 1
 #include "definitions.h"
-#define max(x,y) (x>y?x:y)
 
 #define FLOAT64_INTERN_MIN -10
 #define FLOAT64_INTERN_MAX 10000
 #define FLOAT64_INTERN_SIZE FLOAT64_INTERN_MAX-FLOAT64_INTERN_MIN
+
+#define max(x,y) (x>y?x:y)
+#define HEXVALC(c) ((c >= '0' && c <= '9') ? c - '0' : ((c >= 'a' && c <= 'f') ? c - 'a' + 10 : -1))
 
 struct StringObject {
     OBJECT_HEADER;
@@ -4775,7 +4777,6 @@ void grace_iterate(Object iterable, void(*callback)(Object, void *),
         callback(val, userdata);
     }
 }
-#define HEXVALC(c) ((c >= '0' && c <= '9') ? c - '0' : ((c >= 'a' && c <= 'f') ? c - 'a' + 10 : -1))
 Object grace_octets(Object self, int npart, int *argcv,
         Object *argv, int flags) {
     if (argcv[0] != 1)
