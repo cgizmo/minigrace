@@ -6421,7 +6421,8 @@ void gracelib_stats()
         return;
     }
 
-    // TODO : lock around String_allocated.
+    pthread_mutex_lock(&gracelib_mutex);
+
     fprintf(stderr, "Total strings allocated: %i\n", Strings_allocated);
     fprintf(stderr, "Total method calls made: %i\n", st->callcount);
     fprintf(stderr, "Total tail calls made:   %i\n", st->tailcount);
@@ -6436,6 +6437,8 @@ void gracelib_stats()
     etime -= start_time;
     fprintf(stderr, "CPU time: %f\n", clocks);
     fprintf(stderr, "Elapsed time: %f\n", etime);
+
+    pthread_mutex_unlock(&gracelib_mutex);
 }
 
 // Called once on init - single threaded.

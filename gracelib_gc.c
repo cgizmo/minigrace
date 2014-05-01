@@ -251,6 +251,8 @@ void glfree(void *p)
 // Pre: run within gracelib_stats()
 void gc_stats()
 {
+    pthread_mutex_lock(&gc_mutex);
+    pthread_mutex_lock(&alloc_mutex);
     fprintf(stderr, "Total objects allocated: %i\n", objectcount);
     fprintf(stderr, "Total objects freed:     %i\n", freedcount);
     fprintf(stderr, "Total heap allocated: %zuB\n", heapsize);
@@ -261,6 +263,8 @@ void gc_stats()
     fprintf(stderr, "                      %zuKiB\n", heapmax / 1024);
     fprintf(stderr, "                      %zuMiB\n", heapmax / 1024 / 1024);
     fprintf(stderr, "                      %zuGiB\n", heapmax / 1024 / 1024 / 1024);
+    pthread_mutex_unlock(&alloc_mutex);
+    pthread_mutex_unlock(&gc_mutex);
 }
 
 /* Non-exported functions */
