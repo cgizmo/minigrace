@@ -24,8 +24,8 @@ struct ThreadState
     int tailcount;
 };
 
-ThreadState thread_alloc(int);
-void thread_pushstackframe(ThreadState, struct StackFrameObject *, char *);
-void thread_pushclosure(ThreadState, Object);
+void threading_init(void);
+void threading_destroy(void);
+ThreadState get_state(void);
 
 #endif

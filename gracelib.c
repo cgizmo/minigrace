@@ -537,10 +537,6 @@ static Object RuntimeErrorObject;
 
 struct SFLinkList *shutdown_functions;
 
-// Threading
-static pthread_key_t thread_state;
-static int num_threads;
-
 // TODO : add sysmodule, iomodule ?
 // sysmodule pbly has to be initialised after module_sys_init_argv
 static void init_default_objects()
@@ -1249,41 +1245,19 @@ static inline void init_Block(ClassData block)
     }
 }
 
-/* Thread specific functions */
-static int init_thread_state()
-{
-    if (pthread_getspecific(thread_state) == NULL)
-    {
-        pthread_setspecific(thread_state, thread_alloc(num_threads));
-    }
-    else
-    {
-        die("Thread state initialised more than once.");
-    }
-
-    return num_threads++;
-}
-
-static void destroy_thread_state()
-{
-    void *ptr = pthread_getspecific(thread_state);
-    free(ptr);
-    pthread_setspecific(thread_state, NULL);
-}
-
-ThreadState get_state()
-{
-    return (ThreadState)pthread_getspecific(thread_state);
-}
-
 void pushstackframe(struct StackFrameObject *f, char *name)
 {
-    thread_pushstackframe(get_state(), f, name);
+    ThreadState st = get_state();
+
+    st->frame_stack[st->calldepth - 1] = f;
+    f->name = name;
 }
 
 void pushclosure(Object c)
 {
-    thread_pushclosure(get_state(), c);
+    ThreadState st = get_state();
+
+    st->closure_stack[st->calldepth - 1] = (struct ClosureEnvObject *)c;
 }
 
 void set_source_object(Object o)
@@ -6475,13 +6449,9 @@ void gracelib_argv(char **argv)
     }
 
     // Threading init
+    threading_init();
     pthread_mutex_init(&gracelib_mutex, NULL);
     pthread_mutex_init(&debug_mutex, NULL);
-    pthread_key_create(&thread_state, NULL);
-    num_threads = 0;
-
-    // Make the initial thread
-    init_thread_state();
 
     // TODO : make thread local ?
     exceptionHandler_stack = calloc(STACK_SIZE + 1, sizeof(jmp_buf));
@@ -6536,12 +6506,7 @@ void gracelib_destroy()
     pthread_mutex_destroy(&gracelib_mutex);
     pthread_mutex_destroy(&debug_mutex);
 
-    // Free memory allocated for the initial thread.
-    destroy_thread_state();
-
-    // Remove the key (all threads should have freed their thread state at
-    // this point).
-    pthread_key_delete(thread_state);
+    threading_destroy();
 }
 
 void setline(int l)

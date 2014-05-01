@@ -147,6 +147,4 @@ Object grace_prelude();
 void debug(char *, ...);
 void die(char *, ...);
 
-ThreadState get_state(void);
-
 #endif
