@@ -38,14 +38,23 @@ static ThreadList *thread_list_cons(ThreadList **);
 static void thread_list_remove(ThreadList **, ThreadList *);
 static void thread_list_free(ThreadList *);
 
+static int active = 0;
+
 static pthread_key_t thread_state;
 static volatile thread_id next_thread_id;
 static pthread_mutex_t threading_mutex;
 
 static ThreadList *threads;
 
+// Single threaded function! This function is meant to run on Grace initialisation.
+// No threads should be created before the call to this function returns.
 void threading_init()
 {
+    if (active)
+    {
+        gracedie("Tried to initialise active threading subsystem.");
+    }
+
     pthread_mutex_init(&threading_mutex, NULL);
     pthread_key_create(&thread_state, NULL);
     next_thread_id = 0;
@@ -56,10 +65,23 @@ void threading_init()
 
     // TODO : what to do with thread 0 (the one we just built) ?
     threads = NULL;
+
+    // Mark the system as active.
+    active = 1;
 }
 
+// Single threaded function! This function assumes that all threads have terminated
+// and that no new threads can be created.
+// This can be achieved by doing:
+//   threading_deactivate();
+//   wait_for_all_threads();
 void threading_destroy()
 {
+    if (active)
+    {
+        gracedie("Tried to destroy active threading subsystem.");
+    }
+
     // Free memory allocated for the initial thread.
     thread_state_destroy();
 
@@ -75,21 +97,39 @@ void threading_destroy()
     thread_list_free(threads);
 }
 
+void threading_deactivate()
+{
+    // Always ensure this is the same mutex as the one held by grace_thread_create.
+    pthread_mutex_lock(&threading_mutex);
+    active = 0;
+    pthread_mutex_unlock(&threading_mutex);
+}
+
 ThreadState *get_state()
 {
     return (ThreadState *)pthread_getspecific(thread_state);
 }
 
-// TODO : fix this so that it cannot create threads if the threading system is shut down.
+// Tries to create a new Grace thread.
+// Returns the thread_id of the newly created thread.
+// Returns ERR_THREADING_INACTIVE if threading system is deactivated.
 thread_id grace_thread_create(Object block)
 {
     thread_id id;
     ThreadParams *params = malloc(sizeof(ThreadParams));
 
-    debug("grace_thread_create: probably creating thread %d", next_thread_id);
+    debug("grace_thread_create: probably creating thread %d.", next_thread_id);
 
     // Get the thread ID;
     pthread_mutex_lock(&threading_mutex);
+
+    if (!active)
+    {
+        debug("grace_thread_create: threading inactive, not creating thread %d.", next_thread_id);
+        pthread_mutex_unlock(&threading_mutex);
+        return ERR_THREADING_INACTIVE;
+    }
+
     ThreadList *t = thread_list_cons(&threads); // requires lock on "threads"
     id = next_thread_id;
     next_thread_id++;
@@ -107,7 +147,7 @@ thread_id grace_thread_create(Object block)
     pthread_mutex_unlock(&threading_mutex);
 
     //pthread_join(threads[id], NULL);
-    debug("grace_thread_create: created thread %d", id);
+    debug("grace_thread_create: created thread %d.", id);
     return id;
 }
 

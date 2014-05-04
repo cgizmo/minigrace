@@ -6,6 +6,8 @@
 
 #include "gracelib_types.h"
 
+#define ERR_THREADING_INACTIVE -1
+
 typedef struct ThreadState ThreadState;
 typedef int thread_id;
 
@@ -29,6 +31,7 @@ struct ThreadState
 
 void threading_init(void);
 void threading_destroy(void);
+void threading_deactivate(void);
 ThreadState *get_state(void);
 
 // For some reason this function cannot be called just "thread_create", so
