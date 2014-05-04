@@ -48,40 +48,35 @@ void message_queue_post(MessageQueue *msg_queue, void *data)
         msg_queue->tail = elem;
     }
 
-    pthread_mutex_unlock(&msg_queue->queue_lock);
     pthread_cond_signal(&msg_queue->queue_cond);
+    pthread_mutex_unlock(&msg_queue->queue_lock);
 }
 
 const void *const message_queue_poll(MessageQueue *msg_queue)
 {
-    while (1)
+    pthread_mutex_lock(&msg_queue->queue_lock);
+
+    while (msg_queue->head == NULL && msg_queue->tail == NULL)
     {
-        pthread_mutex_lock(&msg_queue->queue_lock);
-
-        if (msg_queue->head == NULL && msg_queue->tail == NULL)
-        {
-            pthread_cond_wait(&msg_queue->queue_cond, &msg_queue->queue_lock);
-        }
-        else
-        {
-            MessageQueueElement *elem = msg_queue->head;
-            const void *const data = elem->data;
-
-            if (msg_queue->head == msg_queue->tail)
-            {
-                msg_queue->head = NULL;
-                msg_queue->tail = NULL;
-            }
-            else
-            {
-                msg_queue->head = msg_queue->head->next;
-            }
-
-            pthread_mutex_unlock(&msg_queue->queue_lock);
-            free(elem);
-            return data;
-        }
+        pthread_cond_wait(&msg_queue->queue_cond, &msg_queue->queue_lock);
     }
+
+    MessageQueueElement *elem = msg_queue->head;
+    const void *const data = elem->data;
+
+    if (msg_queue->head == msg_queue->tail)
+    {
+        msg_queue->head = NULL;
+        msg_queue->tail = NULL;
+    }
+    else
+    {
+        msg_queue->head = msg_queue->head->next;
+    }
+
+    pthread_mutex_unlock(&msg_queue->queue_lock);
+    free(elem);
+    return data;
 }
 
 static void message_queue_free_elements(MessageQueue *msg_queue)

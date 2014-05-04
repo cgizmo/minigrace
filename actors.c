@@ -22,6 +22,8 @@ static void init_module_object(void);
 
 Object module_actors_init(void);
 Object actors_spawn(Object, int, int *, Object *, int);
+Object actors_post(Object, int, int *, Object *, int);
+Object actors_poll(Object, int, int *, Object *, int);
 
 /* Globals */
 static pthread_once_t once_control = PTHREAD_ONCE_INIT;
@@ -43,15 +45,45 @@ Object module_actors_init()
  */
 Object actors_spawn(Object self, int nparams, int *argcv, Object *argv, int flags)
 {
-    if (nparams != 1)
+    if (nparams != 1 || argcv[0] != 1)
     {
         gracedie("actors.spawn requires one argument");
     }
 
-    thread_id id = grace_thread_create(argv[0]);
+    // The parent ID of the new thread is the ID of the current thread.
+    Object parent_aid = alloc_AID_object(get_state()->id);
+    thread_id id = grace_thread_create(argv[0], parent_aid);
     debug("actors_spawn: made an actor with id %d.\n", id);
 
     return alloc_AID_object(id);
+}
+
+Object actors_post(Object self, int nparams, int *argcv, Object *argv, int flags)
+{
+    if (nparams != 1 || argcv[0] != 2)
+    {
+        gracedie("actors.post requires two arguments");
+    }
+
+    AIDObject *aid = (AIDObject *)argv[0];
+    Object data = argv[1];
+    MessageQueue *msg_queue = get_thread_message_queue(aid->id);
+
+    message_queue_post(msg_queue, data);
+
+    return alloc_done();
+}
+
+Object actors_poll(Object self, int nparams, int *argcv, Object *argv, int flags)
+{
+    if (nparams != 1 || argcv[0] != 0)
+    {
+        gracedie("actors.poll requires no argument");
+    }
+
+    MessageQueue *msg_queue = get_state()->msg_queue;
+
+    return (Object)message_queue_poll(msg_queue);
 }
 
 static Object alloc_AID_object(thread_id id)
@@ -70,9 +102,11 @@ static void init_module_object()
     AID = alloc_class("AID", 0);
 
     // Initialize module
-    ClassData c = alloc_class("Module<actors>", 1);
+    ClassData c = alloc_class("Module<actors>", 3);
 
     add_Method(c, "spawn", &actors_spawn);
+    add_Method(c, "post", &actors_post);
+    add_Method(c, "poll", &actors_poll);
 
     actors_module = alloc_newobj(0, c);
     gc_root(actors_module);

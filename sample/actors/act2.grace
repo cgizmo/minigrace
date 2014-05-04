@@ -6,7 +6,7 @@ print "Inside parent thread, before call."
 
 for (xs) do { x ->
     actors.spawn({parent_id -> 
-        print "({x}) parent ID is {parent_id}"
+        print "({x})"
     })
 }
 

@@ -42,7 +42,8 @@ ThreadState *get_state(void);
 
 // For some reason this function cannot be called just "thread_create", so
 // calling it "grace_thread_create" instead.
-thread_id grace_thread_create(Object);
+thread_id grace_thread_create(Object, Object);
 void wait_for_all_threads(void);
+MessageQueue *get_thread_message_queue(thread_id);
 
 #endif

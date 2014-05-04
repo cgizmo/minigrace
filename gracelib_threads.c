@@ -10,15 +10,18 @@
 #include "gracelib_msg.h"
 #include "gracelib_gc.h"
 
-// For "die"
 #include "gracelib.h"
 
 typedef struct ThreadParams ThreadParams;
 typedef struct ThreadList ThreadList;
 
+// If id = 0, then "thread" field is not initialised.
 struct ThreadList
 {
+    thread_id id;
+
     pthread_t thread;
+    MessageQueue *msg_queue;
     struct ThreadList *prev;
     struct ThreadList *next;
 };
@@ -28,6 +31,7 @@ struct ThreadParams
     ThreadState *my_thread_state;
     ThreadList *thread_list_entry;
     Object block;
+    Object block_arg;
 };
 
 static void grace_thread(void *);
@@ -55,16 +59,23 @@ void threading_init()
         gracedie("Tried to initialise active threading subsystem.");
     }
 
+    ThreadState *state;
+    ThreadList *t;
+
     pthread_mutex_init(&threading_mutex, NULL);
     pthread_key_create(&thread_state, NULL);
     next_thread_id = 0;
 
     // Init initial thread state
-    thread_state_init(thread_state_alloc(0, NO_PARENT));
+    state = thread_state_alloc(0, NO_PARENT);
+    thread_state_init(state);
     next_thread_id++;
 
-    // TODO : what to do with thread 0 (the one we just built) ?
+    // Add the thread to the list of threads.
     threads = NULL;
+    t = thread_list_cons(&threads);
+    t->id = 0;
+    t->msg_queue = state->msg_queue;
 
     // Mark the system as active.
     active = 1;
@@ -92,8 +103,8 @@ void threading_destroy()
     pthread_mutex_destroy(&threading_mutex);
 
     // Free threads linked list. It shouldn't be used anymore at this point.
-    // In normal execution, threads should be empty (== NULL), but not sure this
-    // can be guaranteed if threads crash.
+    // In normal execution, "threads" should only contain thread 0 here, but not
+    // sure this can be guaranteed if threads crash.
     thread_list_free(threads);
 }
 
@@ -113,7 +124,7 @@ ThreadState *get_state()
 // Tries to create a new Grace thread.
 // Returns the thread_id of the newly created thread.
 // Returns ERR_THREADING_INACTIVE if threading system is deactivated.
-thread_id grace_thread_create(Object block)
+thread_id grace_thread_create(Object block, Object block_arg)
 {
     thread_id id;
     ThreadParams *params = malloc(sizeof(ThreadParams));
@@ -138,6 +149,9 @@ thread_id grace_thread_create(Object block)
     params->my_thread_state = thread_state_alloc(id, get_state()->id);
     params->thread_list_entry = t;
     params->block = block; // TODO : block_copy(block); ?
+    params->block_arg = block_arg; // TODO : copy ?
+    t->id = id;
+    t->msg_queue = params->my_thread_state->msg_queue;
 
     // Start thread
     pthread_create(&t->thread, NULL, (void *)&grace_thread, (void *)params);
@@ -145,9 +159,26 @@ thread_id grace_thread_create(Object block)
     // Only unlock the mutex once threads[id] is initialized.
     pthread_mutex_unlock(&threading_mutex);
 
-    //pthread_join(threads[id], NULL);
     debug("grace_thread_create: created thread %d.", id);
     return id;
+}
+
+// TODO : make O(1) access.
+MessageQueue *get_thread_message_queue(thread_id id)
+{
+    pthread_mutex_lock(&threading_mutex);
+
+    for (ThreadList *x = threads; x != NULL; x = x->next)
+    {
+        if (x->id == id)
+        {
+            pthread_mutex_unlock(&threading_mutex);
+            return x->msg_queue;
+        }
+    }
+
+    pthread_mutex_unlock(&threading_mutex);
+    return NULL;
 }
 
 void wait_for_all_threads()
@@ -186,11 +217,11 @@ static void grace_thread(void *thread_params_)
     debug("grace_thread: thread with ID %d and parent %d created.\n", get_state()->id, get_state()->parent_id);
 
     /* The block is of the form
-     * { parent_id -> ... }
+     * { block_arg -> ... }
      * So 1 part method "apply" on object, 1 argument per part.
      */
     int partcv[1] = { 1 };
-    Object params[1] = { alloc_Float64(get_state()->parent_id) };
+    Object params[1] = { thread_params->block_arg };
 
     callmethod(thread_params->block, "apply", 1, partcv, params);
 

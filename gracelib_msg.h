@@ -15,7 +15,8 @@ struct MessageQueue
     MessageQueueElement *tail;
 };
 
-// TODO : immutability semantics for data
+// TODO : immutability semantics for data, and make sure it is not garbage collected
+// mid way
 struct MessageQueueElement
 {
     const void *data;
