@@ -164,6 +164,7 @@ Object AndPattern_match(Object self, int nparts, int *argcv, Object *argv, int f
 Object Block_apply(Object self, int nparts, int *argcv, Object *args, int flags);
 Object Block_applyIndirectly(Object self, int nparts, int *argcv, Object *args, int flags);
 Object Block_match(Object self, int nparts, int *argcv, Object *args, int flags);
+Object BlockPattern_match(Object self, int nparts, int *argcv, Object *argv, int flags);
 Object Block_pattern(Object self, int argc, int *argcv, Object *argv, int flags);
 Object Boolean_And(Object self, int nparts, int *argcv, Object *args, int flags);
 Object Boolean_AndAnd(Object self, int nparts, int *argcv, Object *args, int flags);
@@ -406,6 +407,7 @@ static void init_Class(void);
 static void init_MatchResult(void);
 static void init_OrPattern(void);
 static void init_AndPattern(void);
+static void init_BlockPattern(void);
 static void init_GreaterThanPattern(void);
 static void init_LessThanPattern(void);
 static void init_ExceptionPacket(void);
@@ -722,6 +724,7 @@ static void init_class_data()
     init_MatchResult();
     init_OrPattern();
     init_AndPattern();
+    init_BlockPattern();
     init_GreaterThanPattern();
     init_LessThanPattern();
     init_ExceptionPacket();
@@ -1095,6 +1098,19 @@ static void init_AndPattern()
         add_Method(AndPattern, "|", &literal_or);
         add_Method(AndPattern, "&", &literal_and);
         add_Method(AndPattern, "match", &AndPattern_match);
+    }
+}
+
+// TODO : Same comments as init_MatchResult, why "4" ?
+static void init_BlockPattern()
+{
+    if (BlockPattern == NULL)
+    {
+        BlockPattern = alloc_class3("BlockPattern", 4,
+                         (void *)&UserObj__mark, (void *)&UserObj__release);
+        add_Method(BlockPattern, "|", &literal_or);
+        add_Method(BlockPattern, "&", &literal_and);
+        add_Method(BlockPattern, "match", &BlockPattern_match);
     }
 }
 
@@ -1831,17 +1847,6 @@ Object BlockPattern_match(Object self, int nparts, int *argcv, Object *argv,
 Object alloc_BlockPattern(Object block)
 {
     Object o = alloc_userobj2(3, 2, BlockPattern);
-
-    if (!BlockPattern)
-    {
-        BlockPattern = o->class;
-        glfree(o->class->name);
-        o->class->name = "BlockPattern";
-        add_Method(BlockPattern, "|", &literal_or);
-        add_Method(BlockPattern, "&", &literal_and);
-        add_Method(BlockPattern, "match", &BlockPattern_match);
-    }
-
     struct UserObject *b = (struct UserObject *)o;
 
     b->data[0] = block;
