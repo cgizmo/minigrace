@@ -6,7 +6,9 @@
 
 #include "gracelib_types.h"
 
-#define ERR_THREADING_INACTIVE -1
+#define NO_PARENT -0x01
+
+#define ERR_THREADING_INACTIVE -0x10
 
 typedef struct ThreadState ThreadState;
 typedef int thread_id;
@@ -14,6 +16,7 @@ typedef int thread_id;
 struct ThreadState
 {
     thread_id id;
+    thread_id parent_id;
 
     struct StackFrameObject **frame_stack;
     struct ClosureEnvObject **closure_stack;

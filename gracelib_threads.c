@@ -24,16 +24,15 @@ struct ThreadList
 
 struct ThreadParams
 {
-    thread_id my_id;
-    thread_id parent_id;
+    ThreadState *my_thread_state;
     ThreadList *thread_list_entry;
     Object block;
 };
 
 static void grace_thread(void *);
-static void thread_state_init(thread_id);
+static void thread_state_init(ThreadState *);
 static void thread_state_destroy(void);
-static ThreadState *thread_alloc(thread_id);
+static ThreadState *thread_state_alloc(thread_id, thread_id);
 static ThreadList *thread_list_cons(ThreadList **);
 static void thread_list_remove(ThreadList **, ThreadList *);
 static void thread_list_free(ThreadList *);
@@ -60,7 +59,7 @@ void threading_init()
     next_thread_id = 0;
 
     // Init initial thread state
-    thread_state_init(next_thread_id);
+    thread_state_init(thread_state_alloc(0, NO_PARENT));
     next_thread_id++;
 
     // TODO : what to do with thread 0 (the one we just built) ?
@@ -135,8 +134,7 @@ thread_id grace_thread_create(Object block)
     next_thread_id++;
 
     // Fill up thread parameters
-    params->my_id = id;
-    params->parent_id = get_state()->id;
+    params->my_thread_state = thread_state_alloc(id, get_state()->id);
     params->thread_list_entry = t;
     params->block = block; // TODO : block_copy(block); ?
 
@@ -183,19 +181,19 @@ static void grace_thread(void *thread_params_)
 {
     ThreadParams *thread_params = (ThreadParams *)thread_params_;
 
-    thread_state_init(thread_params->my_id);
-    debug("grace_thread: thread with ID %d and parent %d created.\n", get_state()->id, thread_params->parent_id);
+    thread_state_init(thread_params->my_thread_state);
+    debug("grace_thread: thread with ID %d and parent %d created.\n", get_state()->id, get_state()->parent_id);
 
     /* The block is of the form
      * { parent_id -> ... }
      * So 1 part method "apply" on object, 1 argument per part.
      */
     int partcv[1] = { 1 };
-    Object params[1] = { alloc_Float64(thread_params->parent_id) };
+    Object params[1] = { alloc_Float64(get_state()->parent_id) };
 
     callmethod(thread_params->block, "apply", 1, partcv, params);
 
-    debug("grace_thread: thread with ID %d and parent %d finished.\n", get_state()->id, thread_params->parent_id);
+    debug("grace_thread: thread with ID %d and parent %d finished.\n", get_state()->id, get_state()->parent_id);
 
     // Thread is finished, remove it from "threads" and destroy internal state.
     pthread_mutex_lock(&threading_mutex);
@@ -207,11 +205,11 @@ static void grace_thread(void *thread_params_)
     pthread_exit(0);
 }
 
-static void thread_state_init(thread_id id)
+static void thread_state_init(ThreadState *state)
 {
     if (pthread_getspecific(thread_state) == NULL)
     {
-        pthread_setspecific(thread_state, thread_alloc(id));
+        pthread_setspecific(thread_state, state);
     }
     else
     {
@@ -227,11 +225,12 @@ static void thread_state_destroy()
 }
 
 
-static ThreadState *thread_alloc(thread_id id)
+static ThreadState *thread_state_alloc(thread_id id, thread_id parent_id)
 {
     ThreadState *state = malloc(sizeof(ThreadState));
 
     state->id = id;
+    state->parent_id = parent_id;
 
     state->frame_stack = calloc(STACK_SIZE + 1, sizeof(struct StackFrameObject *));
     state->frame_stack++;
