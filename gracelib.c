@@ -1247,7 +1247,7 @@ static inline void init_Block(ClassData block)
 
 void pushstackframe(struct StackFrameObject *f, char *name)
 {
-    ThreadState st = get_state();
+    ThreadState *st = get_state();
 
     st->frame_stack[st->calldepth - 1] = f;
     f->name = name;
@@ -1255,7 +1255,7 @@ void pushstackframe(struct StackFrameObject *f, char *name)
 
 void pushclosure(Object c)
 {
-    ThreadState st = get_state();
+    ThreadState *st = get_state();
 
     st->closure_stack[st->calldepth - 1] = (struct ClosureEnvObject *)c;
 }
@@ -1268,7 +1268,7 @@ void set_source_object(Object o)
 /* Rest of functions */
 void backtrace()
 {
-    ThreadState st = get_state();
+    ThreadState *st = get_state();
     int i;
 
     for (i = 0; i < st->calldepth; i++)
@@ -1855,7 +1855,7 @@ Object alloc_GreaterThanPattern(Object r)
 
 void printExceptionBacktrace(Object o)
 {
-    ThreadState st = get_state();
+    ThreadState *st = get_state();
     struct ExceptionPacketObject *e = (struct ExceptionPacketObject *)o;
     struct ExceptionObject *x = (struct ExceptionObject *)e->exception;
     fprintf(stderr, "Error around line %i: %s: %s\n", e->lineNumber,
@@ -1961,7 +1961,7 @@ Object ExceptionPacket_printBacktrace(Object self, int argc, int *argcv,
 
 Object alloc_ExceptionPacket(Object msg, Object exception)
 {
-    ThreadState st = get_state();
+    ThreadState *st = get_state();
     Object o = alloc_obj(sizeof(struct ExceptionPacketObject)
                          - sizeof(struct Object), ExceptionPacket);
     struct ExceptionPacketObject *e = (struct ExceptionPacketObject *)o;
@@ -4920,7 +4920,7 @@ void block_return(Object self, Object obj)
 
 void block_savedest(Object self)
 {
-    ThreadState st = get_state();
+    ThreadState *st = get_state();
     struct UserObject *uo = (struct UserObject *)self;
     uo->retpoint = (void *)&st->return_stack[st->calldepth - 1];
 }
@@ -5059,7 +5059,7 @@ Object callmethod4(Object self, const char *name,
                    int partc, int *argcv, Object *argv, int superdepth, int callflags)
 {
     debug("callmethod %s on %p (%s)", name, self, self->class->name);
-    ThreadState st = get_state();
+    ThreadState *st = get_state();
     int frame = gc_frame_new();
     int istail = 0;
 start:
@@ -5223,7 +5223,7 @@ Object callmethod2(Object self, const char *name,
 Object callmethodflags(Object receiver, const char *name,
                        int nparts, int *nparamsv, Object *args, int callflags)
 {
-    ThreadState st = get_state();
+    ThreadState *st = get_state();
     int i, j;
     int start_calldepth = st->calldepth;
     int start_exceptionHandlerDepth = exceptionHandlerDepth;
@@ -5333,7 +5333,7 @@ Object matchCase(Object matchee, Object *cases, int ncases, Object elsecase)
 Object catchCase(Object block, Object *caseList, int ncases,
                  Object finally)
 {
-    ThreadState st = get_state();
+    ThreadState *st = get_state();
     int old_error_jump_set = error_jump_set;
     error_jump_set = 1;
     int start_calldepth = st->calldepth;
@@ -5910,7 +5910,7 @@ Object alloc_Integer32(int i)
 Object Block_apply(Object self, int nparts, int *argcv,
                    Object *args, int flags)
 {
-    ThreadState st = get_state();
+    ThreadState *st = get_state();
     struct BlockObject *bo = (struct BlockObject *)self;
     memcpy(st->return_stack[st->calldepth - 1], bo->retpoint,
            sizeof(st->return_stack[st->calldepth - 1]));
@@ -6413,7 +6413,7 @@ Object dlmodule(const char *name)
 
 void gracelib_stats()
 {
-    ThreadState st = get_state();
+    ThreadState *st = get_state();
 
     grace_run_shutdown_functions();
 

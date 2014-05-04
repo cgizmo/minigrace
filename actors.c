@@ -6,7 +6,7 @@
 #include "gracelib_gc.h"
 #include "gracelib.h"
 
-typedef struct AIDObject *AIDObject;
+typedef struct AIDObject AIDObject;
 
 /* Structures */
 struct AIDObject
@@ -55,8 +55,8 @@ Object actors_spawn(Object self, int nparams, int *argcv, Object *argv, int flag
 
 static Object alloc_AID_object(thread_id id)
 {
-    Object o = alloc_obj(sizeof(struct AIDObject) - sizeof(struct Object), AID);
-    AIDObject aid = (AIDObject)o;
+    Object o = alloc_obj(sizeof(AIDObject) - sizeof(struct Object), AID);
+    AIDObject *aid = (AIDObject *)o;
 
     aid->id = id;
 

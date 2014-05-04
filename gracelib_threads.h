@@ -6,9 +6,7 @@
 
 #include "gracelib_types.h"
 
-#define MAX_NUM_THREADS 1024
-
-typedef struct ThreadState *ThreadState;
+typedef struct ThreadState ThreadState;
 typedef int thread_id;
 
 struct ThreadState
@@ -31,7 +29,7 @@ struct ThreadState
 
 void threading_init(void);
 void threading_destroy(void);
-ThreadState get_state(void);
+ThreadState *get_state(void);
 
 // For some reason this function cannot be called just "thread_create", so
 // calling it "grace_thread_create" instead.

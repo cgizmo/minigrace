@@ -142,7 +142,7 @@ int countclosurenames() {
 }
 
 static void changeframe() {
-    ThreadState st = get_state();
+    ThreadState* st = get_state();
 
     frame = st->frame_stack[framedepth];
     closure = st->closure_stack[framedepth];
@@ -292,7 +292,7 @@ static void runcommand(char *str) {
 }
 
 int debugger() {
-    ThreadState st = get_state();
+    ThreadState* st = get_state();
     addcommand("help", "List available commands", &help);
     addcommand("frame", "Show contents of current frame", &framecmd);
     addcommand("closure", "Show contents of current closure", &closurecmd);

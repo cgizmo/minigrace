@@ -1,5 +1,6 @@
 #define _POSIX_C_SOURCE 200809L
 #define _XOPEN_SOURCE 700
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <setjmp.h>
@@ -12,39 +13,49 @@
 #include "gracelib.h"
 
 typedef struct ThreadParams ThreadParams;
+typedef struct ThreadList ThreadList;
+
+struct ThreadList
+{
+    pthread_t thread;
+    struct ThreadList *prev;
+    struct ThreadList *next;
+};
 
 struct ThreadParams
 {
     thread_id my_id;
     thread_id parent_id;
+    ThreadList *thread_list_entry;
     Object block;
 };
 
 static void grace_thread(void *);
 static void thread_state_init(thread_id);
 static void thread_state_destroy(void);
-static ThreadState thread_alloc(thread_id);
+static ThreadState *thread_alloc(thread_id);
+static ThreadList *thread_list_cons(ThreadList **);
+static void thread_list_remove(ThreadList **, ThreadList *);
+static void thread_list_free(ThreadList *);
 
 static pthread_key_t thread_state;
-static volatile thread_id num_threads;
+static volatile thread_id next_thread_id;
 static pthread_mutex_t threading_mutex;
 
-// TODO : make that into a linked list and get rid of the MAX_NUM_THREADS
-// Currently, MAX_NUM_THREADS is actually "MAX_NUM_THREAD_CREATIONS".
-static pthread_t *threads;
+static ThreadList *threads;
 
 void threading_init()
 {
     pthread_mutex_init(&threading_mutex, NULL);
     pthread_key_create(&thread_state, NULL);
-    num_threads = 0;
+    next_thread_id = 0;
 
     // Init initial thread state
-    thread_state_init(num_threads);
-    num_threads++;
+    thread_state_init(next_thread_id);
+    next_thread_id++;
 
-    threads = malloc(MAX_NUM_THREADS * sizeof(pthread_t));
-    threads[0] = NULL;
+    // TODO : what to do with thread 0 (the one we just built) ?
+    threads = NULL;
 }
 
 void threading_destroy()
@@ -57,12 +68,16 @@ void threading_destroy()
     pthread_key_delete(thread_state);
 
     pthread_mutex_destroy(&threading_mutex);
-    free(threads);
+
+    // Free threads linked list. It shouldn't be used anymore at this point.
+    // In normal execution, threads should be empty (== NULL), but not sure this
+    // can be guaranteed if threads crash.
+    thread_list_free(threads);
 }
 
-ThreadState get_state()
+ThreadState *get_state()
 {
-    return (ThreadState)pthread_getspecific(thread_state);
+    return (ThreadState *)pthread_getspecific(thread_state);
 }
 
 // TODO : fix this so that it cannot create threads if the threading system is shut down.
@@ -71,20 +86,22 @@ thread_id grace_thread_create(Object block)
     thread_id id;
     ThreadParams *params = malloc(sizeof(ThreadParams));
 
-    debug("grace_thread_create: probably creating thread %d", num_threads);
+    debug("grace_thread_create: probably creating thread %d", next_thread_id);
 
     // Get the thread ID;
     pthread_mutex_lock(&threading_mutex);
-    id = num_threads;
-    num_threads++;
+    ThreadList *t = thread_list_cons(&threads); // requires lock on "threads"
+    id = next_thread_id;
+    next_thread_id++;
 
     // Fill up thread parameters
     params->my_id = id;
     params->parent_id = get_state()->id;
+    params->thread_list_entry = t;
     params->block = block; // TODO : block_copy(block); ?
 
     // Start thread
-    pthread_create(&threads[id], NULL, (void *)&grace_thread, (void *)params);
+    pthread_create(&t->thread, NULL, (void *)&grace_thread, (void *)params);
 
     // Only unlock the mutex once threads[id] is initialized.
     pthread_mutex_unlock(&threading_mutex);
@@ -101,16 +118,25 @@ void wait_for_all_threads()
         gracedie("Only initial thread 0 is allowed to wait on all child threads.");
     }
 
+    ThreadList *threads_copy = NULL;
+
     pthread_mutex_lock(&threading_mutex);
 
-    for (int i = 1; i < num_threads; i++)
+    for (ThreadList *x = threads; x != NULL; x = x->next)
     {
-        debug("wait_for_all_threads: joining on thread %d.\n", i);
-        pthread_join(threads[i], NULL);
-        debug("wait_for_all_threads: thread %d finished.\n", i);
+        thread_list_cons(&threads_copy)->thread = x->thread;
     }
 
     pthread_mutex_unlock(&threading_mutex);
+
+    debug("wait_for_all_threads: joining on threads.\n");
+
+    for (ThreadList *x = threads_copy; x != NULL; x = x->next)
+    {
+        pthread_join(x->thread, NULL);
+    }
+
+    debug("wait_for_all_threads: threads finished.\n");
 }
 
 static void grace_thread(void *thread_params_)
@@ -131,11 +157,13 @@ static void grace_thread(void *thread_params_)
 
     debug("grace_thread: thread with ID %d and parent %d finished.\n", get_state()->id, thread_params->parent_id);
 
-    // Thread is finished, destroy internal state.
+    // Thread is finished, remove it from "threads" and destroy internal state.
+    pthread_mutex_lock(&threading_mutex);
+    thread_list_remove(&threads, thread_params->thread_list_entry);
+    pthread_mutex_unlock(&threading_mutex);
+
     thread_state_destroy();
-    free(thread_params_); // TODO : good idea to do this here ?
-    // TODO : when adding a linked list to hold threads, remove the thread from
-    // the list around here.
+    free(thread_params_);
     pthread_exit(0);
 }
 
@@ -159,9 +187,9 @@ static void thread_state_destroy()
 }
 
 
-static ThreadState thread_alloc(thread_id id)
+static ThreadState *thread_alloc(thread_id id)
 {
-    ThreadState state = malloc(sizeof(struct ThreadState));
+    ThreadState *state = malloc(sizeof(ThreadState));
 
     state->id = id;
 
@@ -186,3 +214,53 @@ static ThreadState thread_alloc(thread_id id)
     return state;
 }
 
+static ThreadList *thread_list_cons(ThreadList **head)
+{
+    ThreadList *t = malloc(sizeof(ThreadList));
+    t->prev = NULL;
+    t->next = *head;
+
+    if (*head != NULL)
+    {
+        (*head)->prev = t;
+    }
+
+    (*head) = t;
+    return t;
+}
+
+// Pre: "t" is a member of the list pointed to by "head".
+static void thread_list_remove(ThreadList **head, ThreadList *t)
+{
+    assert(t != NULL);
+
+    if (t->prev != NULL)
+    {
+        t->prev->next = t->next;
+    }
+
+    if (t->next != NULL)
+    {
+        t->next->prev = t->prev;
+    }
+
+    // t was head of the list.
+    if (*head == t)
+    {
+        *head = t->next;
+    }
+
+    free(t);
+}
+
+static void thread_list_free(ThreadList *head)
+{
+    ThreadList *tmp;
+
+    while (head != NULL)
+    {
+        tmp = head;
+        head = head->next;
+        free(tmp);
+    }
+}
