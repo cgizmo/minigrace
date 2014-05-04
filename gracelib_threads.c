@@ -7,6 +7,7 @@
 #include <pthread.h>
 
 #include "gracelib_threads.h"
+#include "gracelib_msg.h"
 #include "gracelib_gc.h"
 
 // For "die"
@@ -219,8 +220,15 @@ static void thread_state_init(ThreadState *state)
 
 static void thread_state_destroy()
 {
-    void *ptr = pthread_getspecific(thread_state);
-    free(ptr);
+    ThreadState *state = get_state();
+
+    message_queue_destroy(state->msg_queue);
+    free(state->frame_stack - 1);
+    free(state->closure_stack - 1);
+    free(state->callstack);
+    free(state->return_stack - 1);
+    free(state);
+
     pthread_setspecific(thread_state, NULL);
 }
 
@@ -231,6 +239,8 @@ static ThreadState *thread_state_alloc(thread_id id, thread_id parent_id)
 
     state->id = id;
     state->parent_id = parent_id;
+
+    state->msg_queue = message_queue_init();
 
     state->frame_stack = calloc(STACK_SIZE + 1, sizeof(struct StackFrameObject *));
     state->frame_stack++;

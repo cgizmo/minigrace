@@ -48,11 +48,12 @@ repl.gso: repl.c gracelib.h
 repl.gcn: repl.c gracelib.h
 	gcc $(CFLAGS) -c -o repl.gcn repl.c
 
-gracelib-final.o: gracelib.c gracelib_gc.c gracelib_threads.c StandardPrelude.c debugger.o
+gracelib-final.o: gracelib.c gracelib_gc.c gracelib_threads.c gracelib_msg.c StandardPrelude.c debugger.o
 	gcc $(CFLAGS) -c -o gracelib.o gracelib.c
 	gcc $(CFLAGS) -c -o gracelib_gc.o gracelib_gc.c
 	gcc $(CFLAGS) -c -o gracelib_threads.o gracelib_threads.c
-	ar cr gracelib-basic.a gracelib.o gracelib_gc.o gracelib_threads.o
+	gcc $(CFLAGS) -c -o gracelib_msg.o gracelib_msg.c
+	ar cr gracelib-basic.a gracelib.o gracelib_gc.o gracelib_threads.o gracelib_msg.o
 	gcc $(CFLAGS) -I. -c -o StandardPrelude.gcn StandardPrelude.c
 	ld -o gracelib-final.o -r gracelib-basic.a StandardPrelude.gcn debugger.o
 

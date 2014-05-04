@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <setjmp.h>
 
+#include "gracelib_msg.h"
 #include "gracelib_types.h"
 
 #define NO_PARENT -0x01
@@ -17,6 +18,8 @@ struct ThreadState
 {
     thread_id id;
     thread_id parent_id;
+
+    MessageQueue *msg_queue;
 
     struct StackFrameObject **frame_stack;
     struct ClosureEnvObject **closure_stack;

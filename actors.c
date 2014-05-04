@@ -3,6 +3,7 @@
 
 #include "gracelib_types.h"
 #include "gracelib_threads.h"
+#include "gracelib_msg.h"
 #include "gracelib_gc.h"
 #include "gracelib.h"
 
