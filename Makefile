@@ -41,6 +41,9 @@ curl.gso: curl.c gracelib.h gracelib_types.h
 mirrors.gso: mirrors.c gracelib.h gracelib_types.h
 	gcc $(CFLAGS) $(UNICODE_LDFLAGS) -o mirrors.gso -shared -fPIC mirrors.c
 
+actors.gso: actors.c gracelib.h gracelib_types.h gracelib_threads.h gracelib_gc.h
+	gcc $(CFLAGS) $(UNICODE_LDFLAGS) -o actors.gso -shared -fPIC actors.c
+
 math.gso: math.c gracelib.h gracelib_types.h
 	gcc $(CFLAGS) $(UNICODE_LDFLAGS) -o math.gso -shared -fPIC math.c
 
@@ -83,8 +86,8 @@ js/index.html: js/index.in.html js/ace.in.html js/minigrace.js
 	@echo Generating index.html from index.in.html...
 	@awk '!/<!--\[!SH\[/ { print } /<!--\[!SH\[/ { gsub(/<!--\[!SH\[/, "") ; gsub(/\]!\]-->/, "") ; system($$0) }' < $< > $@
 
-c: minigrace $(CGRACELIB) unicode.c unicodedata.h Makefile c/Makefile mirrors.c definitions.h curl.c repl.c math.c
-	for f in $(CGRACELIB) unicode.c unicodedata.h $(SOURCEFILES) StandardPrelude.grace $(UNICODE_MODULE) mirrors.c math.c definitions.h debugger.c curl.c repl.c ; do cp $$f c ; done && cd c && ../minigrace --make --noexec -XNoMain -XNativePrelude StandardPrelude.grace && ../minigrace --target c --make --verbose --module minigrace --noexec compiler.grace && sed -i 's!#include "../gracelib\(.*\).h"!#include "gracelib\1.h"!' *.c && rm -f *.gcn $(UNICODE_MODULE)
+c: minigrace $(CGRACELIB) unicode.c unicodedata.h Makefile c/Makefile mirrors.c actors.c definitions.h curl.c repl.c math.c
+	for f in $(CGRACELIB) unicode.c unicodedata.h $(SOURCEFILES) StandardPrelude.grace $(UNICODE_MODULE) mirrors.c actors.c math.c definitions.h debugger.c curl.c repl.c ; do cp $$f c ; done && cd c && ../minigrace --make --noexec -XNoMain -XNativePrelude StandardPrelude.grace && ../minigrace --target c --make --verbose --module minigrace --noexec compiler.grace && sed -i 's!#include "../gracelib\(.*\).h"!#include "gracelib\1.h"!' *.c && rm -f *.gcn $(UNICODE_MODULE)
 
 tarball: minigrace
 	touch c/Makefile.conf
@@ -142,7 +145,7 @@ clean:
 	rm -f gracelib_gc.bc gracelib_gc.o
 	rm -f gracelib_threads.bc gracelib_threads.o
 	rm -f unicode.gco unicode.gso unicode.gcn
-	rm -f mirrors.gso math.gso
+	rm -f mirrors.gso math.gso actors.gso
 	rm -f debugger.o
 	rm -f repl.gso
 	rm -rf l1 l2 buildinfo.grace

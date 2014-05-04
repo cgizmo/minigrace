@@ -6008,6 +6008,7 @@ Object alloc_Block(Object self, Object(*body)(Object, int, Object *, int),
     ClassData c = alloc_class3(buf, 10, (void *)&Block__mark,
                                (void *)&Block__release);
 
+    // TODO : make thread safe
     init_Block(c);
 
     add_Method(c, "apply", &Block_apply);
