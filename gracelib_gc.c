@@ -1,6 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 #define _XOPEN_SOURCE 700
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -14,6 +15,12 @@
 // For die and debug.
 #include "gracelib.h"
 
+struct GC_Root
+{
+    Object object;
+    struct GC_Root *next;
+};
+
 int expand_living();
 int rungc();
 
@@ -22,13 +29,8 @@ pthread_mutex_t gc_mutex;
 // Alloc/dealloc mutex for gcmalloc/glfree functions.
 pthread_mutex_t alloc_mutex;
 
-struct GC_Root
-{
-    Object object;
-    struct GC_Root *next;
-};
-
 struct GC_Root *GC_roots;
+GCTransit *objs_in_transit;
 
 int stack_size = 1024;
 
@@ -85,6 +87,8 @@ void gc_init(int gc_dofree_, int gc_dowarn_, int gc_period_)
 
 void gc_destroy()
 {
+    // TODO : do something with objects in transit ?
+
     pthread_mutex_destroy(&gc_mutex);
     pthread_mutex_destroy(&alloc_mutex);
 }
@@ -148,6 +152,61 @@ void gc_root(Object o)
     r->next = GC_roots;
     GC_roots = r;
     pthread_mutex_unlock(&gc_mutex);
+}
+
+GCTransit *gc_transit(Object o)
+{
+    GCTransit *x = malloc(sizeof(GCTransit));
+    x->object = o;
+    x->prev = NULL;
+    x->tnext = NULL;
+    x->tprev = NULL;
+
+    pthread_mutex_lock(&gc_mutex);
+    x->next = objs_in_transit;
+
+    if (objs_in_transit != NULL)
+    {
+        objs_in_transit->prev = x;
+    }
+
+    objs_in_transit = x;
+    pthread_mutex_unlock(&gc_mutex);
+
+    return x;
+}
+
+// Returns head of link. Use like this:
+//   gc_transit_link(a, gc_transit_link(b, c));
+GCTransit *gc_transit_link(GCTransit *a, GCTransit *b)
+{
+    a->tnext = b;
+    b->tprev = a;
+
+    return a;
+}
+
+void gc_arrive(GCTransit *x)
+{
+    assert(x != NULL);
+
+    if (x->prev != NULL)
+    {
+        x->prev->next = x->next;
+    }
+
+    if (x->next != NULL)
+    {
+        x->next->prev = x->prev;
+    }
+
+    // x was head of the list.
+    if (objs_in_transit == x)
+    {
+        objs_in_transit = x->next;
+    }
+
+    free(x);
 }
 
 void gc_pause()
@@ -339,12 +398,21 @@ int rungc()
 
     struct GC_Root *r = GC_roots;
 
+    GCTransit *x = objs_in_transit;
+
     int freednow = 0;
 
     while (r != NULL)
     {
         gc_mark(r->object);
         r = r->next;
+    }
+
+    // Mark the objects in transit
+    while (x != NULL)
+    {
+        gc_mark(x->object);
+        x = x->next;
     }
 
     for (i = 0; i < gc_framepos; i++)

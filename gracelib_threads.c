@@ -37,7 +37,7 @@ struct ThreadParams
 static void grace_thread(void *);
 static void thread_state_init(ThreadState *);
 static void thread_state_destroy(void);
-static ThreadState *thread_state_alloc(thread_id, thread_id);
+static ThreadState *thread_state_alloc(thread_id, thread_id, GCTransit *);
 static ThreadList *thread_list_cons(ThreadList **);
 static void thread_list_remove(ThreadList **, ThreadList *);
 static void thread_list_free(ThreadList *);
@@ -67,7 +67,7 @@ void threading_init()
     next_thread_id = 0;
 
     // Init initial thread state
-    state = thread_state_alloc(0, NO_PARENT);
+    state = thread_state_alloc(0, NO_PARENT, NULL);
     thread_state_init(state);
     next_thread_id++;
 
@@ -124,7 +124,7 @@ ThreadState *get_state()
 // Tries to create a new Grace thread.
 // Returns the thread_id of the newly created thread.
 // Returns ERR_THREADING_INACTIVE if threading system is deactivated.
-thread_id grace_thread_create(Object block, Object block_arg)
+thread_id grace_thread_create(Object block, Object block_arg, GCTransit *transit)
 {
     thread_id id;
     ThreadParams *params = malloc(sizeof(ThreadParams));
@@ -146,7 +146,7 @@ thread_id grace_thread_create(Object block, Object block_arg)
     next_thread_id++;
 
     // Fill up thread parameters
-    params->my_thread_state = thread_state_alloc(id, get_state()->id);
+    params->my_thread_state = thread_state_alloc(id, get_state()->id, transit);
     params->thread_list_entry = t;
     params->block = block; // TODO : block_copy(block); ?
     params->block_arg = block_arg; // TODO : copy ?
@@ -232,6 +232,16 @@ static void grace_thread(void *thread_params_)
     thread_list_remove(&threads, thread_params->thread_list_entry);
     pthread_mutex_unlock(&threading_mutex);
 
+    // Release all objects held in transit.
+    GCTransit *tmp, *transit = get_state()->transit;
+
+    while (transit != NULL)
+    {
+        tmp = transit->tnext;
+        gc_arrive(transit);
+        transit = tmp;
+    }
+
     thread_state_destroy();
     free(thread_params_);
     pthread_exit(0);
@@ -264,7 +274,7 @@ static void thread_state_destroy()
 }
 
 
-static ThreadState *thread_state_alloc(thread_id id, thread_id parent_id)
+static ThreadState *thread_state_alloc(thread_id id, thread_id parent_id, GCTransit *transit)
 {
     ThreadState *state = malloc(sizeof(ThreadState));
 
@@ -272,6 +282,8 @@ static ThreadState *thread_state_alloc(thread_id id, thread_id parent_id)
     state->parent_id = parent_id;
 
     state->msg_queue = message_queue_init();
+
+    state->transit = transit;
 
     state->frame_stack = calloc(STACK_SIZE + 1, sizeof(struct StackFrameObject *));
     state->frame_stack++;

@@ -12,6 +12,17 @@
 #define FLAG_MUTABLE 64
 
 #define STACK_SIZE stack_size
+
+typedef struct GCTransit GCTransit;
+
+// Objects "in between two threads" that should not be GCed.
+struct GCTransit
+{
+    Object object;
+    GCTransit *next, *prev; // Reserved for GC use
+    GCTransit *tnext, *tprev; // Pointers to link transit nodes outside of the GC
+};
+
 extern int stack_size;
 
 void set_stack_size(int);
@@ -22,6 +33,11 @@ void gc_alloc_obj(Object);
 
 void gc_pause();
 int gc_unpause();
+
+
+GCTransit *gc_transit(Object);
+void gc_arrive(GCTransit *);
+GCTransit *gc_transit_link(GCTransit *, GCTransit *);
 
 void gc_mark(Object);
 void gc_root(Object);

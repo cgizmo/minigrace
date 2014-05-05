@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <setjmp.h>
 
+#include "gracelib_gc.h"
 #include "gracelib_msg.h"
 #include "gracelib_types.h"
 
@@ -20,6 +21,8 @@ struct ThreadState
     thread_id parent_id;
 
     MessageQueue *msg_queue;
+
+    GCTransit *transit;
 
     struct StackFrameObject **frame_stack;
     struct ClosureEnvObject **closure_stack;
@@ -42,7 +45,7 @@ ThreadState *get_state(void);
 
 // For some reason this function cannot be called just "thread_create", so
 // calling it "grace_thread_create" instead.
-thread_id grace_thread_create(Object, Object);
+thread_id grace_thread_create(Object, Object, GCTransit *);
 void wait_for_all_threads(void);
 MessageQueue *get_thread_message_queue(thread_id);
 
