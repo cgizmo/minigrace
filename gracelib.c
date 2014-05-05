@@ -552,18 +552,22 @@ static void init_default_objects()
     init_prelude_objects();
 
     undefined = alloc_obj(0, Undefined);
+    gc_root(undefined);
+
     ellipsis = alloc_obj(0, ellipsisClass);
+    gc_root(ellipsis);
+
     done = alloc_obj(0, Done);
+    gc_root(done);
+
     Unknown = alloc_Type("Unknown", 0);
     Dynamic = Unknown;
-    environObject = alloc_obj(0, EnvironObject);
-    MatchFailed = alloc_userobj(0, 0);
-
-    gc_root(undefined);
-    gc_root(ellipsis);
-    gc_root(done);
     gc_root(Unknown);
+
+    environObject = alloc_obj(0, EnvironObject);
     gc_root(environObject);
+
+    MatchFailed = alloc_userobj(0, 0);
     gc_root(MatchFailed);
 }
 
@@ -668,15 +672,27 @@ static void init_default_object()
     addmethod2(GraceDefaultObject, "==", &UserObj_Equals);
     addmethod2(GraceDefaultObject, "!=", &Object_NotEquals);
     addmethod2(GraceDefaultObject, "asDebugString", &Object_asString);
+
+    // TODO : need to do this ? Not in original minigrace.
+    gc_root(GraceDefaultObject);
 }
 
 static void init_constants()
 {
     BOOLEAN_TRUE = alloc_obj(sizeof(int8_t), Boolean);
+    gc_root(BOOLEAN_TRUE);
+
     BOOLEAN_FALSE = alloc_obj(sizeof(int8_t), Boolean);
+    gc_root(BOOLEAN_FALSE);
+
     FLOAT64_ZERO = alloc_obj(sizeof(double) + sizeof(Object), Number);
+    gc_root(FLOAT64_ZERO);
+
     FLOAT64_ONE = alloc_obj(sizeof(double) + sizeof(Object), Number);
+    gc_root(FLOAT64_ONE);
+
     FLOAT64_TWO = alloc_obj(sizeof(double) + sizeof(Object), Number);
+    gc_root(FLOAT64_TWO);
 
     *((int8_t *)BOOLEAN_TRUE->data) = (int8_t)1;
     *((int8_t *)BOOLEAN_FALSE->data) = (int8_t)0;
@@ -691,12 +707,6 @@ static void init_constants()
     intern_float(0, FLOAT64_ZERO);
     intern_float(1, FLOAT64_ONE);
     intern_float(2, FLOAT64_TWO);
-
-    gc_root(BOOLEAN_TRUE);
-    gc_root(BOOLEAN_FALSE);
-    gc_root(FLOAT64_ZERO);
-    gc_root(FLOAT64_ONE);
-    gc_root(FLOAT64_TWO);
 }
 
 // Everything except block, which is still initialised in the alloc_Block function.
@@ -4608,11 +4618,12 @@ Object module_io_init()
     }
 
     Object o = alloc_obj(sizeof(Object) * 3, IOModule);
+    gc_root(o);
+
     struct IOModuleObject *so = (struct IOModuleObject *)o;
     so->_stdin = alloc_File_from_stream(stdin);
     so->_stdout = alloc_File_from_stream(stdout);
     so->_stderr = alloc_File_from_stream(stderr);
-    gc_root(o);
 
     iomodule = o;
     pthread_mutex_unlock(&gracelib_mutex);
