@@ -57,8 +57,7 @@ Object actors_spawn(Object self, int nparams, int *argcv, Object *argv, int flag
     Object parent_aid = alloc_AID_object(get_state()->id);
     GCTransit *aid_transit = gc_transit(parent_aid);
 
-    thread_id id = grace_thread_create(argv[0], parent_aid,
-                                       gc_transit_link(block_transit, aid_transit));
+    thread_id id = grace_thread_create(argv[0], parent_aid, block_transit, aid_transit);
     debug("actors_spawn: made an actor with id %d.\n", id);
 
     return alloc_AID_object(id);

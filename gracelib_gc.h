@@ -21,7 +21,6 @@ struct GCTransit
 {
     Object object;
     GCTransit *next, *prev; // Reserved for GC use
-    GCTransit *tnext, *tprev; // Pointers to link transit nodes outside of the GC
 };
 
 // Per thread GC stack. The gc_fram_* functions operate on this structure.
@@ -49,7 +48,6 @@ int gc_unpause();
 
 GCTransit *gc_transit(Object);
 void gc_arrive(GCTransit *);
-GCTransit *gc_transit_link(GCTransit *, GCTransit *);
 
 void gc_mark(Object);
 void gc_root(Object);

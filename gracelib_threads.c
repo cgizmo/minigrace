@@ -30,14 +30,14 @@ struct ThreadParams
 {
     ThreadState *my_thread_state;
     ThreadList *thread_list_entry;
-    Object block;
-    Object block_arg;
+    Object block, block_arg;
+    GCTransit *block_transit, *block_arg_transit;
 };
 
 static void grace_thread(void *);
 static void thread_state_init(ThreadState *);
 static void thread_state_destroy(void);
-static ThreadState *thread_state_alloc(thread_id, thread_id, GCTransit *);
+static ThreadState *thread_state_alloc(thread_id, thread_id);
 static ThreadList *thread_list_cons(ThreadList **);
 static void thread_list_remove(ThreadList **, ThreadList *);
 static void thread_list_free(ThreadList *);
@@ -67,7 +67,7 @@ void threading_init()
     next_thread_id = 0;
 
     // Init initial thread state
-    state = thread_state_alloc(0, NO_PARENT, NULL);
+    state = thread_state_alloc(0, NO_PARENT);
     thread_state_init(state);
     next_thread_id++;
 
@@ -124,7 +124,8 @@ ThreadState *get_state()
 // Tries to create a new Grace thread.
 // Returns the thread_id of the newly created thread.
 // Returns ERR_THREADING_INACTIVE if threading system is deactivated.
-thread_id grace_thread_create(Object block, Object block_arg, GCTransit *transit)
+thread_id grace_thread_create(Object block, Object block_arg,
+                              GCTransit *block_transit, GCTransit *block_arg_transit)
 {
     thread_id id;
     ThreadParams *params = malloc(sizeof(ThreadParams));
@@ -146,10 +147,12 @@ thread_id grace_thread_create(Object block, Object block_arg, GCTransit *transit
     next_thread_id++;
 
     // Fill up thread parameters
-    params->my_thread_state = thread_state_alloc(id, get_state()->id, transit);
+    params->my_thread_state = thread_state_alloc(id, get_state()->id);
     params->thread_list_entry = t;
     params->block = block; // TODO : block_copy(block); ?
     params->block_arg = block_arg; // TODO : copy ?
+    params->block_transit = block_transit;
+    params->block_arg_transit = block_arg_transit;
     t->id = id;
     t->msg_queue = params->my_thread_state->msg_queue;
 
@@ -216,6 +219,14 @@ static void grace_thread(void *thread_params_)
     thread_state_init(thread_params->my_thread_state);
     debug("grace_thread: thread with ID %d and parent %d created.\n", get_state()->id, get_state()->parent_id);
 
+    // Mark the block and its arg as "arrived" in the new thread and ground them
+    // to the new thread's GC stack
+    int frame = gc_frame_new();
+    gc_arrive(thread_params->block_transit);
+    gc_arrive(thread_params->block_arg_transit);
+    gc_frame_newslot(thread_params->block);
+    gc_frame_newslot(thread_params->block_arg);
+
     /* The block is of the form
      * { block_arg -> ... }
      * So 1 part method "apply" on object, 1 argument per part.
@@ -231,6 +242,8 @@ static void grace_thread(void *thread_params_)
     pthread_mutex_lock(&threading_mutex);
     thread_list_remove(&threads, thread_params->thread_list_entry);
     pthread_mutex_unlock(&threading_mutex);
+
+    gc_frame_end(frame);
 
     thread_state_destroy();
     free(thread_params_);
@@ -253,16 +266,6 @@ static void thread_state_destroy()
 {
     ThreadState *state = get_state();
 
-    // Release all objects held in transit.
-    GCTransit *tmp, *transit = state->transit;
-
-    while (transit != NULL)
-    {
-        tmp = transit->tnext;
-        gc_arrive(transit);
-        transit = tmp;
-    }
-
     message_queue_destroy(state->msg_queue);
     gc_stack_destroy(state->gc_stack);
     free(state->frame_stack - 1);
@@ -275,7 +278,7 @@ static void thread_state_destroy()
 }
 
 
-static ThreadState *thread_state_alloc(thread_id id, thread_id parent_id, GCTransit *transit)
+static ThreadState *thread_state_alloc(thread_id id, thread_id parent_id)
 {
     ThreadState *state = malloc(sizeof(ThreadState));
 
@@ -285,7 +288,6 @@ static ThreadState *thread_state_alloc(thread_id id, thread_id parent_id, GCTran
     state->msg_queue = message_queue_alloc();
 
     state->gc_stack = gc_stack_create();
-    state->transit = transit;
 
     state->frame_stack = calloc(STACK_SIZE + 1, sizeof(struct StackFrameObject *));
     state->frame_stack++;

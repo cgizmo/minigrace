@@ -161,8 +161,6 @@ GCTransit *gc_transit(Object o)
     GCTransit *x = malloc(sizeof(GCTransit));
     x->object = o;
     x->prev = NULL;
-    x->tnext = NULL;
-    x->tprev = NULL;
 
     pthread_mutex_lock(&gc_mutex);
     x->next = objs_in_transit;
@@ -176,16 +174,6 @@ GCTransit *gc_transit(Object o)
     pthread_mutex_unlock(&gc_mutex);
 
     return x;
-}
-
-// Returns head of link. Use like this:
-//   gc_transit_link(a, gc_transit_link(b, c));
-GCTransit *gc_transit_link(GCTransit *a, GCTransit *b)
-{
-    a->tnext = b;
-    b->tprev = a;
-
-    return a;
 }
 
 void gc_arrive(GCTransit *x)
