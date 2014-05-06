@@ -22,6 +22,7 @@ struct ThreadState
 
     MessageQueue *msg_queue;
 
+    GCStack *gc_stack;
     GCTransit *transit;
 
     struct StackFrameObject **frame_stack;

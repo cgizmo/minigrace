@@ -11,6 +11,7 @@
 
 #include "gracelib_types.h"
 #include "gracelib_gc.h"
+#include "gracelib_threads.h"
 
 // For die and debug.
 #include "gracelib.h"
@@ -29,8 +30,9 @@ pthread_mutex_t gc_mutex;
 // Alloc/dealloc mutex for gcmalloc/glfree functions.
 pthread_mutex_t alloc_mutex;
 
-struct GC_Root *GC_roots;
-GCTransit *objs_in_transit;
+static struct GC_Root *GC_roots;
+static GCTransit *objs_in_transit;
+static GCStack *thread_stacks;
 
 int stack_size = 1024;
 
@@ -50,10 +52,6 @@ int gc_enabled = 1;
 
 int gc_paused;
 int gc_wouldHaveRun;
-
-Object *gc_stack;
-int gc_framepos = 0;
-int gc_stack_size;
 
 int freed_since_expansion;
 
@@ -83,11 +81,15 @@ void gc_init(int gc_dofree_, int gc_dowarn_, int gc_period_)
     {
         gc_dofree = 0;
     }
+
+    GC_roots = NULL;
+    thread_stacks = NULL;
+    objs_in_transit = NULL;
 }
 
 void gc_destroy()
 {
-    // TODO : do something with objects in transit ?
+    // TODO : do something with objects in transit and thread stacks ?
 
     pthread_mutex_destroy(&gc_mutex);
     pthread_mutex_destroy(&alloc_mutex);
@@ -190,6 +192,8 @@ void gc_arrive(GCTransit *x)
 {
     assert(x != NULL);
 
+    pthread_mutex_lock(&gc_mutex);
+
     if (x->prev != NULL)
     {
         x->prev->next = x->next;
@@ -205,6 +209,8 @@ void gc_arrive(GCTransit *x)
     {
         objs_in_transit = x->next;
     }
+
+    pthread_mutex_unlock(&gc_mutex);
 
     free(x);
 }
@@ -225,53 +231,96 @@ int gc_unpause()
     return gc_wouldHaveRun;
 }
 
-// TODO : might require more work for threading. Need to figure out what this functions does.
-// Check all gc_frame_* functions.
-int gc_frame_new()
+GCStack *gc_stack_create()
 {
+    const int stack_size = STACK_SIZE * 1024;
+    GCStack *stack = calloc(1, sizeof(GCStack) + (sizeof(Object) * stack_size));
+
+    stack->framepos = 0;
+    stack->stack_size = stack_size;
+    stack->prev = NULL;
+
+    pthread_mutex_lock(&gc_mutex);
+    stack->next = thread_stacks;
+
+    if (thread_stacks != NULL)
+    {
+        thread_stacks->prev = stack;
+    }
+
+    thread_stacks = stack;
+    pthread_mutex_unlock(&gc_mutex);
+
+    return stack;
+}
+
+void gc_stack_destroy(GCStack *stack)
+{
+    assert(stack != NULL);
+
     pthread_mutex_lock(&gc_mutex);
 
-    if (gc_stack == NULL)
+    if (stack->prev != NULL)
     {
-        gc_stack_size = STACK_SIZE * 1024;
-        gc_stack = calloc(sizeof(Object), gc_stack_size);
+        stack->prev->next = stack->next;
+    }
+
+    if (stack->next != NULL)
+    {
+        stack->next->prev = stack->prev;
+    }
+
+    // stack was head of the list.
+    if (thread_stacks == stack)
+    {
+        thread_stacks = stack->next;
     }
 
     pthread_mutex_unlock(&gc_mutex);
 
-    return gc_framepos;
+    free(stack);
+}
+
+// TODO : change gc_frame* fns so that they don't use a global lock when manipulating
+// thread local stacks (will need to change the rungc funciton to deal with individual
+// locks).
+int gc_frame_new()
+{
+    return get_state()->gc_stack->framepos;
 }
 
 void gc_frame_end(int pos)
 {
     pthread_mutex_lock(&gc_mutex);
-    gc_framepos = pos;
+    get_state()->gc_stack->framepos = pos;
     pthread_mutex_unlock(&gc_mutex);
 }
 
 int gc_frame_newslot(Object o)
 {
     pthread_mutex_lock(&gc_mutex);
+    GCStack *gc_stack = get_state()->gc_stack;
 
-    if (gc_framepos == gc_stack_size)
+    if (gc_stack->framepos == gc_stack->stack_size)
     {
         pthread_mutex_unlock(&gc_mutex);
-        die("gc shadow stack size exceeded\n");
+        die("gc_frame_newslot: gc shadow stack size exceeded on thread %d\n",
+            get_state()->id);
         return -1; // Should be unreachable
     }
 
-    int gc_framepos_old = gc_framepos;
-    gc_stack[gc_framepos] = o;
-    gc_framepos++;
+    int framepos_old = gc_stack->framepos;
+    gc_stack->stack[gc_stack->framepos] = o;
+    gc_stack->framepos++;
 
     pthread_mutex_unlock(&gc_mutex);
-    return gc_framepos_old;
+    return framepos_old;
 }
 
 void gc_frame_setslot(int slot, Object o)
 {
     pthread_mutex_lock(&gc_mutex);
-    gc_stack[slot] = o;
+    get_state()->gc_stack->stack[slot] = o;
     pthread_mutex_unlock(&gc_mutex);
 }
 
@@ -400,6 +449,8 @@ int rungc()
 
     GCTransit *x = objs_in_transit;
 
+    GCStack *s = thread_stacks;
+
     int freednow = 0;
 
     while (r != NULL)
@@ -415,9 +466,14 @@ int rungc()
         x = x->next;
     }
 
-    for (i = 0; i < gc_framepos; i++)
+    while (s != NULL)
     {
-        gc_mark(gc_stack[i]);
+        for (i = 0; i < s->framepos; i++)
+        {
+            gc_mark(s->stack[i]);
+        }
+
+        s = s->next;
     }
 
     int reached = 0;

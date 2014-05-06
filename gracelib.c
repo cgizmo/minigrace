@@ -6521,6 +6521,24 @@ void gracelib_argv(char **argv)
         set_stack_size(atoi(getenv("GRACE_STACK")));
     }
 
+    int gc_dofree = (getenv("GRACE_GC_DISABLE") == NULL);
+    int gc_dowarn = (getenv("GRACE_GC_WARN") != NULL);
+    int gc_period;
+    char *periodstr = getenv("GRACE_GC_PERIOD");
+
+    if (periodstr)
+    {
+        gc_period = atoi(periodstr);
+    }
+    else
+    {
+        gc_period = 100000;
+    }
+
+    // Must be run before threading_init (sets up the thread local
+    // GC stack state required by threading_init).
+    gc_init(gc_dofree, gc_dowarn, gc_period);
+
     // Threading init
     threading_init();
     pthread_mutex_init(&gracelib_mutex, NULL);
@@ -6538,22 +6556,6 @@ void gracelib_argv(char **argv)
         debugfp = fopen("debug", "w");
         setbuf(debugfp, NULL);
     }
-
-    int gc_dofree = (getenv("GRACE_GC_DISABLE") == NULL);
-    int gc_dowarn = (getenv("GRACE_GC_WARN") != NULL);
-    int gc_period;
-    char *periodstr = getenv("GRACE_GC_PERIOD");
-
-    if (periodstr)
-    {
-        gc_period = atoi(periodstr);
-    }
-    else
-    {
-        gc_period = 100000;
-    }
-
-    gc_init(gc_dofree, gc_dowarn, gc_period);
 
     // ClassData and singleton initialisation
     init_class_data();

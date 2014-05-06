@@ -23,7 +23,7 @@ struct MessageQueueElement
     struct MessageQueueElement *next;
 };
 
-MessageQueue *message_queue_init(void);
+MessageQueue *message_queue_alloc(void);
 void message_queue_destroy(MessageQueue *);
 void message_queue_post(MessageQueue *, void *);
 const void *const message_queue_poll(MessageQueue *);

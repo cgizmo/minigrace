@@ -14,6 +14,7 @@
 #define STACK_SIZE stack_size
 
 typedef struct GCTransit GCTransit;
+typedef struct GCStack GCStack;
 
 // Objects "in between two threads" that should not be GCed.
 struct GCTransit
@@ -21,6 +22,17 @@ struct GCTransit
     Object object;
     GCTransit *next, *prev; // Reserved for GC use
     GCTransit *tnext, *tprev; // Pointers to link transit nodes outside of the GC
+};
+
+// Per thread GC stack. The gc_fram_* functions operate on this structure.
+struct GCStack
+{
+    int framepos;
+    int stack_size;
+
+    GCStack *next, *prev; // Reserved for GC use
+
+    Object stack[];
 };
 
 extern int stack_size;
@@ -43,6 +55,9 @@ void gc_mark(Object);
 void gc_root(Object);
 void gc_pause();
 int gc_unpause();
+
+GCStack *gc_stack_create(void);
+void gc_stack_destroy(GCStack *);
 int gc_frame_new();
 void gc_frame_end(int);
 int gc_frame_newslot(Object);

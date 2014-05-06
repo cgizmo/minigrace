@@ -232,16 +232,6 @@ static void grace_thread(void *thread_params_)
     thread_list_remove(&threads, thread_params->thread_list_entry);
     pthread_mutex_unlock(&threading_mutex);
 
-    // Release all objects held in transit.
-    GCTransit *tmp, *transit = get_state()->transit;
-
-    while (transit != NULL)
-    {
-        tmp = transit->tnext;
-        gc_arrive(transit);
-        transit = tmp;
-    }
-
     thread_state_destroy();
     free(thread_params_);
     pthread_exit(0);
@@ -263,7 +253,18 @@ static void thread_state_destroy()
 {
     ThreadState *state = get_state();
 
+    // Release all objects held in transit.
+    GCTransit *tmp, *transit = state->transit;
+
+    while (transit != NULL)
+    {
+        tmp = transit->tnext;
+        gc_arrive(transit);
+        transit = tmp;
+    }
+
     message_queue_destroy(state->msg_queue);
+    gc_stack_destroy(state->gc_stack);
     free(state->frame_stack - 1);
     free(state->closure_stack - 1);
     free(state->callstack);
@@ -281,8 +282,9 @@ static ThreadState *thread_state_alloc(thread_id id, thread_id parent_id, GCTran
     state->id = id;
     state->parent_id = parent_id;
 
-    state->msg_queue = message_queue_init();
+    state->msg_queue = message_queue_alloc();
 
+    state->gc_stack = gc_stack_create();
     state->transit = transit;
 
     state->frame_stack = calloc(STACK_SIZE + 1, sizeof(struct StackFrameObject *));

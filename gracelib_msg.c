@@ -5,7 +5,7 @@
 
 static void message_queue_free_elements(MessageQueue *);
 
-MessageQueue *message_queue_init()
+MessageQueue *message_queue_alloc()
 {
     MessageQueue *msg_queue = malloc(sizeof(MessageQueue));
 
