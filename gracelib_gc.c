@@ -406,7 +406,7 @@ int expand_living()
     return 0;
 }
 
-// Pre : gc_mutex is locked and held by the thread calling run_gc.
+// Pre : gc_mutex is locked and held by the thread calling rungc.
 int rungc()
 {
     int i;

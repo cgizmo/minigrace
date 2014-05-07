@@ -219,13 +219,12 @@ static void grace_thread(void *thread_params_)
     thread_state_init(thread_params->my_thread_state);
     debug("grace_thread: thread with ID %d and parent %d created.\n", get_state()->id, get_state()->parent_id);
 
-    // Mark the block and its arg as "arrived" in the new thread and ground them
-    // to the new thread's GC stack
+    // Ground the block and its arg /and then/ mark them as "arrived"
     int frame = gc_frame_new();
-    gc_arrive(thread_params->block_transit);
-    gc_arrive(thread_params->block_arg_transit);
     gc_frame_newslot(thread_params->block);
     gc_frame_newslot(thread_params->block_arg);
+    gc_arrive(thread_params->block_transit);
+    gc_arrive(thread_params->block_arg_transit);
 
     /* The block is of the form
      * { block_arg -> ... }

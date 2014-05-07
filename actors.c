@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <pthread.h>
+#include <unistd.h>
 
 #include "gracelib_types.h"
 #include "gracelib_threads.h"
@@ -72,9 +73,10 @@ Object actors_post(Object self, int nparams, int *argcv, Object *argv, int flags
 
     AIDObject *aid = (AIDObject *)argv[0];
     Object data = argv[1];
+    GCTransit *data_transit = gc_transit(data);
     MessageQueue *msg_queue = get_thread_message_queue(aid->id);
 
-    message_queue_post(msg_queue, data);
+    message_queue_post(msg_queue, data, data_transit);
 
     return alloc_done();
 }
@@ -86,9 +88,23 @@ Object actors_poll(Object self, int nparams, int *argcv, Object *argv, int flags
         gracedie("actors.poll requires no argument");
     }
 
+    Object data;
+    GCTransit *data_transit;
     MessageQueue *msg_queue = get_state()->msg_queue;
 
-    return (Object)message_queue_poll(msg_queue);
+    message_queue_poll(msg_queue, &data, &data_transit);
+
+    // Ground the object in the current frame
+    gc_frame_newslot(data);
+    gc_arrive(data_transit);
+
+    return data;
+}
+
+Object actors_sleep(Object self, int nparams, int *argcv, Object *argv, int flags)
+{
+    sleep(1);
+    return alloc_done();
 }
 
 static Object alloc_AID_object(thread_id id)
@@ -107,11 +123,12 @@ static void init_module_object()
     AID = alloc_class("AID", 0);
 
     // Initialize module
-    ClassData c = alloc_class("Module<actors>", 3);
+    ClassData c = alloc_class("Module<actors>", 4);
 
     add_Method(c, "spawn", &actors_spawn);
     add_Method(c, "post", &actors_post);
     add_Method(c, "poll", &actors_poll);
+    add_Method(c, "sleep", &actors_sleep);
 
     actors_module = alloc_newobj(0, c);
     gc_root(actors_module);
