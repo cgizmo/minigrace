@@ -3,6 +3,9 @@
 
 #include <pthread.h>
 
+#include "gracelib_types.h"
+#include "gracelib_gc.h"
+
 typedef struct MessageQueue MessageQueue;
 typedef struct MessageQueueElement MessageQueueElement;
 
@@ -15,18 +18,19 @@ struct MessageQueue
     MessageQueueElement *tail;
 };
 
-// TODO : immutability semantics for data, and make sure it is not garbage collected
-// mid way
+// TODO : immutability semantics for data.
 struct MessageQueueElement
 {
-    const void *data;
+    Object data;
+    GCTransit *data_transit;
+
     struct MessageQueueElement *next;
 };
 
 MessageQueue *message_queue_alloc(void);
 void message_queue_destroy(MessageQueue *);
-void message_queue_post(MessageQueue *, void *);
-const void *const message_queue_poll(MessageQueue *);
+void message_queue_post(MessageQueue *, Object, GCTransit *);
+void message_queue_poll(MessageQueue *, Object *, GCTransit **);
 
 #endif
 

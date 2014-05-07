@@ -1,7 +1,9 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+#include "gracelib_types.h"
 #include "gracelib_msg.h"
+#include "gracelib_gc.h"
 
 static void message_queue_free_elements(MessageQueue *);
 
@@ -27,11 +29,12 @@ void message_queue_destroy(MessageQueue *msg_queue)
     free(msg_queue);
 }
 
-void message_queue_post(MessageQueue *msg_queue, void *data)
+void message_queue_post(MessageQueue *msg_queue, Object data, GCTransit *data_transit)
 {
     MessageQueueElement *elem = malloc(sizeof(MessageQueueElement));
 
     elem->data = data;
+    elem->data_transit = data_transit;
     elem->next = NULL;
 
     pthread_mutex_lock(&msg_queue->queue_lock);
@@ -52,7 +55,7 @@ void message_queue_post(MessageQueue *msg_queue, void *data)
     pthread_mutex_unlock(&msg_queue->queue_lock);
 }
 
-const void *const message_queue_poll(MessageQueue *msg_queue)
+void message_queue_poll(MessageQueue *msg_queue, Object *data, GCTransit **data_transit)
 {
     pthread_mutex_lock(&msg_queue->queue_lock);
 
@@ -62,7 +65,6 @@ const void *const message_queue_poll(MessageQueue *msg_queue)
     }
 
     MessageQueueElement *elem = msg_queue->head;
-    const void *const data = elem->data;
 
     if (msg_queue->head == msg_queue->tail)
     {
@@ -75,8 +77,10 @@ const void *const message_queue_poll(MessageQueue *msg_queue)
     }
 
     pthread_mutex_unlock(&msg_queue->queue_lock);
+
+    *data = elem->data;
+    *data_transit = elem->data_transit;
     free(elem);
-    return data;
 }
 
 static void message_queue_free_elements(MessageQueue *msg_queue)
