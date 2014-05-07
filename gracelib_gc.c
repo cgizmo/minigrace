@@ -108,7 +108,7 @@ void gc_alloc_obj(Object o)
             expand_living();
         }
 
-        if (objectcount % gc_period == 0)
+        if (objectcount % gc_period == 0 || gc_wouldHaveRun)
         {
             rungc();
         }

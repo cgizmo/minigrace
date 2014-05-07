@@ -67,6 +67,11 @@ method outswitchdown {
 method log_verbose(s) {
     util.log_verbose(s)
 }
+method with_atomic_gc(f) {
+    out("gc_pause();")
+    f.apply()
+    out("gc_unpause();")
+}
 method countnodebindings(n) {
     if (n.kind == "if") then {
         countbindings(n.thenblock) + countbindings(n.elseblock)
@@ -460,9 +465,11 @@ method compileobject(o, outerRef) {
         numFields := 4
     }
     globals.push("static ClassData objclass{myc};");
-    out("  Object " ++ selfr ++ " = alloc_userobj3({numMethods}, "
-        ++ "{numFields}, {numAnnotations}, objclass{myc});")
-    out("  gc_frame_newslot({selfr});")
+    with_atomic_gc({
+        out("  Object " ++ selfr ++ " = alloc_userobj3({numMethods}, "
+            ++ "{numFields}, {numAnnotations}, objclass{myc});")
+        out("  gc_frame_newslot({selfr});")
+    })
     if (o.classname != "object") then {
         out("if (objclass{myc} == NULL) \{")
         out("  glfree({selfr}->class->name);")
@@ -472,8 +479,10 @@ method compileobject(o, outerRef) {
     compileobjouter(selfr, outerRef)
     out("  Object oldself{myc} = self;")
     out("  struct StackFrameObject *oldstackframe{myc} = stackframe;")
-    out("  stackframe = alloc_StackFrame(1, oldstackframe{myc});")
-    out("  gc_frame_newslot((Object)stackframe);")
+    with_atomic_gc({
+        out("  stackframe = alloc_StackFrame(1, oldstackframe{myc});")
+        out("  gc_frame_newslot((Object)stackframe);")
+    })
     out("  self = {selfr};")
     out("  Object *oldselfslot{myc} = selfslot;")
     out("  selfslot = &stackframe->slots[0];")
@@ -578,8 +587,10 @@ method compileblock(o) {
     var myc := auto_count
     auto_count := auto_count + 1
     var obj := "block{myc}"
-    out("  Object {obj} = alloc_Block(NULL, NULL, \"{modname}\", {linenum});")
-    out("  gc_frame_newslot({obj});")
+    with_atomic_gc({
+        out("  Object {obj} = alloc_Block(NULL, NULL, \"{modname}\", {linenum});")
+        out("  gc_frame_newslot({obj});")
+    })
     var id := ast.identifierNode.new("_apply", false)
     var applymeth := ast.methodNode.new(id, [ast.signaturePart.new(id, o.params)], o.body, false)
     applymeth.selfclosure := true
@@ -626,21 +637,31 @@ method compilefor(o) {
     var myc := auto_count
     auto_count := auto_count + 1
     out("  int forframe{myc} = gc_frame_new();")
-    var over := compilenode(o.value)
-    out("  gc_frame_newslot({over});")
+    var over
+    with_atomic_gc({
+        over := compilenode(o.value)
+        out("  gc_frame_newslot({over});")
+    })
     var blk := o.body
-    var obj := compilenode(blk)
-    out("  gc_frame_newslot({obj});")
+    var obj
+    with_atomic_gc({
+        obj := compilenode(blk)
+        out("  gc_frame_newslot({obj});")
+    })
     out("  params[0] = {over};")
     out("  partcv[0] = 1;")
-    out("  Object iter{myc} = callmethod({over}, \"iter\", 1, partcv, params);")
-    out("  gc_frame_newslot(iter{myc});")
+    with_atomic_gc({
+        out("  Object iter{myc} = callmethod({over}, \"iter\", 1, partcv, params);")
+        out("  gc_frame_newslot(iter{myc});")
+    })
     out("  int forvalslot{myc} = gc_frame_newslot(NULL);")
     out("  while(1) \{")
     out("    Object cond{myc} = callmethod(iter{myc}, \"havemore\", 0, NULL, NULL);")
     out("    if (!istrue(cond{myc})) break;")
-    out("    params[0] = callmethod(iter{myc}, \"next\", 0, NULL, NULL);")
-    out("    gc_frame_setslot(forvalslot{myc}, params[0]);")
+    with_atomic_gc({
+        out("    params[0] = callmethod(iter{myc}, \"next\", 0, NULL, NULL);")
+        out("    gc_frame_setslot(forvalslot{myc}, params[0]);")
+    })
     out("    callmethod({obj}, \"apply\", 1, partcv, params);")
     out("  \}")
     out("  gc_frame_end(forframe{myc});")
@@ -809,17 +830,20 @@ method compilemethod(o, selfobj, pos) {
             out("  struct UserObject *uo = (struct UserObject*)self;")
         }
         out("  Object closure = getdatum((Object)uo, {pos}, (flags>>24)&0xff);")
+        out("  gc_pause();")
         out("  struct StackFrameObject *stackframe = alloc_StackFrame({numslots}, getclosureframe(closure));")
         out("  pushclosure(closure);")
     } else {
         out("Object {litname}(Object self, int nparts, int *argcv, Object *args, "
             ++ "int32_t flags) \{")
+        out("  gc_pause();")
         out("  struct StackFrameObject *stackframe = alloc_StackFrame({numslots}, NULL);")
         out("  pushclosure(NULL);")
     }
     out("  pushstackframe(stackframe, \"{escapestring2(name)}\");")
     out("  int frame = gc_frame_new();")
     out("  gc_frame_newslot((Object)stackframe);")
+    out("  gc_unpause();")
     out "  Object methodInheritingObject = NULL;"
     for (o.signature.indices) do { partnr ->
         def part = o.signature[partnr]
@@ -941,17 +965,20 @@ method compilefreshmethod(o, nm, body, closurevars, selfobj, pos, numslots,
             out("  struct UserObject *uo = (struct UserObject*)self;")
         }
         out("  Object closure = getdatum((Object)uo, {pos}, (flags>>24)&0xff);")
+        out("  gc_pause();")
         out("  struct StackFrameObject *stackframe = alloc_StackFrame({numslots}, getclosureframe(closure));")
         out("  pushclosure(closure);")
     } else {
         out("Object {litname}(Object self, int nparts, int *argcv, Object *args, "
             ++ "int32_t flags) \{")
+        out("  gc_pause();")
         out("  struct StackFrameObject *stackframe = alloc_StackFrame({numslots}, NULL);")
         out("  pushclosure(NULL);")
     }
     out("  pushstackframe(stackframe, \"{escapestring2(name)}\");")
     out("  int frame = gc_frame_new();")
     out("  gc_frame_newslot((Object)stackframe);")
+    out("  gc_unpause();")
     var sumAccum := "0"
     for (o.signature.indices) do { partnr ->
         sumAccum := sumAccum ++ " + argcv[{partnr - 1}]"
@@ -1050,10 +1077,15 @@ method compilewhile(o) {
     out("struct StackFrameObject *whiletmpstackframe{myc} = stackframe;")
     out("  while (1) \{")
     out("  int while_frame{myc} = gc_frame_new();")
-    out("stackframe = alloc_StackFrame({numslots}, whiletmpstackframe{myc});")
-    out("gc_frame_newslot((Object)stackframe);")
-    def cond = compilenode(o.value)
-    out("    gc_frame_setslot(while_cond{myc}, {cond});")
+    with_atomic_gc({
+        out("stackframe = alloc_StackFrame({numslots}, whiletmpstackframe{myc});")
+        out("gc_frame_newslot((Object)stackframe);")
+    })
+    var cond
+    with_atomic_gc({
+        cond := compilenode(o.value)
+        out("    gc_frame_setslot(while_cond{myc}, {cond});")
+    })
     out("    if (!istrue({cond})) break;")
     var tret := "null"
     var slot := 0
@@ -1074,28 +1106,36 @@ method compileifexpr(o) {
     out("struct StackFrameObject *iftmpstackframe{myc} = stackframe;")
     out("  if (istrue({cond})) \{")
     var numslots := countbindings(o.thenblock)
-    out("stackframe = alloc_StackFrame({numslots}, iftmpstackframe{myc});")
-    out("gc_frame_newslot((Object)stackframe);")
+    with_atomic_gc({
+        out("stackframe = alloc_StackFrame({numslots}, iftmpstackframe{myc});")
+        out("gc_frame_newslot((Object)stackframe);")
+    })
     var tret := "done"
     var fret := "done"
     var tblock := "ERROR"
     var fblock := "ERROR"
-    definebindings(o.thenblock, 0)
-    for (o.thenblock) do { l->
-        tret := compilenode(l)
-    }
-    out("    gc_frame_newslot({tret});")
+    with_atomic_gc({
+        definebindings(o.thenblock, 0)
+        for (o.thenblock) do { l->
+            tret := compilenode(l)
+        }
+        out("    gc_frame_newslot({tret});")
+    })
     out("    if{myc} = {tret};")
     out("  \} else \{")
     if (o.elseblock.size > 0) then {
         numslots := countbindings(o.elseblock)
-        out("stackframe = alloc_StackFrame({numslots}, iftmpstackframe{myc});")
-        out("gc_frame_newslot((Object)stackframe);")
-        definebindings(o.elseblock, 0)
-        for (o.elseblock) do { l->
-            fret := compilenode(l)
-        }
-        out("    gc_frame_newslot({fret});")
+        with_atomic_gc({
+            out("stackframe = alloc_StackFrame({numslots}, iftmpstackframe{myc});")
+            out("gc_frame_newslot((Object)stackframe);")
+        })
+        with_atomic_gc({
+            definebindings(o.elseblock, 0)
+            for (o.elseblock) do { l->
+                fret := compilenode(l)
+            }
+            out("    gc_frame_newslot({fret});")
+        })
         out("    if{myc} = {fret};")
     }
     out("  \}")
@@ -1115,17 +1155,21 @@ method compileif(o) {
     var fret := "done"
     var tblock := "ERROR"
     var fblock := "ERROR"
-    for (o.thenblock) do { l->
-        tret := compilenode(l)
-    }
-    out("    gc_frame_newslot({tret});")
+    with_atomic_gc({
+        for (o.thenblock) do { l->
+            tret := compilenode(l)
+        }
+        out("    gc_frame_newslot({tret});")
+    })
     out("    if{myc} = {tret};")
     out("  \} else \{")
     if (o.elseblock.size > 0) then {
-        for (o.elseblock) do { l->
-            fret := compilenode(l)
-        }
-        out("    gc_frame_newslot({fret});")
+        with_atomic_gc({
+            for (o.elseblock) do { l->
+                fret := compilenode(l)
+            }
+            out("    gc_frame_newslot({fret});")
+        })
         out("    if{myc} = {fret};")
     }
     out("  \}")
@@ -1234,9 +1278,11 @@ method compilevardec(o) {
 }
 method compileindex(o) {
     var of := compilenode(o.value)
-    var index := compilenode(o.index)
-    out("  params[0] = {index};")
-    out("  gc_frame_newslot(params[0]);")
+    with_atomic_gc({
+        var index := compilenode(o.index)
+        out("  params[0] = {index};")
+        out("  gc_frame_newslot(params[0]);")
+    })
     out("  partcv[0] = 1;")
     out("  Object idxres{auto_count} = callmethod({of}, \"[]\", 1, partcv, params);")
     o.register := "idxres" ++ auto_count
@@ -1249,21 +1295,29 @@ method compilecatchcase(o) {
     if (o.cases.size > paramsUsed) then {
         paramsUsed := o.cases.size
     }
-    def mainblock = compilenode(o.value)
-    out("  int frame{myc} = gc_frame_new();")
-    out("  gc_frame_newslot({mainblock});")
+    var mainblock
+    with_atomic_gc({
+        mainblock := compilenode(o.value)
+        out("  int frame{myc} = gc_frame_new();")
+        out("  gc_frame_newslot({mainblock});")
+    })
     var i := 0
     def params = []
     for (cases) do {c->
-        def e = compilenode(c)
-        out("  gc_frame_newslot({e});")
+        var e
+        with_atomic_gc({
+            e := compilenode(c)
+            out("  gc_frame_newslot({e});")
+        })
         params.push([i, e])
         i := i + 1
     }
     var finally := "NULL"
     if (false != o.finally) then {
-        finally := compilenode(o.finally)
-        out("  gc_frame_newslot({finally});")
+        with_atomic_gc({
+            finally := compilenode(o.finally)
+            out("  gc_frame_newslot({finally});")
+        })
     }
     for (params) do {ie->
         def idx = ie[1]
@@ -1284,21 +1338,29 @@ method compilematchcase(o) {
     if (o.cases.size > paramsUsed) then {
         paramsUsed := o.cases.size
     }
-    def matchee = compilenode(o.value)
-    out("  int frame{myc} = gc_frame_new();")
-    out("  gc_frame_newslot({matchee});")
+    var matchee
+    with_atomic_gc({
+        matchee := compilenode(o.value)
+        out("  int frame{myc} = gc_frame_new();")
+        out("  gc_frame_newslot({matchee});")
+    })
     var i := 0
     def params = []
     for (cases) do {c->
-        def e = compilenode(c)
-        out("  gc_frame_newslot({e});")
+        var e
+        with_atomic_gc({
+            e := compilenode(c)
+            out("  gc_frame_newslot({e});")
+        })
         params.push([i, e])
         i := i + 1
     }
     var elsecase := "NULL"
     if (false != o.elsecase) then {
-        elsecase := compilenode(o.elsecase)
-        out("  gc_frame_newslot({elsecase});")
+        with_atomic_gc({
+            elsecase := compilenode(o.elsecase)
+            out("  gc_frame_newslot({elsecase});")
+        })
     }
     for (params) do {ie->
         def idx = ie[1]
@@ -1313,8 +1375,11 @@ method compilematchcase(o) {
 method compileop(o) {
     def myc = auto_count
     auto_count := auto_count + 1
-    var right := compilenode(o.right)
-    out("  int op_slot_right_{myc} = gc_frame_newslot({right});")
+    var right
+    with_atomic_gc({
+        right := compilenode(o.right)
+        out("  int op_slot_right_{myc} = gc_frame_newslot({right});")
+    })
     auto_count := auto_count + 1
     if ((o.left.kind == "identifier").andAlso {o.left.value == "super"}) then {
         var len := o.value.size + 1
@@ -1327,8 +1392,11 @@ method compileop(o) {
         o.register := "opresult{myc}"
         return true
     }
-    var left := compilenode(o.left)
-    out("  int op_slot_left_{myc} = gc_frame_newslot({left});")
+    var left
+    with_atomic_gc({
+        left := compilenode(o.left)
+        out("  int op_slot_left_{myc} = gc_frame_newslot({left});")
+    })
     if ((o.value == "+") || (o.value == "*") || (o.value == "/") ||
         (o.value == "-") || (o.value == "%")) then {
         var rnm := "sum"
@@ -1374,9 +1442,11 @@ method compilecall(o) {
     out("  int callframe{myc} = gc_frame_new();")
     for (o.with) do { part ->
         for (part.args) do { p ->
-            var r := compilenode(p)
-            args.push(r)
-            out("  gc_frame_newslot({r});")
+            with_atomic_gc({
+                var r := compilenode(p)
+                args.push(r)
+                out("  gc_frame_newslot({r});")
+            })
         }
     }
     if (args.size > paramsUsed) then {
@@ -1608,8 +1678,10 @@ method compilenode(o) {
         l := l + 1
         o.value := escapestring2(o.value)
         out("  if (strlit{auto_count} == NULL) \{")
-        out("    strlit{auto_count} = alloc_String(\"{o.value}\");")
-        out("    gc_root(strlit{auto_count});")
+        with_atomic_gc({
+            out("    strlit{auto_count} = alloc_String(\"{o.value}\");")
+            out("    gc_root(strlit{auto_count});")
+        })
         out("  \}")
         globals.push("static Object strlit{auto_count};")
         o.register := "strlit" ++ auto_count
@@ -2026,9 +2098,11 @@ method compile(vl, of, mn, rm, bt) {
     out("Object module_{escmodname}_init() \{")
     out("  int flags = 0;")
     out("  int frame = gc_frame_new();")
-    out("  Object self = alloc_obj2({nummethods}, {nummethods});")
-    out "  self->class->definitionModule = modulename;"
-    out("  gc_root(self);")
+    with_atomic_gc({
+        out("  Object self = alloc_obj2({nummethods}, {nummethods});")
+        out "  self->class->definitionModule = modulename;"
+        out("  gc_root(self);")
+    })
     if (util.extensions.contains("NativePrelude")) then {
         out("  prelude = grace_prelude();")
         out("  adddatum2(self, grace_prelude(), 0);")
@@ -2042,8 +2116,11 @@ method compile(vl, of, mn, rm, bt) {
     out("  setsource(originalSourceLines);")
     var modn := "Module<{modname}>"
     out("  setclassname(self, \"{modn}\");")
-    out("  Object *var_MatchFailed = alloc_var();")
-    out("  *var_MatchFailed = alloc_MatchFailed();")
+    with_atomic_gc({
+        out("  Object *var_MatchFailed = alloc_var();")
+        out("  *var_MatchFailed = alloc_MatchFailed();")
+        out("  gc_root(*var_MatchFailed);")
+    })
     out("  Object *var_noSuchValue = alloc_var();")
     out("  *var_noSuchValue = done;")
     out("  Object *var_done = alloc_var();")
@@ -2073,11 +2150,14 @@ method compile(vl, of, mn, rm, bt) {
     out("  *var_Type = Type;")
     out("  Object *var__prelude = alloc_var();")
     out("  *var__prelude = grace_prelude();")
-    out("  gc_root(*var_MatchFailed);")
-    out("  emptyclosure = createclosure(0, \"empty\");")
-    out("  gc_root(emptyclosure);")
-    out("  struct StackFrameObject *stackframe = alloc_StackFrame({nummethods}, NULL);")
-    out("  gc_root((Object)stackframe);")
+    with_atomic_gc({
+        out("  emptyclosure = createclosure(0, \"empty\");")
+        out("  gc_root(emptyclosure);")
+    })
+    with_atomic_gc({
+        out("  struct StackFrameObject *stackframe = alloc_StackFrame({nummethods}, NULL);")
+        out("  gc_root((Object)stackframe);")
+    })
     out("  pushstackframe(stackframe, \"module scope\");")
     out("  Object *selfslot = &(stackframe->slots[0]);")
     out("  *selfslot = self;")
@@ -2135,8 +2215,10 @@ method compile(vl, of, mn, rm, bt) {
         }
         out("  gracelib_argv(argv);")
         out("  Object params[1];")
-        out("  Object tmp_argv = alloc_BuiltinList();")
-        out("  gc_root(tmp_argv);")
+        with_atomic_gc({
+            out("  Object tmp_argv = alloc_BuiltinList();")
+            out("  gc_root(tmp_argv);")
+        })
         out("  int partcv_push[] = \{1\};")
         out("  int i; for (i=0; i<argc; i++) \{")
         out("    params[0] = alloc_String(argv[i]);")
