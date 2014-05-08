@@ -27,7 +27,7 @@ int rungc();
 
 // GC mutex for gc_* functions.
 pthread_mutex_t gc_mutex;
-// Alloc/dealloc mutex for gcmalloc/glfree functions.
+// Alloc/dealloc mutex for glmalloc/glfree functions.
 pthread_mutex_t alloc_mutex;
 
 static struct GC_Root *GC_roots;
@@ -97,6 +97,17 @@ void gc_destroy()
 
 void gc_alloc_obj(Object o)
 {
+    assert(o != NULL);
+
+    /* An object is ignored until the GC is told about it. Ideally, every
+     * allocated object should be entered in the GC with the gc_frame_newslot,
+     * gc_frame_setslot, gc_root or gc_transit functions.
+     * This fixes issues with the GC in threads (e.g. thread 2 preempting thread 1 and
+     * running the GC at an unsafe point of thread1. For example, between an allocation
+     * and a gc_* call marking the object as reachable.)
+     */
+    o->flags |= FLAG_IGNORED;
+
     pthread_mutex_lock(&gc_mutex);
 
     objectcount++;
@@ -153,6 +164,13 @@ void gc_root(Object o)
     pthread_mutex_lock(&gc_mutex);
     r->next = GC_roots;
     GC_roots = r;
+
+    if (o != NULL)
+    {
+        // Clear the ignored flag.
+        o->flags &= (0xFFFFFFFF ^ FLAG_IGNORED);
+    }
+
     pthread_mutex_unlock(&gc_mutex);
 }
 
@@ -171,6 +189,13 @@ GCTransit *gc_transit(Object o)
     }
 
     objs_in_transit = x;
+
+    if (o != NULL)
+    {
+        // Clear the ignored flag.
+        o->flags &= (0xFFFFFFFF ^ FLAG_IGNORED);
+    }
+
     pthread_mutex_unlock(&gc_mutex);
 
     return x;
@@ -301,6 +326,12 @@ int gc_frame_newslot(Object o)
     gc_stack->stack[gc_stack->framepos] = o;
     gc_stack->framepos++;
 
+    if (o != NULL)
+    {
+        // Clear the ignored flag.
+        o->flags &= (0xFFFFFFFF ^ FLAG_IGNORED);
+    }
+
     pthread_mutex_unlock(&gc_mutex);
     return framepos_old;
 }
@@ -309,6 +340,13 @@ void gc_frame_setslot(int slot, Object o)
 {
     pthread_mutex_lock(&gc_mutex);
     get_state()->gc_stack->stack[slot] = o;
+
+    if (o != NULL)
+    {
+        // Clear the ignored flag.
+        o->flags &= (0xFFFFFFFF ^ FLAG_IGNORED);
+    }
+
     pthread_mutex_unlock(&gc_mutex);
 }
 
@@ -335,13 +373,14 @@ void *glmalloc(size_t s)
 void glfree(void *p)
 {
     size_t *i = p - sizeof(size_t);
-    debug("glfree: freed %p (%i)", p, *i);
-    memset(i, 0, *i);
-    free(i);
 
     pthread_mutex_lock(&alloc_mutex);
     heapcurrent -= *i;
     pthread_mutex_unlock(&alloc_mutex);
+
+    memset(i, 0, *i);
+    free(i);
+    debug("glfree: freed %p (%i)", p, *i);
 }
 
 // Pre: run within gracelib_stats()
@@ -464,6 +503,7 @@ int rungc()
         s = s->next;
     }
 
+    int ignored = 0;
     int reached = 0;
     int unreached = 0;
     int freed = 0;
@@ -478,7 +518,11 @@ int rungc()
             continue;
         }
 
-        if (o->flags & FLAG_REACHABLE)
+        if (o->flags & FLAG_IGNORED)
+        {
+            ignored++;
+        }
+        else if (o->flags & FLAG_REACHABLE)
         {
             reached++;
         }
@@ -517,6 +561,7 @@ int rungc()
 
     if (doinfo)
     {
+        fprintf(stderr, "Ignored:     %i\n", ignored);
         fprintf(stderr, "Reachable:   %i\n", reached);
         fprintf(stderr, "Unreachable: %i\n", unreached);
         fprintf(stderr, "Freed:       %i\n", freed);

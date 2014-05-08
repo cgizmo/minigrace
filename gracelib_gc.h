@@ -10,6 +10,7 @@
 #define FLAG_USEROBJ 16
 #define FLAG_BLOCK 32
 #define FLAG_MUTABLE 64
+#define FLAG_IGNORED 128
 
 #define STACK_SIZE stack_size
 
