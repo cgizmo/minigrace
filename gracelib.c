@@ -1117,7 +1117,7 @@ static void init_BlockPattern()
     if (BlockPattern == NULL)
     {
         BlockPattern = alloc_class3("BlockPattern", 4,
-                         (void *)&UserObj__mark, (void *)&UserObj__release);
+                                    (void *)&UserObj__mark, (void *)&UserObj__release);
         add_Method(BlockPattern, "|", &literal_or);
         add_Method(BlockPattern, "&", &literal_and);
         add_Method(BlockPattern, "match", &BlockPattern_match);

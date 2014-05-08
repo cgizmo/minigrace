@@ -6,8 +6,11 @@
 #include "gracelib_types.h"
 #include "gracelib_gc.h"
 
+#define POLL_NO_TIMEOUT -1
+
 typedef struct MessageQueue MessageQueue;
 typedef struct MessageQueueElement MessageQueueElement;
+typedef enum PollResult PollResult;
 
 struct MessageQueue
 {
@@ -27,10 +30,15 @@ struct MessageQueueElement
     struct MessageQueueElement *next;
 };
 
+enum PollResult
+{
+    POLL_OK, POLL_TIMED_OUT
+};
+
 MessageQueue *message_queue_alloc(void);
 void message_queue_destroy(MessageQueue *);
 void message_queue_post(MessageQueue *, Object, GCTransit *);
-void message_queue_poll(MessageQueue *, Object *, GCTransit **);
+PollResult message_queue_poll(MessageQueue *, Object *, GCTransit **, const int);
 
 #endif
 

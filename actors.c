@@ -18,6 +18,7 @@ struct AIDObject
 };
 
 /* Prototypes */
+static PollResult poll_with_timeout(Object *, const int);
 static Object alloc_AID_object(thread_id);
 static void init_module_object(void);
 
@@ -25,12 +26,16 @@ Object module_actors_init(void);
 Object actors_spawn(Object, int, int *, Object *, int);
 Object actors_post(Object, int, int *, Object *, int);
 Object actors_poll(Object, int, int *, Object *, int);
+Object actors_timedpoll(Object, int, int *, Object *, int);
 
 /* Globals */
 static pthread_once_t once_control = PTHREAD_ONCE_INIT;
 
 ClassData AID;
+ClassData TimedOut;
+
 Object actors_module;
+Object timed_out_singleton;
 
 Object module_actors_init()
 {
@@ -89,22 +94,53 @@ Object actors_poll(Object self, int nparams, int *argcv, Object *argv, int flags
     }
 
     Object data;
-    GCTransit *data_transit;
-    MessageQueue *msg_queue = get_state()->msg_queue;
+    poll_with_timeout(&data, POLL_NO_TIMEOUT);
+    return data;
+}
 
-    message_queue_poll(msg_queue, &data, &data_transit);
+Object actors_timedpoll(Object self, int nparams, int *argcv, Object *argv, int flags)
+{
+    if (nparams != 1 || argcv[0] != 1)
+    {
+        gracedie("actors.timedpoll requires one argument");
+    }
 
-    // Ground the object in the current frame
-    gc_frame_newslot(data);
-    gc_arrive(data_transit);
+    Object data;
+    PollResult res = poll_with_timeout(&data, integerfromAny(argv[0]));
+
+    if (res == POLL_TIMED_OUT)
+    {
+        return timed_out_singleton;
+    }
 
     return data;
 }
 
-Object actors_sleep(Object self, int nparams, int *argcv, Object *argv, int flags)
+Object actors_TimedOut(Object self, int nparams, int *argcv, Object *argv, int flags)
 {
-    sleep(1);
-    return alloc_done();
+    return (Object)TimedOut; // TODO : Should this be an alloc_Type ?
+}
+
+Object actors_AID(Object self, int nparams, int *argcv, Object *argv, int flags)
+{
+    return (Object)AID; // TODO : Should this be an alloc_Type ?
+}
+
+static PollResult poll_with_timeout(Object *result, const int timeout)
+{
+    GCTransit *data_transit;
+    MessageQueue *msg_queue = get_state()->msg_queue;
+
+    PollResult res = message_queue_poll(msg_queue, result, &data_transit, timeout);
+
+    if (res == POLL_OK)
+    {
+        // Ground the object in the current frame
+        gc_frame_newslot(*result);
+        gc_arrive(data_transit);
+    }
+
+    return res;
 }
 
 static Object alloc_AID_object(thread_id id)
@@ -120,15 +156,26 @@ static Object alloc_AID_object(thread_id id)
 static void init_module_object()
 {
     // Initialize global class data
-    AID = alloc_class("AID", 0);
+    // TODO : fix the "fake unique method" hack (it's there b/c of pattern matching,
+    // see act4.grace in samples/actors).
+    AID = alloc_class("AID", 1);
+    add_Method(AID, "__ unique AID", NULL);
+
+    TimedOut = alloc_class("TimedOut", 1);
+    add_Method(TimedOut, "__ unique TimedOut", NULL);
+
+    timed_out_singleton = alloc_obj(0, TimedOut);
+    gc_root(timed_out_singleton);
 
     // Initialize module
-    ClassData c = alloc_class("Module<actors>", 4);
+    ClassData c = alloc_class("Module<actors>", 6);
 
     add_Method(c, "spawn", &actors_spawn);
     add_Method(c, "post", &actors_post);
     add_Method(c, "poll", &actors_poll);
-    add_Method(c, "sleep", &actors_sleep);
+    add_Method(c, "timedpoll", &actors_timedpoll);
+    add_Method(c, "TimedOut", &actors_TimedOut);
+    add_Method(c, "AID", &actors_AID);
 
     actors_module = alloc_newobj(0, c);
     gc_root(actors_module);

@@ -1,10 +1,13 @@
 #include <stdlib.h>
 #include <pthread.h>
+#include <sys/time.h> // TODO : check if this is the same header on Mac/Linux/Cygwin
+#include <errno.h>
 
 #include "gracelib_types.h"
 #include "gracelib_msg.h"
 #include "gracelib_gc.h"
 
+static struct timespec make_absolute_time(const int);
 static void message_queue_free_elements(MessageQueue *);
 
 MessageQueue *message_queue_alloc()
@@ -55,13 +58,33 @@ void message_queue_post(MessageQueue *msg_queue, Object data, GCTransit *data_tr
     pthread_mutex_unlock(&msg_queue->queue_lock);
 }
 
-void message_queue_poll(MessageQueue *msg_queue, Object *data, GCTransit **data_transit)
+PollResult message_queue_poll(MessageQueue *msg_queue,
+                              Object *data, GCTransit **data_transit,
+                              const int timeout)
 {
     pthread_mutex_lock(&msg_queue->queue_lock);
 
-    while (msg_queue->head == NULL && msg_queue->tail == NULL)
+    if (msg_queue->head == NULL && msg_queue->tail == NULL)
     {
-        pthread_cond_wait(&msg_queue->queue_cond, &msg_queue->queue_lock);
+        // No timeout, wait to infinity until there is a message in the queue
+        if (timeout == POLL_NO_TIMEOUT)
+        {
+            pthread_cond_wait(&msg_queue->queue_cond, &msg_queue->queue_lock);
+        }
+        // Otherwise, create the timespec structure and return POLL_TIMED_OUT
+        // on time out.
+        else
+        {
+            struct timespec abs_time = make_absolute_time(timeout);
+            int rc = pthread_cond_timedwait(&msg_queue->queue_cond, &msg_queue->queue_lock,
+                                            &abs_time);
+
+            if (rc == ETIMEDOUT)
+            {
+                pthread_mutex_unlock(&msg_queue->queue_lock);
+                return POLL_TIMED_OUT;
+            }
+        }
     }
 
     MessageQueueElement *elem = msg_queue->head;
@@ -81,6 +104,21 @@ void message_queue_poll(MessageQueue *msg_queue, Object *data, GCTransit **data_
     *data = elem->data;
     *data_transit = elem->data_transit;
     free(elem);
+
+    return POLL_OK;
+}
+
+static struct timespec make_absolute_time(const int timeout)
+{
+    struct timeval now;
+    struct timespec wake_time;
+
+    gettimeofday(&now, NULL);
+    wake_time.tv_sec = now.tv_sec;
+    wake_time.tv_nsec = now.tv_usec * 1000;
+    wake_time.tv_sec += timeout;
+
+    return wake_time;
 }
 
 static void message_queue_free_elements(MessageQueue *msg_queue)
