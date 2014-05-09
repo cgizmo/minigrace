@@ -22,11 +22,11 @@ static PollResult poll_with_timeout(Object *, const int);
 static Object alloc_AID_object(thread_id);
 static void init_module_object(void);
 
-Object module_actors_init(void);
-Object actors_spawn(Object, int, int *, Object *, int);
-Object actors_post(Object, int, int *, Object *, int);
-Object actors_poll(Object, int, int *, Object *, int);
-Object actors_timedpoll(Object, int, int *, Object *, int);
+Object module_actors_prim_init(void);
+Object actors_prim_spawn(Object, int, int *, Object *, int);
+Object actors_prim_post(Object, int, int *, Object *, int);
+Object actors_prim_poll(Object, int, int *, Object *, int);
+Object actors_prim_timedpoll(Object, int, int *, Object *, int);
 
 /* Globals */
 static pthread_once_t once_control = PTHREAD_ONCE_INIT;
@@ -34,13 +34,13 @@ static pthread_once_t once_control = PTHREAD_ONCE_INIT;
 ClassData AID;
 ClassData TimedOut;
 
-Object actors_module;
+Object actors_prim_module;
 Object timed_out_singleton;
 
-Object module_actors_init()
+Object module_actors_prim_init()
 {
     pthread_once(&once_control, init_module_object);
-    return actors_module;
+    return actors_prim_module;
 }
 
 
@@ -49,11 +49,11 @@ Object module_actors_init()
  * Takes a function of type (parent : AID) -> Actor.
  * Returns the resulting actor's AID.
  */
-Object actors_spawn(Object self, int nparams, int *argcv, Object *argv, int flags)
+Object actors_prim_spawn(Object self, int nparams, int *argcv, Object *argv, int flags)
 {
     if (nparams != 1 || argcv[0] != 1)
     {
-        gracedie("actors.spawn requires one argument");
+        gracedie("actors_prim.spawn requires one argument");
     }
 
     // Mark the block as "in transit" so the GC does not free it.
@@ -64,16 +64,16 @@ Object actors_spawn(Object self, int nparams, int *argcv, Object *argv, int flag
     GCTransit *aid_transit = gc_transit(parent_aid);
 
     thread_id id = grace_thread_create(argv[0], parent_aid, block_transit, aid_transit);
-    debug("actors_spawn: made an actor with id %d.\n", id);
+    debug("actors_prim_spawn: made an actor with id %d.\n", id);
 
     return alloc_AID_object(id);
 }
 
-Object actors_post(Object self, int nparams, int *argcv, Object *argv, int flags)
+Object actors_prim_post(Object self, int nparams, int *argcv, Object *argv, int flags)
 {
     if (nparams != 1 || argcv[0] != 2)
     {
-        gracedie("actors.post requires two arguments");
+        gracedie("actors_prim.post requires two arguments");
     }
 
     AIDObject *aid = (AIDObject *)argv[0];
@@ -86,11 +86,11 @@ Object actors_post(Object self, int nparams, int *argcv, Object *argv, int flags
     return alloc_done();
 }
 
-Object actors_poll(Object self, int nparams, int *argcv, Object *argv, int flags)
+Object actors_prim_poll(Object self, int nparams, int *argcv, Object *argv, int flags)
 {
     if (nparams != 1 || argcv[0] != 0)
     {
-        gracedie("actors.poll requires no argument");
+        gracedie("actors_prim.poll requires no argument");
     }
 
     Object data;
@@ -98,11 +98,11 @@ Object actors_poll(Object self, int nparams, int *argcv, Object *argv, int flags
     return data;
 }
 
-Object actors_timedpoll(Object self, int nparams, int *argcv, Object *argv, int flags)
+Object actors_prim_timedpoll(Object self, int nparams, int *argcv, Object *argv, int flags)
 {
     if (nparams != 1 || argcv[0] != 1)
     {
-        gracedie("actors.timedpoll requires one argument");
+        gracedie("actors_prim.timedpoll requires one argument");
     }
 
     Object data;
@@ -116,14 +116,9 @@ Object actors_timedpoll(Object self, int nparams, int *argcv, Object *argv, int 
     return data;
 }
 
-Object actors_TimedOut(Object self, int nparams, int *argcv, Object *argv, int flags)
+Object actors_prim_TimedOut(Object self, int nparams, int *argcv, Object *argv, int flags)
 {
     return (Object)TimedOut; // TODO : Should this be an alloc_Type ?
-}
-
-Object actors_AID(Object self, int nparams, int *argcv, Object *argv, int flags)
-{
-    return (Object)AID; // TODO : Should this be an alloc_Type ?
 }
 
 static PollResult poll_with_timeout(Object *result, const int timeout)
@@ -157,7 +152,7 @@ static void init_module_object()
 {
     // Initialize global class data
     // TODO : fix the "fake unique method" hack (it's there b/c of pattern matching,
-    // see act4.grace in samples/actors).
+    // see act4.grace in samples/actors_prim).
     AID = alloc_class("AID", 1);
     add_Method(AID, "__ unique AID", NULL);
 
@@ -168,15 +163,14 @@ static void init_module_object()
     gc_root(timed_out_singleton);
 
     // Initialize module
-    ClassData c = alloc_class("Module<actors>", 6);
+    ClassData c = alloc_class("Module<actors_prim>", 6);
 
-    add_Method(c, "spawn", &actors_spawn);
-    add_Method(c, "post", &actors_post);
-    add_Method(c, "poll", &actors_poll);
-    add_Method(c, "timedpoll", &actors_timedpoll);
-    add_Method(c, "TimedOut", &actors_TimedOut);
-    add_Method(c, "AID", &actors_AID);
+    add_Method(c, "spawn", &actors_prim_spawn);
+    add_Method(c, "post", &actors_prim_post);
+    add_Method(c, "poll", &actors_prim_poll);
+    add_Method(c, "timedpoll", &actors_prim_timedpoll);
+    add_Method(c, "TimedOut", &actors_prim_TimedOut);
 
-    actors_module = alloc_newobj(0, c);
-    gc_root(actors_module);
+    actors_prim_module = alloc_newobj(0, c);
+    gc_root(actors_prim_module);
 }

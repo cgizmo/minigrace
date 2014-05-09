@@ -28,14 +28,14 @@ unicode.gcn: unicode.c unicodedata.h gracelib.h
 mirrors.gso: mirrors.c gracelib.h
 	gcc $(CFLAGS) $(UNICODE_LDFLAGS) -fPIC -shared -o mirrors.gso mirrors.c
 
-actors.gso: actors.c gracelib.h
-	gcc $(CFLAGS) $(UNICODE_LDFLAGS) -fPIC -shared -o actors.gso actors.c
+actors_prim.gso: actors_prim.c gracelib.h
+	gcc $(CFLAGS) $(UNICODE_LDFLAGS) -fPIC -shared -o actors_prim.gso actors_prim.c
 
 mirrors.gcn: mirrors.c gracelib.h
 	gcc $(CFLAGS) -c -o mirrors.gcn mirrors.c
 
-actors.gcn: actors.c gracelib.h
-	gcc $(CFLAGS) -c -o actors.gcn actors.c
+actors_prim.gcn: actors_prim.c gracelib.h
+	gcc $(CFLAGS) -c -o actors_prim.gcn actors_prim.c
 
 math.gso: math.c gracelib.h
 	gcc $(CFLAGS) $(UNICODE_LDFLAGS) -fPIC -shared -o math.gso math.c

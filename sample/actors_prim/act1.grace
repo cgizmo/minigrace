@@ -1,8 +1,8 @@
-import "actors" as actors
+import "actors_prim" as actors_prim
 
 print "Inside parent thread, before call."
 
-actors.spawn({parent_id -> 
+actors_prim.spawn({parent_id -> 
     print "Inside new thread."
 })
 
