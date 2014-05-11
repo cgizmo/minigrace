@@ -119,6 +119,11 @@ minigrace-dynamic: l2/minigrace $(SOURCEFILES)
 	ld -o gracelib-final.o -r gracelib-basic.a StandardPrelude.gcn debugger.o
 	l2/minigrace --make --import-dynamic --verbose --module minigrace-dynamic compiler.grace
 
+actors.gso: minigrace
+	./minigrace --make --noexec --dynamic-module -XNoMain actors.grace
+
+stdlib: actors.gso
+
 gencheck:
 	( X=$$(tools/git-calculate-generation) ; mv .git-generation-cache .git-generation-cache.$$$$ ; Y=$$(tools/git-calculate-generation) ; [ "$$X" = "$$Y" ] || exit 1 ; rm -rf .git-generation-cache ; mv .git-generation-cache.$$$$ .git-generation-cache )
 regrtest: minigrace
@@ -176,6 +181,7 @@ install: minigrace gracepm
 	install -m 755 minigrace $(PREFIX)/bin/minigrace
 	install -m 755 gracepm $(PREFIX)/bin/gracepm
 	install -m 755 unicode.gso $(OTHER_MODULES) $(MODULE_PATH)
+	install -m 755 actors.gso $(MODULE_PATH)
 	install -m 755 gracelib-final.o $(OBJECT_PATH)
 	install -m 644 gracelib.h $(INCLUDE_PATH)
 	install -m 644 gracelib_gc.h $(INCLUDE_PATH)

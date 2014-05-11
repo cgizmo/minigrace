@@ -9,6 +9,6 @@ def child = actors_prim.spawn({parent ->
     match(res)
         case { _ : actors_prim.TimedOut -> print "[child] timed out" }
         case { a -> print "[child] got {a}" }
-})
+}, actors_prim.self())
 
 print "[parent] not doing anything"

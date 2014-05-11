@@ -43,6 +43,10 @@ Object module_actors_prim_init()
     return actors_prim_module;
 }
 
+Object actors_prim_self(Object self, int nparams, int *argcv, Object *argv, int flags)
+{
+    return alloc_AID_object(get_state()->id);
+}
 
 /* spawn(block : Block) -> AID.
  * Spawn a new actor in a new thread.
@@ -51,19 +55,16 @@ Object module_actors_prim_init()
  */
 Object actors_prim_spawn(Object self, int nparams, int *argcv, Object *argv, int flags)
 {
-    if (nparams != 1 || argcv[0] != 1)
+    if (nparams != 1 || argcv[0] != 2)
     {
-        gracedie("actors_prim.spawn requires one argument");
+        gracedie("actors_prim.spawn requires two argument");
     }
 
-    // Mark the block as "in transit" so the GC does not free it.
+    // Mark the block and it's argument as "in transit" so the GC does not free it.
     GCTransit *block_transit = gc_transit(argv[0]);
+    GCTransit *arg_transit = gc_transit(argv[1]);
 
-    // The parent ID of the new thread is the ID of the current thread.
-    Object parent_aid = alloc_AID_object(get_state()->id);
-    GCTransit *aid_transit = gc_transit(parent_aid);
-
-    thread_id id = grace_thread_create(argv[0], parent_aid, block_transit, aid_transit);
+    thread_id id = grace_thread_create(argv[0], argv[1], block_transit, arg_transit);
     debug("actors_prim_spawn: made an actor with id %d.\n", id);
 
     return alloc_AID_object(id);
@@ -121,6 +122,11 @@ Object actors_prim_TimedOut(Object self, int nparams, int *argcv, Object *argv, 
     return (Object)TimedOut; // TODO : Should this be an alloc_Type ?
 }
 
+Object actors_prim_AID(Object self, int nparams, int *argcv, Object *argv, int flags)
+{
+    return (Object)AID; // TODO : Should this be an alloc_Type ?
+}
+
 static PollResult poll_with_timeout(Object *result, const int timeout)
 {
     GCTransit *data_transit;
@@ -163,13 +169,15 @@ static void init_module_object()
     gc_root(timed_out_singleton);
 
     // Initialize module
-    ClassData c = alloc_class("Module<actors_prim>", 6);
+    ClassData c = alloc_class("Module<actors_prim>", 7);
 
+    add_Method(c, "self", &actors_prim_self);
     add_Method(c, "spawn", &actors_prim_spawn);
     add_Method(c, "post", &actors_prim_post);
     add_Method(c, "poll", &actors_prim_poll);
     add_Method(c, "timedpoll", &actors_prim_timedpoll);
     add_Method(c, "TimedOut", &actors_prim_TimedOut);
+    add_Method(c, "AID", &actors_prim_AID);
 
     actors_prim_module = alloc_newobj(0, c);
     gc_root(actors_prim_module);

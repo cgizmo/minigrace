@@ -7,7 +7,7 @@ print "Inside parent thread, before call."
 for (xs) do { x ->
     actors_prim.spawn({parent_id -> 
         print "({x})"
-    })
+    }, actors_prim.self())
 }
 
 print "Inside parent thread, after call."
