@@ -235,9 +235,9 @@ class suggestion.new() {
         }
     }
 
-    // Internal method used to find the index of a line in the lines array.
+    // Method used to find the index of a line in the lines array.
     // Returns false if the line is not found.
-    method findLine(lineNumber) is confidential {
+    method findLine(lineNumber) {
         for(lineNumbers.indices) do { i ->
             if(lineNumbers[i] == lineNumber) then {
                 return i
