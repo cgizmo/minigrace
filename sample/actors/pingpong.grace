@@ -12,6 +12,7 @@ method pong(parent) {
 }
 
 def pong_child = spawn({ parent -> pong(parent) })
+print "{me()} made child {pong_child}"
 
 var i := 0
 

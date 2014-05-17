@@ -119,7 +119,7 @@ minigrace-dynamic: l2/minigrace $(SOURCEFILES)
 	ld -o gracelib-final.o -r gracelib-basic.a StandardPrelude.gcn debugger.o
 	l2/minigrace --make --import-dynamic --verbose --module minigrace-dynamic compiler.grace
 
-actors.gso: minigrace
+actors.gso: minigrace actors.grace
 	./minigrace --make --noexec --dynamic-module -XNoMain actors.grace
 
 stdlib: actors.gso

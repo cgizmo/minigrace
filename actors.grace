@@ -3,14 +3,17 @@ import "actors_prim" as actors_prim
 
 inherits StandardPrelude.methods
 
-// TODO : add nice string representation
-class Actor.new(aid') {
+class Actor.new(aid') is confidential {
     inherits false
 
     def aid = aid'
 
     method !(msg) {
         actors_prim.post(aid, msg)
+    }
+
+    method asString {
+        "Actor<{aid}>"
     }
 
 }
@@ -32,10 +35,10 @@ method receive(block)
 
 
 method spawn(block) {
-    def parent = self()
+    def parent = me()
     Actor.new(actors_prim.spawn(block, parent))
 }
 
-method self() {
-    Actor.new(actors_prim.self())
+method me() {
+    Actor.new(actors_prim.me())
 }

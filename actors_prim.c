@@ -43,7 +43,7 @@ Object module_actors_prim_init()
     return actors_prim_module;
 }
 
-Object actors_prim_self(Object self, int nparams, int *argcv, Object *argv, int flags)
+Object actors_prim_me(Object self, int nparams, int *argcv, Object *argv, int flags)
 {
     return alloc_AID_object(get_state()->id);
 }
@@ -127,6 +127,25 @@ Object actors_prim_AID(Object self, int nparams, int *argcv, Object *argv, int f
     return (Object)AID; // TODO : Should this be an alloc_Type ?
 }
 
+Object AID_asString(Object self, int nparams, int *argcv, Object *argv, int flags)
+{
+    thread_id id = ((AIDObject*)self)->id;
+    char str[100];
+
+    snprintf(str, 100, "AID<%d>", id);
+    return alloc_String(str);
+}
+
+Object AID_Equals(Object self, int nparams, int *argcv, Object *argv, int flags)
+{
+    if (argv[0]->class != AID)
+    {
+        return alloc_Boolean(0);
+    }
+
+    return alloc_Boolean(((AIDObject*)argv[0])->id == ((AIDObject*)self)->id);
+}
+
 static PollResult poll_with_timeout(Object *result, const int timeout)
 {
     GCTransit *data_transit;
@@ -159,8 +178,11 @@ static void init_module_object()
     // Initialize global class data
     // TODO : fix the "fake unique method" hack (it's there b/c of pattern matching,
     // see act4.grace in samples/actors_prim).
-    AID = alloc_class("AID", 1);
+    AID = alloc_class("AID", 4);
     add_Method(AID, "__ unique AID", NULL);
+    add_Method(AID, "==", &AID_Equals);
+    add_Method(AID, "!=", &Object_NotEquals);
+    add_Method(AID, "asString", &AID_asString);
 
     TimedOut = alloc_class("TimedOut", 1);
     add_Method(TimedOut, "__ unique TimedOut", NULL);
@@ -171,7 +193,7 @@ static void init_module_object()
     // Initialize module
     ClassData c = alloc_class("Module<actors_prim>", 7);
 
-    add_Method(c, "self", &actors_prim_self);
+    add_Method(c, "me", &actors_prim_me);
     add_Method(c, "spawn", &actors_prim_spawn);
     add_Method(c, "post", &actors_prim_post);
     add_Method(c, "poll", &actors_prim_poll);
