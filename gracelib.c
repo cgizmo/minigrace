@@ -6837,6 +6837,7 @@ Object prelude_clone(Object self, int argc, int *argcv, Object *argv,
     size_t *size = sz;
     int nfields = (*size - sizeof(struct UserObject)) / sizeof(Object) + 1;
     Object ret = alloc_userobj2(0, nfields, obj->class);
+    gc_frame_newslot(ret);
     struct UserObject *uret = (struct UserObject *)ret;
     memcpy(ret, obj, *size);
 
