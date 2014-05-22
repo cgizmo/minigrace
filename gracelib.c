@@ -35,6 +35,7 @@
 #define max(x,y) (x>y?x:y)
 #define HEXVALC(c) ((c >= '0' && c <= '9') ? c - '0' : ((c >= 'a' && c <= 'f') ? c - 'a' + 10 : -1))
 
+
 struct StringObject
 {
     OBJECT_HEADER;
@@ -160,191 +161,193 @@ struct imports_extension_pair
 void debugger();
 
 /* Class data prototypes */
-Object AndPattern_match(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object Block_apply(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Block_applyIndirectly(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Block_match(Object self, int nparts, int *argcv, Object *args, int flags);
-Object BlockPattern_match(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object Block_pattern(Object self, int argc, int *argcv, Object *argv, int flags);
-Object Boolean_And(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Boolean_AndAnd(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Boolean_Equals(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Boolean_NotEquals(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Boolean_Or(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Boolean_OrOr(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Boolean_andAlso(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object Boolean_asString(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Boolean_not(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Boolean_orElse(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object BuiltinListIter_havemore(Object self, int nparts, int *argcv, Object *args, int flags);
-Object BuiltinListIter_next(Object self, int nparts, int *argcv, Object *args, int flags);
-Object BuiltinList_asString(Object self, int nparts, int *argcv, Object *args, int flags);
-Object BuiltinList_concat(Object self, int nparts, int *argcv, Object *args, int flags);
-Object BuiltinList_contains(Object self, int nparts, int *argcv, Object *args, int flags);
-Object BuiltinList_first(Object self, int nparts, int *argcv, Object *args, int flags);
-Object BuiltinList_index(Object self, int nparts, int *argcv, Object *args, int flags);
-Object BuiltinList_indexAssign(Object self, int nparts, int *argcv, Object *args, int flags);
-Object BuiltinList_indices(Object self, int nparts, int *argcv, Object *args, int flags);
-Object BuiltinList_iter(Object self, int nparts, int *argcv, Object *args, int flags);
-Object BuiltinList_last(Object self, int nparts, int *argcv, Object *args, int flags);
-Object BuiltinList_length(Object self, int nparts, int *argcv, Object *args, int flags);
-Object BuiltinList_pop(Object self, int nparts, int *argcv, Object *args, int flags);
-Object BuiltinList_prepended(Object self, int nparts, int *argcv, Object *args, int flags);
-Object BuiltinList_push(Object self, int nparts, int *argcv, Object *args, int flags);
-Object BuiltinList_reduce(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Class_asString(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object ConcatString_Equals(Object self, int nparts, int *argcv, Object *args, int flags);
-Object ConcatString__escape(Object self, int nparts, int *argcv, Object *args, int flags);
-Object ConcatString_at(Object self, int nparts, int *argcv, Object *args, int flags);
-Object ConcatString_iter(Object self, int nparts, int *argcv, Object *args, int flags);
-Object ConcatString_length(Object self, int nparts, int *argcv, Object *args, int flags);
-Object ConcatString_ord(Object self, int nparts, int *argcv, Object *args, int flags);
-Object ConcatString_substringFrom_to(Object self, int nparts, int *argcv, Object *args, int flags);
-Object ExceptionPacket_asString(Object self, int argc, int *argcv, Object *argv, int flags);
-Object ExceptionPacket_data(Object self, int argc, int *argcv, Object *argv, int flags);
-Object ExceptionPacket_exception(Object self, int argc, int *argcv, Object *argv, int flags);
-Object ExceptionPacket_message(Object self, int argc, int *argcv, Object *argv, int flags);
-Object ExceptionPacket_printBacktrace(Object self, int argc, int *argcv, Object *argv, int flags);
-Object Exception_asString(Object self, int argc, int *argcv, Object *argv, int flags);
-Object Exception_match(Object self, int argc, int *argcv, Object *argv, int flags);
-Object Exception_raise(Object self, int argc, int *argcv, Object *argv, int flags);
-Object Exception_raiseWith(Object self, int argc, int *argcv, Object *argv, int flags);
-Object Exception_refine(Object self, int argc, int *argcv, Object *argv, int flags);
-Object File_close(Object self, int nparts, int *argcv, Object *args, int flags);
-Object File_eof(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object File_getline(Object self, int nparts, int *argcv, Object *args, int flags);
-Object File_havemore(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object File_isatty(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object File_iter(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object File_next(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object File_read(Object self, int nparts, int *argcv, Object *args, int flags);
-Object File_readBinary(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object File_seek(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object File_seekBackward(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object File_seekForward(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object File_write(Object self, int nparts, int *argcv, Object *args, int flags);
-Object File_writeBinary(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object Float64_Add(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Float64_Div(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Float64_Equals(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Float64_Exp(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Float64_GreaterOrEqual(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Float64_GreaterThan(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Float64_LessOrEqual(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Float64_LessThan(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Float64_Mod(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Float64_Mul(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Float64_Negate(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Float64_Range(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Float64_Sub(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Float64_asInteger32(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Float64_asString(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Float64_hashcode(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Float64_inBase(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Float64_prefixGreaterThan(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Float64_prefixLessThan(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Float64_truncate(Object self, int nparts, int *argcv, Object *args, int flags);
-Object GreaterThanPattern_match(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object Integer32_And(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Integer32_DividedBy(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Integer32_Equals(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Integer32_GreaterThan(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Integer32_LShift(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Integer32_LessThan(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Integer32_Minus(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Integer32_NotEquals(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Integer32_Or(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Integer32_Plus(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Integer32_RShift(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Integer32_Times(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Integer32_asString(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Integer32_isInteger32(Object self, int nparts, int *argcv, Object *args, int flags);
-Object LessThanPattern_match(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object MatchResult_asString(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object MatchResult_bindings(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object MatchResult_result(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object Object_Equals(Object receiver, int nparts, int *argcv, Object *params, int flags);
-Object Object_NotEquals(Object receiver, int nparts, int *argcv, Object *params, int flags);
-Object Object_asString(Object receiver, int nparts, int *argcv, Object *params, int flags);
-Object Object_concat(Object receiver, int nparts, int *argcv, Object *params, int flags);
-Object Octets_Concat(Object receiver, int nparts, int *argcv, Object *args, int flags);
-Object Octets_Equals(Object receiver, int nparts, int *argcv, Object *args, int flags);
-Object Octets_asString(Object receiver, int nparts, int *argcv, Object *args, int flags);
-Object Octets_at(Object receiver, int nparts, int *argcv, Object *args, int flags);
-Object Octets_decode(Object receiver, int nparts, int *argcv, Object *args, int flags);
-Object Octets_size(Object receiver, int nparts, int *argcv, Object *args, int flags);
-Object OrPattern_match(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object PrimitiveArrayClassObject_new(Object self, int nparts, int *argcv, Object *args, int flags);
-Object PrimitiveArray_index(Object self, int nparts, int *argcv, Object *args, int flags);
-Object PrimitiveArray_indexAssign(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Process_status(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object Process_success(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object Process_terminated(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object Process_wait(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object Singleton_asString(Object receiver, int nparts, int *argcv, Object *params, int flags);
-Object StringIter_havemore(Object self, int nparts, int *argcv, Object *args, int flags);
-Object StringIter_next(Object self, int nparts, int *argcv, Object *args, int flags);
-Object StringResourceHandler_loadResource(Object self, int nparts, int *argcv, Object *args, int flags);
-Object String_Equals(Object self, int nparts, int *argcv, Object *params, int flags);
-Object String__escape(Object self, int nparts, int *argcv, Object *args, int flags);
-Object String_asNumber(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object String_at(Object self, int nparts, int *argcv, Object *args, int flags);
-Object String_concat(Object self, int nparts, int *argcv, Object *args, int flags);
-Object String_encode(Object self, int nparts, int *argcv, Object *args, int flags);
-Object String_hashcode(Object self, int nparts, int *argcv, Object *args, int flags);
-Object String_index(Object self, int nparts, int *argcv, Object *args, int flags);
-Object String_indices(Object self, int nparts, int *argcv, Object *args, int flags);
-Object String_iter(Object receiver, int nparts, int *argcv, Object *args, int flags);
-Object String_length(Object self, int nparts, int *argcv, Object *args, int flags);
-Object String_ord(Object self, int nparts, int *argcv, Object *args, int flags);
-Object String_replace_with(Object self, int nparts, int *argcv, Object *args, int flags);
-Object String_size(Object self, int nparts, int *argcv, Object *args, int flags);
-Object String_startsWith(Object self, int nparts, int *argcv, Object *args, int flags);
-Object String_substringFrom_to(Object self, int nparts, int *argcv, Object *args, int flags);
-Object Type_asString(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object Type_match(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object UserObj_Equals(Object self, int nparts, int *argcv, Object *args, int flags);
-Object identity_function(Object receiver, int nparts, int *argcv, Object *params, int flags);
-Object io_error(Object self, int nparts, int *argcv, Object *args, int flags);
-Object io_exists(Object self, int nparts, int *argcv, Object *args, int flags);
-Object io_findResource(Object self, int nparts, int *argcv, Object *args, int flags);
-Object io_input(Object self, int nparts, int *argcv, Object *args, int flags);
-Object io_listdir(Object self, int nparts, int *argcv, Object *args, int flags);
-Object io_newer(Object self, int nparts, int *argcv, Object *args, int flags);
-Object io_open(Object self, int nparts, int *argcv, Object *args, int flags);
-Object io_output(Object self, int nparts, int *argcv, Object *args, int flags);
-Object io_realpath(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object io_spawn(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object io_spawnv(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object io_system(Object self, int nparts, int *argcv, Object *args, int flags);
-Object literal_and(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object literal_match(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object literal_or(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object sys_argv(Object self, int nparts, int *argcv, Object *args, int flags);
-Object sys_cputime(Object self, int nparts, int *argcv, Object *args, int flags);
-Object sys_elapsed(Object self, int nparts, int *argcv, Object *args, int flags);
-Object sys_environ(Object self, int nparts, int *argcv, Object *args, int flags);
-Object sys_execPath(Object self, int nparts, int *argcv, Object *args, int flags);
-Object sys_exit(Object self, int nparts, int *argcv, Object *args, int flags);
-Object minigrace_credits(Object self, int argc, int *argcv, Object *argv, int flags);
-Object minigrace_warranty(Object self, int argc, int *argcv, Object *argv, int flags);
-Object environObject_at(Object self, int nparts, int *argcv, Object *args, int flags);
-Object environObject_atPut(Object self, int nparts, int *argcv, Object *args, int flags);
-Object environObject_contains(Object self, int nparts, int *argcv, Object *args, int flags);
-Object imports_loadResource(Object self, int nparts, int *argcv, Object *args, int flags);
-Object imports_registerExtension(Object self, int nparts, int *argcv, Object *args, int flags);
-Object grace_for_do(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object grace_minigrace(Object self, int argc, int *argcv, Object *argv, int flags);
-Object grace_octets(Object self, int npart, int *argcv, Object *argv, int flags);
-Object grace_while_do(Object self, int nparts, int *argcv, Object *argv, int flags);
-Object prelude_Error(Object self, int argc, int *argcv, Object *argv, int flags);
-Object prelude_Exception(Object self, int argc, int *argcv, Object *argv, int flags);
-Object prelude_PrimitiveArray(Object self, int argc, int *argcv, Object *argv, int flags);
-Object prelude_RuntimeError(Object self, int argc, int *argcv, Object *argv, int flags);
-Object prelude__methods(Object self, int argc, int *argcv, Object *argv, int flags);
-Object prelude_become(Object self, int argc, int *argcv, Object *argv, int flags);
-Object prelude_clone(Object self, int argc, int *argcv, Object *argv, int flags);
-Object prelude_unbecome(Object self, int argc, int *argcv, Object *argv, int flags);
+GRACELIB_PROTOTYPE(AndPattern_match);
+GRACELIB_PROTOTYPE(Block_apply);
+GRACELIB_PROTOTYPE(Block_applyIndirectly);
+GRACELIB_PROTOTYPE(Block_match);
+GRACELIB_PROTOTYPE(BlockPattern_match);
+GRACELIB_PROTOTYPE(Block_pattern);
+GRACELIB_PROTOTYPE(Block_lift);
+GRACELIB_PROTOTYPE(Boolean_And);
+GRACELIB_PROTOTYPE(Boolean_AndAnd);
+GRACELIB_PROTOTYPE(Boolean_Equals);
+GRACELIB_PROTOTYPE(Boolean_NotEquals);
+GRACELIB_PROTOTYPE(Boolean_Or);
+GRACELIB_PROTOTYPE(Boolean_OrOr);
+GRACELIB_PROTOTYPE(Boolean_andAlso);
+GRACELIB_PROTOTYPE(Boolean_asString);
+GRACELIB_PROTOTYPE(Boolean_not);
+GRACELIB_PROTOTYPE(Boolean_orElse);
+GRACELIB_PROTOTYPE(BuiltinListIter_havemore);
+GRACELIB_PROTOTYPE(BuiltinListIter_next);
+GRACELIB_PROTOTYPE(BuiltinList_asString);
+GRACELIB_PROTOTYPE(BuiltinList_concat);
+GRACELIB_PROTOTYPE(BuiltinList_contains);
+GRACELIB_PROTOTYPE(BuiltinList_first);
+GRACELIB_PROTOTYPE(BuiltinList_index);
+GRACELIB_PROTOTYPE(BuiltinList_indexAssign);
+GRACELIB_PROTOTYPE(BuiltinList_indices);
+GRACELIB_PROTOTYPE(BuiltinList_iter);
+GRACELIB_PROTOTYPE(BuiltinList_last);
+GRACELIB_PROTOTYPE(BuiltinList_length);
+GRACELIB_PROTOTYPE(BuiltinList_pop);
+GRACELIB_PROTOTYPE(BuiltinList_prepended);
+GRACELIB_PROTOTYPE(BuiltinList_push);
+GRACELIB_PROTOTYPE(BuiltinList_reduce);
+GRACELIB_PROTOTYPE(Class_asString);
+GRACELIB_PROTOTYPE(ConcatString_Equals);
+GRACELIB_PROTOTYPE(ConcatString__escape);
+GRACELIB_PROTOTYPE(ConcatString_at);
+GRACELIB_PROTOTYPE(ConcatString_iter);
+GRACELIB_PROTOTYPE(ConcatString_length);
+GRACELIB_PROTOTYPE(ConcatString_ord);
+GRACELIB_PROTOTYPE(ConcatString_substringFrom_to);
+GRACELIB_PROTOTYPE(ExceptionPacket_asString);
+GRACELIB_PROTOTYPE(ExceptionPacket_data);
+GRACELIB_PROTOTYPE(ExceptionPacket_exception);
+GRACELIB_PROTOTYPE(ExceptionPacket_message);
+GRACELIB_PROTOTYPE(ExceptionPacket_printBacktrace);
+GRACELIB_PROTOTYPE(Exception_asString);
+GRACELIB_PROTOTYPE(Exception_match);
+GRACELIB_PROTOTYPE(Exception_raise);
+GRACELIB_PROTOTYPE(Exception_raiseWith);
+GRACELIB_PROTOTYPE(Exception_refine);
+GRACELIB_PROTOTYPE(File_close);
+GRACELIB_PROTOTYPE(File_eof);
+GRACELIB_PROTOTYPE(File_getline);
+GRACELIB_PROTOTYPE(File_havemore);
+GRACELIB_PROTOTYPE(File_isatty);
+GRACELIB_PROTOTYPE(File_iter);
+GRACELIB_PROTOTYPE(File_next);
+GRACELIB_PROTOTYPE(File_read);
+GRACELIB_PROTOTYPE(File_readBinary);
+GRACELIB_PROTOTYPE(File_seek);
+GRACELIB_PROTOTYPE(File_seekBackward);
+GRACELIB_PROTOTYPE(File_seekForward);
+GRACELIB_PROTOTYPE(File_write);
+GRACELIB_PROTOTYPE(File_writeBinary);
+GRACELIB_PROTOTYPE(Float64_Add);
+GRACELIB_PROTOTYPE(Float64_Div);
+GRACELIB_PROTOTYPE(Float64_Equals);
+GRACELIB_PROTOTYPE(Float64_Exp);
+GRACELIB_PROTOTYPE(Float64_GreaterOrEqual);
+GRACELIB_PROTOTYPE(Float64_GreaterThan);
+GRACELIB_PROTOTYPE(Float64_LessOrEqual);
+GRACELIB_PROTOTYPE(Float64_LessThan);
+GRACELIB_PROTOTYPE(Float64_Mod);
+GRACELIB_PROTOTYPE(Float64_Mul);
+GRACELIB_PROTOTYPE(Float64_Negate);
+GRACELIB_PROTOTYPE(Float64_Range);
+GRACELIB_PROTOTYPE(Float64_Sub);
+GRACELIB_PROTOTYPE(Float64_asInteger32);
+GRACELIB_PROTOTYPE(Float64_asString);
+GRACELIB_PROTOTYPE(Float64_hashcode);
+GRACELIB_PROTOTYPE(Float64_inBase);
+GRACELIB_PROTOTYPE(Float64_prefixGreaterThan);
+GRACELIB_PROTOTYPE(Float64_prefixLessThan);
+GRACELIB_PROTOTYPE(Float64_truncate);
+GRACELIB_PROTOTYPE(GreaterThanPattern_match);
+GRACELIB_PROTOTYPE(Integer32_And);
+GRACELIB_PROTOTYPE(Integer32_DividedBy);
+GRACELIB_PROTOTYPE(Integer32_Equals);
+GRACELIB_PROTOTYPE(Integer32_GreaterThan);
+GRACELIB_PROTOTYPE(Integer32_LShift);
+GRACELIB_PROTOTYPE(Integer32_LessThan);
+GRACELIB_PROTOTYPE(Integer32_Minus);
+GRACELIB_PROTOTYPE(Integer32_NotEquals);
+GRACELIB_PROTOTYPE(Integer32_Or);
+GRACELIB_PROTOTYPE(Integer32_Plus);
+GRACELIB_PROTOTYPE(Integer32_RShift);
+GRACELIB_PROTOTYPE(Integer32_Times);
+GRACELIB_PROTOTYPE(Integer32_asString);
+GRACELIB_PROTOTYPE(Integer32_isInteger32);
+GRACELIB_PROTOTYPE(LessThanPattern_match);
+GRACELIB_PROTOTYPE(MatchResult_asString);
+GRACELIB_PROTOTYPE(MatchResult_bindings);
+GRACELIB_PROTOTYPE(MatchResult_result);
+GRACELIB_PROTOTYPE(Object_Equals);
+GRACELIB_PROTOTYPE(Object_NotEquals);
+GRACELIB_PROTOTYPE(Object_asString);
+GRACELIB_PROTOTYPE(Object_concat);
+GRACELIB_PROTOTYPE(Octets_Concat);
+GRACELIB_PROTOTYPE(Octets_Equals);
+GRACELIB_PROTOTYPE(Octets_asString);
+GRACELIB_PROTOTYPE(Octets_at);
+GRACELIB_PROTOTYPE(Octets_decode);
+GRACELIB_PROTOTYPE(Octets_size);
+GRACELIB_PROTOTYPE(OrPattern_match);
+GRACELIB_PROTOTYPE(PrimitiveArrayClassObject_new);
+GRACELIB_PROTOTYPE(PrimitiveArray_index);
+GRACELIB_PROTOTYPE(PrimitiveArray_indexAssign);
+GRACELIB_PROTOTYPE(Process_status);
+GRACELIB_PROTOTYPE(Process_success);
+GRACELIB_PROTOTYPE(Process_terminated);
+GRACELIB_PROTOTYPE(Process_wait);
+GRACELIB_PROTOTYPE(Singleton_asString);
+GRACELIB_PROTOTYPE(StringIter_havemore);
+GRACELIB_PROTOTYPE(StringIter_next);
+GRACELIB_PROTOTYPE(StringResourceHandler_loadResource);
+GRACELIB_PROTOTYPE(String_Equals);
+GRACELIB_PROTOTYPE(String__escape);
+GRACELIB_PROTOTYPE(String_asNumber);
+GRACELIB_PROTOTYPE(String_concat);
+GRACELIB_PROTOTYPE(String_encode);
+GRACELIB_PROTOTYPE(String_hashcode);
+GRACELIB_PROTOTYPE(String_index);
+GRACELIB_PROTOTYPE(String_indices);
+GRACELIB_PROTOTYPE(String_iter);
+GRACELIB_PROTOTYPE(String_length);
+GRACELIB_PROTOTYPE(String_ord);
+GRACELIB_PROTOTYPE(String_size);
+GRACELIB_PROTOTYPE(String_at);
+GRACELIB_PROTOTYPE(String_replace_with);
+GRACELIB_PROTOTYPE(String_substringFrom_to);
+GRACELIB_PROTOTYPE(String_startsWith);
+GRACELIB_PROTOTYPE(Type_asString);
+GRACELIB_PROTOTYPE(Type_match);
+GRACELIB_PROTOTYPE(UserObj_Equals);
+GRACELIB_PROTOTYPE(identity_function);
+GRACELIB_PROTOTYPE(io_error);
+GRACELIB_PROTOTYPE(io_exists);
+GRACELIB_PROTOTYPE(io_findResource);
+GRACELIB_PROTOTYPE(io_input);
+GRACELIB_PROTOTYPE(io_listdir);
+GRACELIB_PROTOTYPE(io_newer);
+GRACELIB_PROTOTYPE(io_open);
+GRACELIB_PROTOTYPE(io_output);
+GRACELIB_PROTOTYPE(io_realpath);
+GRACELIB_PROTOTYPE(io_spawn);
+GRACELIB_PROTOTYPE(io_spawnv);
+GRACELIB_PROTOTYPE(io_system);
+GRACELIB_PROTOTYPE(literal_and);
+GRACELIB_PROTOTYPE(literal_match);
+GRACELIB_PROTOTYPE(literal_or);
+GRACELIB_PROTOTYPE(sys_argv);
+GRACELIB_PROTOTYPE(sys_cputime);
+GRACELIB_PROTOTYPE(sys_elapsed);
+GRACELIB_PROTOTYPE(sys_environ);
+GRACELIB_PROTOTYPE(sys_execPath);
+GRACELIB_PROTOTYPE(sys_exit);
+GRACELIB_PROTOTYPE(minigrace_credits);
+GRACELIB_PROTOTYPE(minigrace_warranty);
+GRACELIB_PROTOTYPE(environObject_at);
+GRACELIB_PROTOTYPE(environObject_atPut);
+GRACELIB_PROTOTYPE(environObject_contains);
+GRACELIB_PROTOTYPE(imports_loadResource);
+GRACELIB_PROTOTYPE(imports_registerExtension);
+GRACELIB_PROTOTYPE(grace_for_do);
+GRACELIB_PROTOTYPE(grace_minigrace);
+GRACELIB_PROTOTYPE(grace_octets);
+GRACELIB_PROTOTYPE(grace_while_do);
+GRACELIB_PROTOTYPE(grace_userobj_outer);
+GRACELIB_PROTOTYPE(prelude_Error);
+GRACELIB_PROTOTYPE(prelude_Exception);
+GRACELIB_PROTOTYPE(prelude_PrimitiveArray);
+GRACELIB_PROTOTYPE(prelude_RuntimeError);
+GRACELIB_PROTOTYPE(prelude__methods);
+GRACELIB_PROTOTYPE(prelude_become);
+GRACELIB_PROTOTYPE(prelude_clone);
+GRACELIB_PROTOTYPE(prelude_unbecome);
 
 Object grace_prelude(void);
 
@@ -370,11 +373,7 @@ void io__mark(struct IOModuleObject *o);
 void sys__mark(struct SysModule *o);
 void imports__mark(struct ImportsModule *o);
 
-Object String_size(Object , int, int *, Object *, int flags);
-Object String_at(Object , int, int *, Object *, int flags);
-Object String_replace_with(Object , int, int *, Object *, int flags);
-Object String_substringFrom_to(Object , int, int *, Object *, int flags);
-Object String_startsWith(Object , int, int *, Object *, int flags);
+
 Object makeEscapedString(char *);
 void ConcatString__FillBuffer(Object s, char *c, int len);
 
@@ -1535,6 +1534,7 @@ int integerfromAny(Object p)
     }
 
     p = callmethod(p, "asString", 0, NULL, NULL);
+    gc_unpause();
     char *c = grcstring(p);
     int i = atoi(c);
     return i;
@@ -1607,60 +1607,57 @@ Method *addmethod2pos(Object o, char *name,
     return m;
 }
 
-Object identity_function(Object receiver, int nparts, int *argcv,
-                         Object *params, int flags)
+GRACELIB_FUNCTION(identity_function)
 {
-    return receiver;
+    return self;
 }
 
-Object Object_asString(Object receiver, int nparts, int *argcv,
-                       Object *params, int flags)
+GRACELIB_FUNCTION(Object_asString)
 {
     char buf[40];
-    sprintf(buf, "%s[0x%p]", receiver->class->name, receiver);
+    sprintf(buf, "%s[0x%p]", self->class->name, self);
     return alloc_String(buf);
 }
 
-Object Singleton_asString(Object receiver, int nparts, int *argcv,
-                          Object *params, int flags)
+GRACELIB_FUNCTION(Singleton_asString)
 {
-    return alloc_String(receiver->class->name);
+    return alloc_String(self->class->name);
 }
 
-Object Object_concat(Object receiver, int nparts, int *argcv,
-                     Object *params, int flags)
+GRACELIB_FUNCTION(Object_concat)
 {
-    Object a = callmethod(receiver, "asString", 0, NULL, NULL);
-    return callmethod(a, "++", 1, argcv, params);
+    Object a = callmethod(self, "asString", 0, NULL, NULL);
+    gc_unpause();
+    Object ret = callmethod(a, "++", 1, argcv, args);
+    gc_unpause();
+    return ret;
 }
 
-Object Object_NotEquals(Object receiver, int nparts, int *argcv,
-                        Object *params, int flags)
+GRACELIB_FUNCTION(Object_NotEquals)
 {
-    Object b = callmethod(receiver, "==", 1, argcv, params);
-    return callmethod(b, "not", 0, NULL, NULL);
+    Object b = callmethod(self, "==", 1, argcv, args);
+    gc_unpause();
+    Object ret = callmethod(b, "not", 0, NULL, NULL);
+    gc_unpause();
+    return ret;
 }
 
-Object Object_Equals(Object receiver, int nparts, int *argcv,
-                     Object *params, int flags)
+GRACELIB_FUNCTION(Object_Equals)
 {
-    return alloc_Boolean(receiver == params[0]);
+    return alloc_Boolean(self == args[0]);
 }
 
-Object MatchResult_result(Object self, int nparts, int *argcv,
-                          Object *argv, int flags)
+GRACELIB_FUNCTION(MatchResult_result)
 {
     return ((struct UserObject *)self)->data[0];
 }
 
-Object MatchResult_bindings(Object self, int nparts, int *argcv,
-                            Object *argv, int flags)
+GRACELIB_FUNCTION(MatchResult_bindings)
 {
     return ((struct UserObject *)self)->data[1];
 }
 
-Object MatchResult_asString(Object self, int nparts, int *argcv,
-                            Object *argv, int flags)
+GRACELIB_FUNCTION(MatchResult_asString)
 {
     struct UserObject *uo = (struct UserObject *)self;
     gc_pause();
@@ -1677,13 +1674,19 @@ Object MatchResult_asString(Object self, int nparts, int *argcv,
 
     int partcv[] = {1};
     Object tmpstr = callmethod(uo->data[0], "asString", 0, NULL, NULL);
+    gc_unpause();
     str = callmethod(str, "++", 1, partcv, &tmpstr);
+    gc_unpause();
     tmpstr = alloc_String(", bindings = ");
     str = callmethod(str, "++", 1, partcv, &tmpstr);
+    gc_unpause();
     tmpstr = callmethod(uo->data[1], "asString", 0, NULL, NULL);
+    gc_unpause();
     str = callmethod(str, "++", 1, partcv, &tmpstr);
+    gc_unpause();
     tmpstr = alloc_String(")");
     str = callmethod(str, "++", 1, partcv, &tmpstr);
+    gc_unpause();
     gc_unpause();
     return str;
 }
@@ -1719,18 +1722,20 @@ Object alloc_FailedMatch(Object result, Object bindings)
     return o;
 }
 
-Object literal_match(Object self, int nparts, int *argcv,
-                     Object *argv, int flags)
+GRACELIB_FUNCTION(literal_match)
 {
     if (nparts < 1 || (nparts >= 1 && argcv[0] < 1))
     {
         die("match requires an argument");
     }
 
-    Object other = argv[0];
+    Object other = args[0];
     int partcv[] = {1};
 
-    if (!istrue(callmethod(self, "==", 1, partcv, argv)))
+    Object eq = callmethod(self, "==", 1, partcv, args);
+    gc_unpause();
+
+    if (!istrue(eq))
     {
         return alloc_FailedMatch(other, NULL);
     }
@@ -1738,36 +1743,34 @@ Object literal_match(Object self, int nparts, int *argcv,
     return alloc_SuccessfulMatch(other, NULL);
 }
 
-Object literal_or(Object self, int nparts, int *argcv,
-                  Object *argv, int flags)
+GRACELIB_FUNCTION(literal_or)
 {
     if (nparts < 1 || (nparts >= 1 && argcv[0] < 1))
     {
         die("| requires an argument");
     }
 
-    return alloc_OrPattern(self, argv[0]);
+    return alloc_OrPattern(self, args[0]);
 }
 
-Object literal_and(Object self, int nparts, int *argcv,
-                   Object *argv, int flags)
+GRACELIB_FUNCTION(literal_and)
 {
     if (nparts < 1 || (nparts >= 1 && argcv[0] < 1))
     {
         die("& requires an argument");
     }
 
-    return alloc_AndPattern(self, argv[0]);
+    return alloc_AndPattern(self, args[0]);
 }
 
-Object AndPattern_match(Object self, int nparts, int *argcv, Object *argv,
-                        int flags)
+GRACELIB_FUNCTION(AndPattern_match)
 {
-    Object target = argv[0];
+    Object target = args[0];
     struct UserObject *b = (struct UserObject *)self;
     Object left = b->data[0];
     Object right = b->data[1];
-    Object m = callmethod(left, "match", 1, argcv, argv);
+    Object m = callmethod(left, "match", 1, argcv, args);
+    gc_unpause();
 
     if (!istrue(m))
     {
@@ -1775,7 +1778,9 @@ Object AndPattern_match(Object self, int nparts, int *argcv, Object *argv,
     }
 
     Object bindings = callmethod(m, "bindings", 0, NULL, NULL);
-    m = callmethod(right, "match", 1, argcv, argv);
+    gc_unpause();
+    m = callmethod(right, "match", 1, argcv, args);
+    gc_unpause();
 
     if (!istrue(m))
     {
@@ -1783,26 +1788,29 @@ Object AndPattern_match(Object self, int nparts, int *argcv, Object *argv,
     }
 
     Object bindings2 = callmethod(m, "bindings", 0, NULL, NULL);
+    gc_unpause();
     bindings = callmethod(bindings, "++", 1, argcv, &bindings2);
+    gc_unpause();
     return alloc_SuccessfulMatch(target, bindings);
 }
 
-Object OrPattern_match(Object self, int nparts, int *argcv, Object *argv,
-                       int flags)
+GRACELIB_FUNCTION(OrPattern_match)
 {
-    Object target = argv[0];
+    Object target = args[0];
     struct UserObject *b = (struct UserObject *)self;
     Object left = b->data[0];
     Object right = b->data[1];
     int tmp[1] = {1};
-    Object m = callmethod(left, "match", 1, argcv, argv);
+    Object m = callmethod(left, "match", 1, argcv, args);
+    gc_unpause();
 
     if (istrue(m))
     {
         return alloc_SuccessfulMatch(target, NULL);
     }
 
-    m = callmethod(right, "match", 1, argcv, argv);
+    m = callmethod(right, "match", 1, argcv, args);
+    gc_unpause();
 
     if (istrue(m))
     {
@@ -1830,21 +1838,22 @@ Object alloc_AndPattern(Object l, Object r)
     return o;
 }
 
-Object BlockPattern_match(Object self, int nparts, int *argcv, Object *argv,
-                          int flags)
+GRACELIB_FUNCTION(BlockPattern_match)
 {
-    Object target = argv[0];
+    Object target = args[0];
     struct UserObject *b = (struct UserObject *)self;
     Object block = b->data[0];
     int tmp[1] = {0};
-    Object m = callmethod(block, "match", 1, argcv, argv);
+    Object m = callmethod(block, "match", 1, argcv, args);
+    gc_unpause();
 
     if (!istrue(m))
     {
         return alloc_FailedMatch(target, NULL);
     }
 
-    Object result = callmethod(m, "result", 1, tmp, argv);
+    Object result = callmethod(m, "result", 1, tmp, args);
+    gc_unpause();
 
     if (istrue(result))
     {
@@ -1864,14 +1873,14 @@ Object alloc_BlockPattern(Object block)
     return o;
 }
 
-Object LessThanPattern_match(Object self, int nparts, int *argcv, Object *argv,
-                             int flags)
+GRACELIB_FUNCTION(LessThanPattern_match)
 {
     struct UserObject *b = (struct UserObject *)self;
-    Object target = argv[0];
+    Object target = args[0];
     Object right = b->data[0];
     int tmp[1] = {1};
     Object m = callmethod(target, "<", 1, argcv, &right);
+    gc_unpause();
 
     if (istrue(m))
     {
@@ -1889,14 +1898,14 @@ Object alloc_LessThanPattern(Object r)
     return o;
 }
 
-Object GreaterThanPattern_match(Object self, int nparts, int *argcv, Object *argv,
-                                int flags)
+GRACELIB_FUNCTION(GreaterThanPattern_match)
 {
     struct UserObject *b = (struct UserObject *)self;
-    Object target = argv[0];
+    Object target = args[0];
     Object right = b->data[0];
     int tmp[1] = {1};
     Object m = callmethod(target, "<", 1, argcv, &right);
+    gc_unpause();
 
     if (istrue(m))
     {
@@ -1974,22 +1983,19 @@ void ExceptionPacket__release(struct ExceptionPacketObject *e)
     glfree(e->backtrace);
 }
 
-Object ExceptionPacket_message(Object self, int argc, int *argcv, Object *argv,
-                               int flags)
+GRACELIB_FUNCTION(ExceptionPacket_message)
 {
     struct ExceptionPacketObject *e = (struct ExceptionPacketObject *)self;
     return e->message;
 }
 
-Object ExceptionPacket_exception(Object self, int argc, int *argcv,
-                                 Object *argv, int flags)
+GRACELIB_FUNCTION(ExceptionPacket_exception)
 {
     struct ExceptionPacketObject *e = (struct ExceptionPacketObject *)self;
     return e->exception;
 }
 
-Object ExceptionPacket_data(Object self, int argc, int *argcv,
-                            Object *argv, int flags)
+GRACELIB_FUNCTION(ExceptionPacket_data)
 {
     struct ExceptionPacketObject *e = (struct ExceptionPacketObject *)self;
 
@@ -2001,8 +2007,7 @@ Object ExceptionPacket_data(Object self, int argc, int *argcv,
     return alloc_done();
 }
 
-Object ExceptionPacket_asString(Object self, int argc, int *argcv,
-                                Object *argv, int flags)
+GRACELIB_FUNCTION(ExceptionPacket_asString)
 {
     struct ExceptionPacketObject *e = (struct ExceptionPacketObject *)self;
     struct ExceptionObject *x = (struct ExceptionObject *)e->exception;
@@ -2010,11 +2015,12 @@ Object ExceptionPacket_asString(Object self, int argc, int *argcv,
     strcpy(buf, x->name);
     strcat(buf, ": ");
     int tmp[1] = {1};
-    return callmethod(alloc_String(buf), "++", 1, tmp, &(e->message));
+    Object ret = callmethod(alloc_String(buf), "++", 1, tmp, &(e->message));
+    gc_unpause();
+    return ret;
 }
 
-Object ExceptionPacket_printBacktrace(Object self, int argc, int *argcv,
-                                      Object *argv, int flags)
+GRACELIB_FUNCTION(ExceptionPacket_printBacktrace)
 {
     printExceptionBacktrace(self);
     return alloc_done();
@@ -2044,51 +2050,47 @@ Object alloc_ExceptionPacket(Object msg, Object exception)
     return o;
 }
 
-Object Exception_raise(Object self, int argc, int *argcv, Object *argv,
-                       int flags)
+GRACELIB_FUNCTION(Exception_raise)
 {
     if (error_jump_set)
     {
-        currentException = alloc_ExceptionPacket(argv[0],
+        currentException = alloc_ExceptionPacket(args[0],
                            self);
         longjmp(error_jump, 1);
     }
 
-    printExceptionBacktrace(alloc_ExceptionPacket(argv[0], self));
+    printExceptionBacktrace(alloc_ExceptionPacket(args[0], self));
     exit(1);
     return self;
 }
 
-Object Exception_raiseWith(Object self, int argc, int *argcv, Object *argv,
-                           int flags)
+GRACELIB_FUNCTION(Exception_raiseWith)
 {
-    currentException = alloc_ExceptionPacket(argv[0], self);
+    currentException = alloc_ExceptionPacket(args[0], self);
     struct ExceptionPacketObject *p =
         (struct ExceptionPacketObject *)currentException;
-    p->data = argv[1];
+    p->data = args[1];
 
     if (error_jump_set)
     {
         longjmp(error_jump, 1);
     }
 
-    printExceptionBacktrace(alloc_ExceptionPacket(argv[0], self));
+    printExceptionBacktrace(alloc_ExceptionPacket(args[0], self));
     exit(1);
     return self;
 }
 
-Object Exception_refine(Object self, int argc, int *argcv, Object *argv,
-                        int flags)
+GRACELIB_FUNCTION(Exception_refine)
 {
-    char *name = grcstring(argv[0]);
+    char *name = grcstring(args[0]);
     return alloc_Exception(name, self);
 }
 
-Object Exception_match(Object self, int argc, int *argcv, Object *argv,
-                       int flags)
+GRACELIB_FUNCTION(Exception_match)
 {
     struct ExceptionObject *e = (struct ExceptionObject *)self;
-    Object packet = argv[0];
+    Object packet = args[0];
 
     if (packet->class != ExceptionPacket)
     {
@@ -2132,8 +2134,7 @@ Object Exception_match(Object self, int argc, int *argcv, Object *argv,
     return alloc_FailedMatch(packet, NULL);
 }
 
-Object Exception_asString(Object self, int argc, int *argcv, Object *argv,
-                          int flags)
+GRACELIB_FUNCTION(Exception_asString)
 {
     struct ExceptionObject *e = (struct ExceptionObject *)self;
     return alloc_String(e->name);
@@ -2150,10 +2151,9 @@ Object alloc_Exception(char *name, Object parent)
     return o;
 }
 
-Object String_Equals(Object self, int nparts, int *argcv,
-                     Object *params, int flags)
+GRACELIB_FUNCTION(String_Equals)
 {
-    Object other = params[0];
+    Object other = args[0];
 
     if ((other->class != String) && (other->class != ConcatString))
     {
@@ -2179,8 +2179,7 @@ Object String_Equals(Object self, int nparts, int *argcv,
     return alloc_Boolean(1);
 }
 
-Object BuiltinListIter_next(Object self, int nparts, int *argcv,
-                            Object *args, int flags)
+GRACELIB_FUNCTION(BuiltinListIter_next)
 {
     int *pos = (int *)self->data;
     Object *arr = (Object *)(self->data + sizeof(int));
@@ -2190,8 +2189,7 @@ Object BuiltinListIter_next(Object self, int nparts, int *argcv,
     return lst->items[rpos];
 }
 
-Object BuiltinListIter_havemore(Object self, int nparts, int *argcv,
-                                Object *args, int flags)
+GRACELIB_FUNCTION(BuiltinListIter_havemore)
 {
     int *pos = (int *)self->data;
     Object *arr = (Object *)(self->data + sizeof(int));
@@ -2222,8 +2220,7 @@ Object alloc_BuiltinListIter(Object array)
     return o;
 }
 
-Object BuiltinList_pop(Object self, int nparts, int *argcv,
-                       Object *args, int flags)
+GRACELIB_FUNCTION(BuiltinList_pop)
 {
     struct BuiltinListObject *sself = (struct BuiltinListObject *)self;
     sself->size--;
@@ -2236,8 +2233,7 @@ Object BuiltinList_pop(Object self, int nparts, int *argcv,
     return sself->items[sself->size];
 }
 
-Object BuiltinList_push(Object self, int nparts, int *argcv,
-                        Object *args, int flags)
+GRACELIB_FUNCTION(BuiltinList_push)
 {
     struct BuiltinListObject *sself = (struct BuiltinListObject *)self;
     Object other = args[0];
@@ -2262,8 +2258,7 @@ Object BuiltinList_push(Object self, int nparts, int *argcv,
     return alloc_Boolean(1);
 }
 
-Object BuiltinList_indexAssign(Object self, int nparts, int *argcv,
-                               Object *args, int flags)
+GRACELIB_FUNCTION(BuiltinList_indexAssign)
 {
     struct BuiltinListObject *sself = (struct BuiltinListObject *)self;
     Object idx = args[0];
@@ -2287,8 +2282,7 @@ Object BuiltinList_indexAssign(Object self, int nparts, int *argcv,
     return val;
 }
 
-Object BuiltinList_contains(Object self, int nparts, int *argcv,
-                            Object *args, int flags)
+GRACELIB_FUNCTION(BuiltinList_contains)
 {
     struct BuiltinListObject *sself = (struct BuiltinListObject *)self;
     Object other = args[0];
@@ -2300,6 +2294,7 @@ Object BuiltinList_contains(Object self, int nparts, int *argcv,
         my = sself->items[index];
         int partcv[] = {1};
         b = callmethod(other, "==", 1, partcv, &my);
+        gc_unpause();
 
         if (istrue(b))
         {
@@ -2310,8 +2305,7 @@ Object BuiltinList_contains(Object self, int nparts, int *argcv,
     return alloc_Boolean(0);
 }
 
-Object BuiltinList_reduce(Object self, int nparts, int *argcv,
-                          Object *args, int flags)
+GRACELIB_FUNCTION(BuiltinList_reduce)
 {
     struct BuiltinListObject *sself = (struct BuiltinListObject *)self;
     Object initialValue = args[0];
@@ -2327,13 +2321,13 @@ Object BuiltinList_reduce(Object self, int nparts, int *argcv,
         int partcv[] = {2};
         accum = callmethod(functionBlock, "apply", 1, partcv, &accum);
         gc_frame_setslot(slot, accum);
+        gc_unpause();
     }
 
     return accum;
 }
 
-Object BuiltinList_index(Object self, int nparts, int *argcv,
-                         Object *args, int flags)
+GRACELIB_FUNCTION(BuiltinList_index)
 {
     struct BuiltinListObject *sself = (struct BuiltinListObject *)self;
     int index = integerfromAny(args[0]);
@@ -2354,21 +2348,18 @@ Object BuiltinList_index(Object self, int nparts, int *argcv,
     return sself->items[index];
 }
 
-Object BuiltinList_iter(Object self, int nparts, int *argcv,
-                        Object *args, int flags)
+GRACELIB_FUNCTION(BuiltinList_iter)
 {
     return alloc_BuiltinListIter(self);
 }
 
-Object BuiltinList_length(Object self, int nparts, int *argcv,
-                          Object *args, int flags)
+GRACELIB_FUNCTION(BuiltinList_length)
 {
     struct BuiltinListObject *sself = (struct BuiltinListObject *)self;
     return alloc_Float64(sself->size);
 }
 
-Object BuiltinList_asString(Object self, int nparts, int *argcv,
-                            Object *args, int flags)
+GRACELIB_FUNCTION(BuiltinList_asString)
 {
     struct BuiltinListObject *sself = (struct BuiltinListObject *)self;
     int len = sself->size;
@@ -2382,22 +2373,25 @@ Object BuiltinList_asString(Object self, int nparts, int *argcv,
     for (i = 0; i < len; i++)
     {
         other = callmethod(sself->items[i], "asString", 0, NULL, NULL);
+        gc_unpause();
         s = callmethod(s, "++", 1, partcv, &other);
+        gc_unpause();
 
         if (i != len - 1)
         {
             s = callmethod(s, "++", 1, partcv, &c);
+            gc_unpause();
         }
     }
 
     Object cb = alloc_String("]");
     s = callmethod(s, "++", 1, partcv, &cb);
     gc_unpause();
+    gc_unpause();
     return s;
 }
 
-Object BuiltinList_indices(Object self, int nparts, int *argcv,
-                           Object *args, int flags)
+GRACELIB_FUNCTION(BuiltinList_indices)
 {
     struct BuiltinListObject *sself = (struct BuiltinListObject *)self;
     Object o = alloc_BuiltinList();
@@ -2409,15 +2403,14 @@ Object BuiltinList_indices(Object self, int nparts, int *argcv,
     for (i = 1; i <= sself->size; i++)
     {
         f = alloc_Float64(i);
-        BuiltinList_push(o, 1, partcv, &f, 0);
+        BuiltinList_push_impl(o, 1, partcv, &f, 0);
     }
 
     gc_frame_setslot(slot, undefined);
     return o;
 }
 
-Object BuiltinList_first(Object self, int nparts, int *argcv,
-                         Object *args, int flags)
+GRACELIB_FUNCTION(BuiltinList_first)
 {
     struct BuiltinListObject *sself = (struct BuiltinListObject *)self;
 
@@ -2429,8 +2422,7 @@ Object BuiltinList_first(Object self, int nparts, int *argcv,
     return sself->items[0];
 }
 
-Object BuiltinList_last(Object self, int nparts, int *argcv,
-                        Object *args, int flags)
+GRACELIB_FUNCTION(BuiltinList_last)
 {
     struct BuiltinListObject *sself = (struct BuiltinListObject *)self;
 
@@ -2442,25 +2434,24 @@ Object BuiltinList_last(Object self, int nparts, int *argcv,
     return sself->items[sself->size - 1];
 }
 
-Object BuiltinList_prepended(Object self, int nparts, int *argcv,
-                             Object *args, int flags)
+GRACELIB_FUNCTION(BuiltinList_prepended)
 {
     struct BuiltinListObject *sself = (struct BuiltinListObject *)self;
     int i;
     Object nl = alloc_BuiltinList();
     int partcv[] = {1};
     callmethod(nl, "push", 1, partcv, args);
+    gc_unpause();
 
     for (i = 0; i < sself->size; i++)
     {
-        BuiltinList_push(nl, 1, partcv, sself->items + i, 0);
+        BuiltinList_push_impl(nl, 1, partcv, sself->items + i, 0);
     }
 
     return nl;
 }
 
-Object BuiltinList_concat(Object self, int nparts, int *argcv,
-                          Object *args, int flags)
+GRACELIB_FUNCTION(BuiltinList_concat)
 {
     struct BuiltinListObject *sself = (struct BuiltinListObject *)self;
     struct BuiltinListObject *sother = (struct BuiltinListObject *)args[0];
@@ -2470,16 +2461,26 @@ Object BuiltinList_concat(Object self, int nparts, int *argcv,
 
     for (i = 0; i < sself->size; i++)
     {
-        BuiltinList_push(nl, 1, partcv, sself->items + i, 0);
+        BuiltinList_push_impl(nl, 1, partcv, sself->items + i, 0);
     }
 
     Object iter = callmethod(args[0], "iter", 0, NULL, NULL);
     gc_frame_newslot(iter);
+    gc_unpause();
 
-    while (istrue(callmethod(iter, "havemore", 0, NULL, NULL)))
+    while (1)
     {
+        Object havemore = callmethod(iter, "havemore", 0, NULL, NULL);
+        gc_unpause();
+
+        if (!istrue(havemore))
+        {
+            break;
+        }
+
         Object val = callmethod(iter, "next", 0, NULL, NULL);
-        BuiltinList_push(nl, 1, partcv, &val, 0);
+        gc_unpause();
+        BuiltinList_push_impl(nl, 1, partcv, &val, 0);
     }
 
     return nl;
@@ -2517,8 +2518,7 @@ Object alloc_List()
     return alloc_BuiltinList();
 }
 
-Object PrimitiveArray_indexAssign(Object self, int nparts, int *argcv,
-                                  Object *args, int flags)
+GRACELIB_FUNCTION(PrimitiveArray_indexAssign)
 {
     struct PrimitiveArrayObject *sself = (struct PrimitiveArrayObject *)self;
     Object idx = args[0];
@@ -2541,8 +2541,7 @@ Object PrimitiveArray_indexAssign(Object self, int nparts, int *argcv,
     return val;
 }
 
-Object PrimitiveArray_index(Object self, int nparts, int *argcv,
-                            Object *args, int flags)
+GRACELIB_FUNCTION(PrimitiveArray_index)
 {
     struct PrimitiveArrayObject *sself = (struct PrimitiveArrayObject *)self;
     int index = integerfromAny(args[0]);
@@ -2579,8 +2578,7 @@ Object alloc_PrimitiveArray(int size)
     return o;
 }
 
-Object PrimitiveArrayClassObject_new(Object self, int nparts, int *argcv,
-                                     Object *args, int flags)
+GRACELIB_FUNCTION(PrimitiveArrayClassObject_new)
 {
     if (argcv[0] != 1)
     {
@@ -2710,8 +2708,7 @@ int getutf8char(const char *s, char buf[5])
     return 0;
 }
 
-Object StringIter_next(Object self, int nparts, int *argcv,
-                       Object *args, int flags)
+GRACELIB_FUNCTION(StringIter_next)
 {
     int *pos = (int *)self->data;
     Object o = *(Object *)(self->data + sizeof(int));
@@ -2726,8 +2723,7 @@ Object StringIter_next(Object self, int nparts, int *argcv,
     return alloc_String(buf);
 }
 
-Object StringIter_havemore(Object self, int nparts, int *argcv,
-                           Object *args, int flags)
+GRACELIB_FUNCTION(StringIter_havemore)
 {
     int *pos = (int *)self->data;
     Object *strp = (Object *)(self->data + sizeof(int));
@@ -2778,6 +2774,7 @@ char *grcstring(Object self)
     if (self->class != ConcatString && self->class != String)
     {
         self = callmethod(self, "asString", 0, NULL, NULL);
+        gc_unpause();
     }
 
     struct StringObject *sself = (struct StringObject *)self;
@@ -2834,8 +2831,7 @@ void ConcatString__FillBuffer(Object self, char *buf, int len)
     buf[rights->blen] = 0;
 }
 
-Object String_indices(Object self, int nparts, int *argcv,
-                      Object *args, int flags)
+GRACELIB_FUNCTION(String_indices)
 {
     struct StringObject *sself = (struct StringObject *)self;
     Object o = alloc_BuiltinList();
@@ -2847,15 +2843,14 @@ Object String_indices(Object self, int nparts, int *argcv,
     for (i = 1; i <= sself->size; i++)
     {
         f = alloc_Float64(i);
-        BuiltinList_push(o, 1, partcv, &f, 0);
+        BuiltinList_push_impl(o, 1, partcv, &f, 0);
     }
 
     gc_unpause();
     return o;
 }
 
-Object ConcatString_Equals(Object self, int nparts, int *argcv,
-                           Object *args, int flags)
+GRACELIB_FUNCTION(ConcatString_Equals)
 {
     if (self == args[0])
     {
@@ -2886,22 +2881,22 @@ Object ConcatString_Equals(Object self, int nparts, int *argcv,
     return alloc_Boolean(strcmp(a, b) == 0);
 }
 
-Object ConcatString__escape(Object self, int nparts, int *argcv,
-                            Object *args, int flags)
+GRACELIB_FUNCTION(ConcatString__escape)
 {
     char *c = grcstring(self);
     Object o = makeEscapedString(c);
     return o;
 }
 
-Object ConcatString_ord(Object self, int nparts, int *argcv,
-                        Object *args, int flags)
+GRACELIB_FUNCTION(ConcatString_ord)
 {
     struct ConcatStringObject *sself = (struct ConcatStringObject *)self;
 
     if (sself->flat)
     {
-        return callmethod(alloc_String(sself->flat), "ord", 0, NULL, NULL);
+        Object ret = callmethod(alloc_String(sself->flat), "ord", 0, NULL, NULL);
+        gc_unpause();
+        return ret;
     }
 
     Object left = sself->left;
@@ -2910,15 +2905,18 @@ Object ConcatString_ord(Object self, int nparts, int *argcv,
 
     if (ls > 0)
     {
-        return callmethod(left, "ord", 0, NULL, NULL);
+        Object ret = callmethod(left, "ord", 0, NULL, NULL);
+        gc_unpause();
+        return ret;
     }
 
     Object right = sself->right;
-    return callmethod(right, "ord", 0, NULL, NULL);
+    Object ret = callmethod(right, "ord", 0, NULL, NULL);
+    gc_unpause();
+    return ret;
 }
 
-Object ConcatString_at(Object self, int nparts, int *argcv,
-                       Object *args, int flags)
+GRACELIB_FUNCTION(ConcatString_at)
 {
     struct ConcatStringObject *sself = (struct ConcatStringObject *)self;
     int p = integerfromAny(args[0]);
@@ -2930,34 +2928,32 @@ Object ConcatString_at(Object self, int nparts, int *argcv,
     }
 
     ConcatString__Flatten(self);
-    return String_at(self, nparts, argcv, args, flags);
+    return String_at_impl(self, nparts, argcv, args, flags);
 }
 
-Object ConcatString_length(Object self, int nparts, int *argcv,
-                           Object *args, int flags)
+GRACELIB_FUNCTION(ConcatString_length)
 {
     struct ConcatStringObject *sself = (struct ConcatStringObject *)self;
     return alloc_Float64(sself->blen);
 }
 
-Object ConcatString_iter(Object self, int nparts, int *argcv,
-                         Object *args, int flags)
+GRACELIB_FUNCTION(ConcatString_iter)
 {
     char *c = ConcatString__Flatten(self);
     Object o = alloc_String(c);
-    return callmethod(o, "iter", 0, NULL, NULL);
+    Object ret = callmethod(o, "iter", 0, NULL, NULL);
+    gc_unpause();
+    return ret;
 }
 
-Object ConcatString_substringFrom_to(Object self,
-                                     int nparts, int *argcv, Object *args, int flags)
+GRACELIB_FUNCTION(ConcatString_substringFrom_to)
 {
     struct ConcatStringObject *sself = (struct ConcatStringObject *)self;
     ConcatString__Flatten(self);
-    return String_substringFrom_to(self, nparts, argcv, args, flags);
+    return String_substringFrom_to_impl(self, nparts, argcv, args, flags);
 }
 
-Object String_hashcode(Object self, int nparts, int *argcv,
-                       Object *args, int flags)
+GRACELIB_FUNCTION(String_hashcode)
 {
     struct StringObject *sself = (struct StringObject *)self;
 
@@ -3030,15 +3026,13 @@ void ConcatString__mark(Object o)
     ConcatString__Flatten(o);
 }
 
-Object String_asNumber(Object self, int nparts, int *argcv,
-                       Object *argv, int flags)
+GRACELIB_FUNCTION(String_asNumber)
 {
     char *c = grcstring(self);
     return alloc_Float64(atof(c));
 }
 
-Object String_encode(Object self, int nparts, int *argcv,
-                     Object *args, int flags)
+GRACELIB_FUNCTION(String_encode)
 {
     struct StringObject *sself = (struct StringObject *)self;
     grcstring(self);
@@ -3095,16 +3089,12 @@ Object alloc_ConcatString(Object left, Object right)
     return o;
 }
 
-Object String__escape(Object, int, int *, Object *, int flags);
-Object String_length(Object, int, int *, Object *, int flags);
-Object String_iter(Object receiver, int nparts, int *argcv,
-                   Object *args, int flags)
+GRACELIB_FUNCTION(String_iter)
 {
-    return alloc_StringIter(receiver);
+    return alloc_StringIter(self);
 }
 
-Object String_at(Object self, int nparts, int *argcv,
-                 Object *args, int flags)
+GRACELIB_FUNCTION(String_at)
 {
     Object idxobj = args[0];
     assertClass(idxobj, Number);
@@ -3131,8 +3121,7 @@ Object String_at(Object self, int nparts, int *argcv,
     return alloc_String(buf);
 }
 
-Object String_ord(Object self, int nparts, int *argcv,
-                  Object *args, int flags)
+GRACELIB_FUNCTION(String_ord)
 {
     struct StringObject *sself = (struct StringObject *)self;
     char buf[5];
@@ -3168,15 +3157,13 @@ Object String_ord(Object self, int nparts, int *argcv,
     return alloc_Float64(codepoint);
 }
 
-Object String_size(Object self, int nparts, int *argcv,
-                   Object *args, int flags)
+GRACELIB_FUNCTION(String_size)
 {
     struct StringObject *sself = (struct StringObject *)self;
     return alloc_Float64(sself->size);
 }
 
-Object String_substringFrom_to(Object self,
-                               int nparts, int *argcv, Object *args, int flags)
+GRACELIB_FUNCTION(String_substringFrom_to)
 {
     struct StringObject *sself = (struct StringObject *)self;
     int st = integerfromAny(args[0]);
@@ -3225,8 +3212,7 @@ Object String_substringFrom_to(Object self,
     return alloc_String(buf);
 }
 
-Object String_startsWith(Object self, int nparts, int *argcv,
-                         Object *args, int flags)
+GRACELIB_FUNCTION(String_startsWith)
 {
     const char *sstr = grcstring(self);
     const char *needle = grcstring(args[0]);
@@ -3239,8 +3225,7 @@ Object String_startsWith(Object self, int nparts, int *argcv,
     return alloc_Boolean(0);
 }
 
-Object String_replace_with(Object self,
-                           int nparts, int *argcv, Object *args, int flags)
+GRACELIB_FUNCTION(String_replace_with)
 {
     struct StringObject *sself = (struct StringObject *)self;
     int *ml = &sself->blen;
@@ -3410,23 +3395,20 @@ Object makeEscapedString(char *p)
     return alloc_String(buf);
 }
 
-Object String__escape(Object self, int nparts, int *argcv,
-                      Object *args, int flags)
+GRACELIB_FUNCTION(String__escape)
 {
     struct StringObject *sself = (struct StringObject *)self;
     char *p = sself->body;
     return makeEscapedString(p);
 }
 
-Object String_length(Object self, int nparts, int *argcv,
-                     Object *args, int flags)
+GRACELIB_FUNCTION(String_length)
 {
     struct StringObject *sself = (struct StringObject *)self;
     return alloc_Float64(sself->blen);
 }
 
-Object String_index(Object self, int nparts, int *argcv,
-                    Object *args, int flags)
+GRACELIB_FUNCTION(String_index)
 {
     int index = integerfromAny(args[0]);
     struct StringObject *sself = (struct StringObject *)self;
@@ -3437,30 +3419,28 @@ Object String_index(Object self, int nparts, int *argcv,
     return alloc_String(buf);
 }
 
-Object String_concat(Object self, int nparts, int *argcv,
-                     Object *args, int flags)
+GRACELIB_FUNCTION(String_concat)
 {
     int frame = gc_frame_new();
     Object asStr = callmethod(args[0], "asString", 0, NULL, NULL);
     gc_frame_newslot(asStr);
+    gc_unpause();
     Object r = alloc_ConcatString(self, asStr);
     gc_frame_end(frame);
     return r;
 }
 
-Object Octets_size(Object receiver, int nparts, int *argcv,
-                   Object *args, int flags)
+GRACELIB_FUNCTION(Octets_size)
 {
-    struct OctetsObject *self = (struct OctetsObject *)receiver;
-    return alloc_Float64(self->blen);
+    struct OctetsObject *self_ = (struct OctetsObject *)self;
+    return alloc_Float64(self_->blen);
 }
 
-Object Octets_asString(Object receiver, int nparts, int *argcv,
-                       Object *args, int flags)
+GRACELIB_FUNCTION(Octets_asString)
 {
-    struct OctetsObject *self = (struct OctetsObject *)receiver;
-    char *data = self->body;
-    int size = self->blen;
+    struct OctetsObject *self_ = (struct OctetsObject *)self;
+    char *data = self_->body;
+    int size = self_->blen;
     char dt[4 + size * 2];
     int i;
     dt[0] = 'x';
@@ -3476,12 +3456,11 @@ Object Octets_asString(Object receiver, int nparts, int *argcv,
     return alloc_String(dt);
 }
 
-Object Octets_at(Object receiver, int nparts, int *argcv,
-                 Object *args, int flags)
+GRACELIB_FUNCTION(Octets_at)
 {
-    struct OctetsObject *self = (struct OctetsObject *)receiver;
-    char *data = self->body;
-    int size = self->blen;
+    struct OctetsObject *self_ = (struct OctetsObject *)self;
+    char *data = self_->body;
+    int size = self_->blen;
     int i = integerfromAny(args[0]);
 
     if (i >= size)
@@ -3492,21 +3471,20 @@ Object Octets_at(Object receiver, int nparts, int *argcv,
     return alloc_Float64((int)data[i] & 255);
 }
 
-Object Octets_Equals(Object receiver, int nparts, int *argcv,
-                     Object *args, int flags)
+GRACELIB_FUNCTION(Octets_Equals)
 {
-    struct OctetsObject *self = (struct OctetsObject *)receiver;
+    struct OctetsObject *self_ = (struct OctetsObject *)self;
     struct OctetsObject *other = (struct OctetsObject *)args[0];
 
-    if (self->blen != other->blen)
+    if (self_->blen != other->blen)
     {
         return alloc_Boolean(0);
     }
 
     int i;
 
-    for (i = 0; i < self->blen; i++)
-        if (self->body[i] != other->body[i])
+    for (i = 0; i < self_->blen; i++)
+        if (self_->body[i] != other->body[i])
         {
             return alloc_Boolean(0);
         }
@@ -3514,27 +3492,25 @@ Object Octets_Equals(Object receiver, int nparts, int *argcv,
     return alloc_Boolean(1);
 }
 
-Object Octets_Concat(Object receiver, int nparts, int *argcv,
-                     Object *args, int flags)
+GRACELIB_FUNCTION(Octets_Concat)
 {
-    struct OctetsObject *self = (struct OctetsObject *)receiver;
+    struct OctetsObject *self_ = (struct OctetsObject *)self;
     struct OctetsObject *other = (struct OctetsObject *)args[0];
-    int newsize = self->blen + other->blen;
+    int newsize = self_->blen + other->blen;
     char newdata[newsize];
     int i;
-    memcpy(newdata, self->body, self->blen);
-    memcpy(newdata + self->blen, other->body, other->blen);
+    memcpy(newdata, self_->body, self_->blen);
+    memcpy(newdata + self_->blen, other->body, other->blen);
     return alloc_Octets(newdata, newsize);
 }
 
-Object Octets_decode(Object receiver, int nparts, int *argcv,
-                     Object *args, int flags)
+GRACELIB_FUNCTION(Octets_decode)
 {
-    struct OctetsObject *self = (struct OctetsObject *)receiver;
+    struct OctetsObject *self_ = (struct OctetsObject *)self;
     Object codec = args[0];
-    char newdata[self->blen + 1];
-    memcpy(newdata, self->body, self->blen);
-    newdata[self->blen] = 0;
+    char newdata[self_->blen + 1];
+    memcpy(newdata, self_->body, self_->blen);
+    newdata[self_->blen] = 0;
     return alloc_String(newdata);
 }
 
@@ -3547,8 +3523,7 @@ Object alloc_Octets(const char *data, int len)
     return o;
 }
 
-Object Float64_Range(Object self, int nparts, int *argcv,
-                     Object *args, int flags)
+GRACELIB_FUNCTION(Float64_Range)
 {
     Object other = args[0];
     double a = *(double *)self->data;
@@ -3562,15 +3537,14 @@ Object Float64_Range(Object self, int nparts, int *argcv,
     for (; i <= b; i++)
     {
         Object v = alloc_Float64(i);
-        BuiltinList_push(arr, 1, partcv, &v, 0);
+        BuiltinList_push_impl(arr, 1, partcv, &v, 0);
     }
 
     gc_unpause();
     return (Object)arr;
 }
 
-Object Float64_Add(Object self, int nparts, int *argcv,
-                   Object *args, int flags)
+GRACELIB_FUNCTION(Float64_Add)
 {
     Object other = args[0];
     assertClass(other, Number);
@@ -3589,8 +3563,7 @@ Object Float64_Add(Object self, int nparts, int *argcv,
     return alloc_Float64(a + b);
 }
 
-Object Float64_Sub(Object self, int nparts, int *argcv,
-                   Object *args, int flags)
+GRACELIB_FUNCTION(Float64_Sub)
 {
     Object other = args[0];
     assertClass(other, Number);
@@ -3609,8 +3582,7 @@ Object Float64_Sub(Object self, int nparts, int *argcv,
     return alloc_Float64(a - b);
 }
 
-Object Float64_Mul(Object self, int nparts, int *argcv,
-                   Object *args, int flags)
+GRACELIB_FUNCTION(Float64_Mul)
 {
     Object other = args[0];
     assertClass(other, Number);
@@ -3629,8 +3601,7 @@ Object Float64_Mul(Object self, int nparts, int *argcv,
     return alloc_Float64(a * b);
 }
 
-Object Float64_Div(Object self, int nparts, int *argcv,
-                   Object *args, int flags)
+GRACELIB_FUNCTION(Float64_Div)
 {
     Object other = args[0];
     assertClass(other, Number);
@@ -3649,8 +3620,7 @@ Object Float64_Div(Object self, int nparts, int *argcv,
     return alloc_Float64(a / b);
 }
 
-Object Float64_Exp(Object self, int nparts, int *argcv,
-                   Object *args, int flags)
+GRACELIB_FUNCTION(Float64_Exp)
 {
     Object other = args[0];
     assertClass(other, Number);
@@ -3659,8 +3629,7 @@ Object Float64_Exp(Object self, int nparts, int *argcv,
     return alloc_Float64(pow(a, b));
 }
 
-Object Float64_Mod(Object self, int nparts, int *argcv,
-                   Object *args, int flags)
+GRACELIB_FUNCTION(Float64_Mod)
 {
     Object other = args[0];
     assertClass(other, Number);
@@ -3681,8 +3650,7 @@ Object Float64_Mod(Object self, int nparts, int *argcv,
     return alloc_Float64(i % j);
 }
 
-Object Float64_Equals(Object self, int nparts, int *argcv,
-                      Object *args, int flags)
+GRACELIB_FUNCTION(Float64_Equals)
 {
     Object other = args[0];
     double a = *(double *)self->data;
@@ -3700,8 +3668,7 @@ Object Float64_Equals(Object self, int nparts, int *argcv,
     return alloc_Boolean(a == b);
 }
 
-Object Float64_LessThan(Object self, int nparts, int *argcv,
-                        Object *args, int flags)
+GRACELIB_FUNCTION(Float64_LessThan)
 {
     Object other = args[0];
     assertClass(other, Number);
@@ -3720,8 +3687,7 @@ Object Float64_LessThan(Object self, int nparts, int *argcv,
     return alloc_Boolean(a < b);
 }
 
-Object Float64_GreaterThan(Object self, int nparts, int *argcv,
-                           Object *args, int flags)
+GRACELIB_FUNCTION(Float64_GreaterThan)
 {
     Object other = args[0];
     assertClass(other, Number);
@@ -3740,8 +3706,7 @@ Object Float64_GreaterThan(Object self, int nparts, int *argcv,
     return alloc_Boolean(a > b);
 }
 
-Object Float64_LessOrEqual(Object self, int nparts, int *argcv,
-                           Object *args, int flags)
+GRACELIB_FUNCTION(Float64_LessOrEqual)
 {
     Object other = args[0];
     assertClass(other, Number);
@@ -3760,8 +3725,7 @@ Object Float64_LessOrEqual(Object self, int nparts, int *argcv,
     return alloc_Boolean(a <= b);
 }
 
-Object Float64_GreaterOrEqual(Object self, int nparts, int *argcv,
-                              Object *args, int flags)
+GRACELIB_FUNCTION(Float64_GreaterOrEqual)
 {
     Object other = args[0];
     assertClass(other, Number);
@@ -3780,22 +3744,19 @@ Object Float64_GreaterOrEqual(Object self, int nparts, int *argcv,
     return alloc_Boolean(a >= b);
 }
 
-Object Float64_Negate(Object self, int nparts, int *argcv,
-                      Object *args, int flags)
+GRACELIB_FUNCTION(Float64_Negate)
 {
     double a = *(double *)self->data;
     return alloc_Float64(-a);
 }
 
-Object Float64_asInteger32(Object self, int nparts, int *argcv,
-                           Object *args, int flags)
+GRACELIB_FUNCTION(Float64_asInteger32)
 {
     int i = integerfromAny(self);
     return alloc_Integer32(i);
 }
 
-Object Float64_hashcode(Object self, int nparts, int *argcv,
-                        Object *args, int flags)
+GRACELIB_FUNCTION(Float64_hashcode)
 {
     double *d = (double *)self->data;
     uint32_t *w1 = (uint32_t *)d;
@@ -3804,8 +3765,7 @@ Object Float64_hashcode(Object self, int nparts, int *argcv,
     return alloc_Float64(hc);
 }
 
-Object Float64_inBase(Object self, int nparts, int *argcv,
-                      Object *args, int flags)
+GRACELIB_FUNCTION(Float64_inBase)
 {
     Object basenum = args[0];
     double based = *((double *)args[0]->data);
@@ -3848,8 +3808,7 @@ Object Float64_inBase(Object self, int nparts, int *argcv,
     return alloc_String(b);
 }
 
-Object Float64_truncate(Object self, int nparts, int *argcv,
-                        Object *args, int flags)
+GRACELIB_FUNCTION(Float64_truncate)
 {
     double *d = (double *)self->data;
     double r;
@@ -3881,14 +3840,12 @@ void Float64__mark(Object self)
     }
 }
 
-Object Float64_prefixLessThan(Object self, int nparts, int *argcv,
-                              Object *args, int flags)
+GRACELIB_FUNCTION(Float64_prefixLessThan)
 {
     return alloc_LessThanPattern(self);
 }
 
-Object Float64_prefixGreaterThan(Object self, int nparts, int *argcv,
-                                 Object *args, int flags)
+GRACELIB_FUNCTION(Float64_prefixGreaterThan)
 {
     return alloc_GreaterThanPattern(self);
 }
@@ -3953,8 +3910,7 @@ static inline void intern_float(int ival, Object o)
     }
 }
 
-Object Float64_asString(Object self, int nparts, int *argcv,
-                        Object *args, int flags)
+GRACELIB_FUNCTION(Float64_asString)
 {
     Object *strp = (Object *)(self->data + sizeof(double));
 
@@ -3983,8 +3939,7 @@ Object Float64_asString(Object self, int nparts, int *argcv,
     return str;
 }
 
-Object Boolean_asString(Object self, int nparts, int *argcv,
-                        Object *args, int flags)
+GRACELIB_FUNCTION(Boolean_asString)
 {
     int myval = *(int8_t *)self->data;
 
@@ -3998,8 +3953,7 @@ Object Boolean_asString(Object self, int nparts, int *argcv,
     }
 }
 
-Object Boolean_And(Object self, int nparts, int *argcv,
-                   Object *args, int flags)
+GRACELIB_FUNCTION(Boolean_And)
 {
     int8_t myval = *(int8_t *)self->data;
     int8_t otherval = *(int8_t *)args[0]->data;
@@ -4014,8 +3968,7 @@ Object Boolean_And(Object self, int nparts, int *argcv,
     }
 }
 
-Object Boolean_Or(Object self, int nparts, int *argcv,
-                  Object *args, int flags)
+GRACELIB_FUNCTION(Boolean_Or)
 {
     int8_t myval = *(int8_t *)self->data;
     int8_t otherval = *(int8_t *)args[0]->data;
@@ -4030,8 +3983,7 @@ Object Boolean_Or(Object self, int nparts, int *argcv,
     }
 }
 
-Object Boolean_AndAnd(Object self, int nparts, int *argcv,
-                      Object *args, int flags)
+GRACELIB_FUNCTION(Boolean_AndAnd)
 {
     int8_t myval = *(int8_t *)self->data;
 
@@ -4042,14 +3994,15 @@ Object Boolean_AndAnd(Object self, int nparts, int *argcv,
 
     if (args[0]->flags & FLAG_BLOCK)
     {
-        return callmethod(args[0], "apply", 0, NULL, NULL);
+        Object ret = callmethod(args[0], "apply", 0, NULL, NULL);
+        gc_unpause();
+        return ret;
     }
 
     return alloc_Boolean(istrue(args[0]));
 }
 
-Object Boolean_OrOr(Object self, int nparts, int *argcv,
-                    Object *args, int flags)
+GRACELIB_FUNCTION(Boolean_OrOr)
 {
     int8_t myval = *(int8_t *)self->data;
 
@@ -4060,36 +4013,39 @@ Object Boolean_OrOr(Object self, int nparts, int *argcv,
 
     if (args[0]->flags & FLAG_BLOCK)
     {
-        return callmethod(args[0], "apply", 0, NULL, NULL);
+        Object ret = callmethod(args[0], "apply", 0, NULL, NULL);
+        gc_unpause();
+        return ret;
     }
 
     return alloc_Boolean(istrue(args[0]));
 }
 
-Object Boolean_andAlso(Object self, int nparts, int *argcv,
-                       Object *argv, int flags)
+GRACELIB_FUNCTION(Boolean_andAlso)
 {
     if (self == BOOLEAN_TRUE)
     {
-        return callmethod(argv[0], "apply", 0, NULL, NULL);
+        Object ret = callmethod(args[0], "apply", 0, NULL, NULL);
+        gc_unpause();
+        return ret;
     }
 
     return self;
 }
 
-Object Boolean_orElse(Object self, int nparts, int *argcv,
-                      Object *argv, int flags)
+GRACELIB_FUNCTION(Boolean_orElse)
 {
     if (self == BOOLEAN_FALSE)
     {
-        return callmethod(argv[0], "apply", 0, NULL, NULL);
+        Object ret = callmethod(args[0], "apply", 0, NULL, NULL);
+        gc_unpause();
+        return ret;
     }
 
     return self;
 }
 
-Object Boolean_not(Object self, int nparts, int *argcv,
-                   Object *args, int flags)
+GRACELIB_FUNCTION(Boolean_not)
 {
     if (self == BOOLEAN_TRUE)
     {
@@ -4099,14 +4055,12 @@ Object Boolean_not(Object self, int nparts, int *argcv,
     return alloc_Boolean(1);
 }
 
-Object Boolean_Equals(Object self, int nparts, int *argcv,
-                      Object *args, int flags)
+GRACELIB_FUNCTION(Boolean_Equals)
 {
     return alloc_Boolean(self == args[0] && ((flags >> 24 & 255) == 0));
 }
 
-Object Boolean_NotEquals(Object self, int nparts, int *argcv,
-                         Object *args, int flags)
+GRACELIB_FUNCTION(Boolean_NotEquals)
 {
     return alloc_Boolean(self != args[0]);
 }
@@ -4131,16 +4085,14 @@ Object alloc_Boolean(int val)
     return NULL;
 }
 
-Object File_close(Object self, int nparts, int *argcv,
-                  Object *args, int flags)
+GRACELIB_FUNCTION(File_close)
 {
     struct FileObject *s = (struct FileObject *)self;
     int rv = fclose(s->file);
     return alloc_Boolean(1);
 }
 
-Object File_write(Object self, int nparts, int *argcv,
-                  Object *args, int flags)
+GRACELIB_FUNCTION(File_write)
 {
     struct FileObject *s = (struct FileObject *)self;
     FILE *file = s->file;
@@ -4157,8 +4109,7 @@ Object File_write(Object self, int nparts, int *argcv,
     return alloc_Boolean(1);
 }
 
-Object File_getline(Object self, int nparts, int *argcv,
-                    Object *args, int flags)
+GRACELIB_FUNCTION(File_getline)
 {
     struct FileObject *s = (struct FileObject *)self;
     FILE *file = s->file;
@@ -4189,8 +4140,7 @@ Object File_getline(Object self, int nparts, int *argcv,
     return str;
 }
 
-Object File_read(Object self, int nparts, int *argcv,
-                 Object *args, int flags)
+GRACELIB_FUNCTION(File_read)
 {
     struct FileObject *s = (struct FileObject *)self;
     FILE *file = s->file;
@@ -4212,12 +4162,11 @@ Object File_read(Object self, int nparts, int *argcv,
     return str;
 }
 
-Object File_readBinary(Object self, int nparts, int *argcv,
-                       Object *argv, int flags)
+GRACELIB_FUNCTION(File_readBinary)
 {
     struct FileObject *s = (struct FileObject *)self;
     FILE *file = s->file;
-    int size = integerfromAny(argv[0]);
+    int size = integerfromAny(args[0]);
     char *buf = malloc(size);
     int pos = fread(buf, sizeof(char), size, file);
     Object ret = alloc_Octets(buf, pos);
@@ -4225,63 +4174,58 @@ Object File_readBinary(Object self, int nparts, int *argcv,
     return ret;
 }
 
-Object File_writeBinary(Object self, int nparts, int *argcv,
-                        Object *argv, int flags)
+GRACELIB_FUNCTION(File_writeBinary)
 {
     struct FileObject *s = (struct FileObject *)self;
     FILE *file = s->file;
-    Object oct = argv[0];
+    Object oct = args[0];
     struct OctetsObject *octo = (struct OctetsObject *)oct;
-    int size = integerfromAny(callmethod(oct, "size", 0, NULL, NULL));
+    Object any = callmethod(oct, "size", 0, NULL, NULL);
+    gc_unpause();
+    int size = integerfromAny(any);
     int pos = fwrite(octo->body, sizeof(char), size, file);
     return alloc_Float64(pos);
 }
 
-Object File_seek(Object self, int nparts, int *argcv,
-                 Object *argv, int flags)
+GRACELIB_FUNCTION(File_seek)
 {
     struct FileObject *s = (struct FileObject *)self;
     FILE *file = s->file;
-    int loc = integerfromAny(argv[0]);
+    int loc = integerfromAny(args[0]);
     fseek(file, loc, SEEK_SET);
     return self;
 }
 
-Object File_seekForward(Object self, int nparts, int *argcv,
-                        Object *argv, int flags)
+GRACELIB_FUNCTION(File_seekForward)
 {
     struct FileObject *s = (struct FileObject *)self;
     FILE *file = s->file;
-    int loc = integerfromAny(argv[0]);
+    int loc = integerfromAny(args[0]);
     fseek(file, loc, SEEK_CUR);
     return self;
 }
 
-Object File_seekBackward(Object self, int nparts, int *argcv,
-                         Object *argv, int flags)
+GRACELIB_FUNCTION(File_seekBackward)
 {
     struct FileObject *s = (struct FileObject *)self;
     FILE *file = s->file;
-    int loc = integerfromAny(argv[0]);
+    int loc = integerfromAny(args[0]);
     fseek(file, -loc, SEEK_CUR);
     return self;
 }
 
-Object File_iter(Object self, int nparts, int *argcv,
-                 Object *argv, int flags)
+GRACELIB_FUNCTION(File_iter)
 {
     return self;
 }
 
-Object File_havemore(Object self, int nparts, int *argcv,
-                     Object *argv, int flags)
+GRACELIB_FUNCTION(File_havemore)
 {
     struct FileObject *s = (struct FileObject *)self;
     return alloc_Boolean(!feof(s->file));
 }
 
-Object File_next(Object self, int nparts, int *argcv,
-                 Object *argv, int flags)
+GRACELIB_FUNCTION(File_next)
 {
     struct FileObject *s = (struct FileObject *)self;
     FILE *file = s->file;
@@ -4300,15 +4244,13 @@ Object File_next(Object self, int nparts, int *argcv,
     return alloc_String(buf);
 }
 
-Object File_eof(Object self, int nparts, int *argcv,
-                Object *argv, int flags)
+GRACELIB_FUNCTION(File_eof)
 {
     struct FileObject *s = (struct FileObject *)self;
     return alloc_Boolean(feof(s->file));
 }
 
-Object File_isatty(Object self, int nparts, int *argcv,
-                   Object *argv, int flags)
+GRACELIB_FUNCTION(File_isatty)
 {
     struct FileObject *s = (struct FileObject *)self;
     return alloc_Boolean(isatty(fileno(s->file)));
@@ -4336,29 +4278,25 @@ Object alloc_File(const char *filename, const char *mode)
     return alloc_File_from_stream(file);
 }
 
-Object io_input(Object self, int nparts, int *argcv,
-                Object *args, int flags)
+GRACELIB_FUNCTION(io_input)
 {
     struct IOModuleObject *s = (struct IOModuleObject *)self;
     return s->_stdin;
 }
 
-Object io_output(Object self, int nparts, int *argcv,
-                 Object *args, int flags)
+GRACELIB_FUNCTION(io_output)
 {
     struct IOModuleObject *s = (struct IOModuleObject *)self;
     return s->_stdout;
 }
 
-Object io_error(Object self, int nparts, int *argcv,
-                Object *args, int flags)
+GRACELIB_FUNCTION(io_error)
 {
     struct IOModuleObject *s = (struct IOModuleObject *)self;
     return s->_stderr;
 }
 
-Object io_open(Object self, int nparts, int *argcv,
-               Object *args, int flags)
+GRACELIB_FUNCTION(io_open)
 {
     Object fnstr = args[0];
     Object modestr = args[1];
@@ -4368,8 +4306,7 @@ Object io_open(Object self, int nparts, int *argcv,
     return ret;
 }
 
-Object io_system(Object self, int nparts, int *argcv,
-                 Object *args, int flags)
+GRACELIB_FUNCTION(io_system)
 {
     Object cmdstr = args[0];
     char *cmd = grcstring(cmdstr);
@@ -4384,8 +4321,7 @@ Object io_system(Object self, int nparts, int *argcv,
     return ret;
 }
 
-Object io_newer(Object self, int nparts, int *argcv,
-                Object *args, int flags)
+GRACELIB_FUNCTION(io_newer)
 {
     char *ba = grcstring(args[0]);
     char *bb = grcstring(args[1]);
@@ -4405,8 +4341,7 @@ Object io_newer(Object self, int nparts, int *argcv,
     return alloc_Boolean(sta.st_mtime > stb.st_mtime);
 }
 
-Object io_exists(Object self, int nparts, int *argcv,
-                 Object *args, int flags)
+GRACELIB_FUNCTION(io_exists)
 {
     Object so = args[0];
     struct StringObject *ss = (struct StringObject *)args[0];
@@ -4416,11 +4351,10 @@ Object io_exists(Object self, int nparts, int *argcv,
     return alloc_Boolean(stat(buf, &st) == 0);
 }
 
-Object io_realpath(Object self, int nparts, int *argcv, Object *argv,
-                   int flags)
+GRACELIB_FUNCTION(io_realpath)
 {
     char buf[PATH_MAX];
-    realpath(grcstring(argv[0]), buf);
+    realpath(grcstring(args[0]), buf);
     return alloc_String(buf);
 }
 
@@ -4431,8 +4365,7 @@ struct ProcessObject
     int status;
     int done;
 };
-Object Process_wait(Object self, int nparts, int *argcv,
-                    Object *argv, int flags)
+GRACELIB_FUNCTION(Process_wait)
 {
     struct ProcessObject *p = (struct ProcessObject *)self;
     waitpid(p->pid, &(p->status), 0);
@@ -4446,14 +4379,14 @@ Object Process_wait(Object self, int nparts, int *argcv,
     return alloc_Float64(-WTERMSIG(p->status));
 }
 
-Object Process_status(Object self, int nparts, int *argcv,
-                      Object *argv, int flags)
+GRACELIB_FUNCTION(Process_status)
 {
     struct ProcessObject *p = (struct ProcessObject *)self;
 
     if (!p->done)
     {
         callmethod(self, "wait", 0, NULL, NULL);
+        gc_unpause();
     }
 
     if (WIFEXITED(p->status))
@@ -4464,8 +4397,7 @@ Object Process_status(Object self, int nparts, int *argcv,
     return alloc_Float64(-WTERMSIG(p->status));
 }
 
-Object Process_success(Object self, int nparts, int *argcv,
-                       Object *argv, int flags)
+GRACELIB_FUNCTION(Process_success)
 {
     struct ProcessObject *p = (struct ProcessObject *)self;
     waitpid(p->pid, &(p->status), 0);
@@ -4478,8 +4410,7 @@ Object Process_success(Object self, int nparts, int *argcv,
     return alloc_Boolean(0);
 }
 
-Object Process_terminated(Object self, int nparts, int *argcv,
-                          Object *argv, int flags)
+GRACELIB_FUNCTION(Process_terminated)
 {
     struct ProcessObject *p = (struct ProcessObject *)self;
 
@@ -4508,57 +4439,59 @@ Object alloc_Process(pid_t pid)
     return o;
 }
 
-Object io_spawn(Object self, int nparts, int *argcv,
-                Object *argv, int flags)
+GRACELIB_FUNCTION(io_spawn)
 {
-    char *args[argcv[0] + 1];
+    char *args_[argcv[0] + 1];
     int i;
 
     for (i = 0; i < argcv[0]; i++)
     {
-        args[i] = grcstring(argv[i]);
+        args_[i] = grcstring(args[i]);
     }
 
-    args[i] = NULL;
+    args_[i] = NULL;
     pid_t pid;
 
     if (!(pid = fork()))
     {
-        execvp(args[0], args);
+        execvp(args_[0], args_);
         exit(127);
     }
 
     return alloc_Process(pid);
 }
 
-Object io_spawnv(Object self, int nparts, int *argcv,
-                 Object *argv, int flags)
+GRACELIB_FUNCTION(io_spawnv)
 {
-    int size = integerfromAny(callmethod(argv[1], "size", 0, NULL, NULL));
-    char *args[size + 2];
-    args[0] = grcstring(argv[0]);
+    Object any = callmethod(args[1], "size", 0, NULL, NULL);
+    gc_unpause();
+    int size = integerfromAny(any);
+    char *args_[size + 2];
+    args_[0] = grcstring(args[0]);
     int i;
-    Object iter = callmethod(argv[1], "iterator", 0, NULL, NULL);
+    Object iter = callmethod(args[1], "iterator", 0, NULL, NULL);
+    gc_unpause();
 
     for (i = 0; i < size; i++)
     {
-        args[i + 1] = grcstring(callmethod(iter, "next", 0, NULL, NULL));
+        Object tmp = callmethod(iter, "next", 0, NULL, NULL);
+        gc_unpause();
+        args_[i + 1] = grcstring(tmp);
     }
 
-    args[i + 1] = NULL;
+    args_[i + 1] = NULL;
     pid_t pid;
 
     if (!(pid = fork()))
     {
-        execvp(args[0], args);
+        execvp(args_[0], args_);
         exit(127);
     }
 
     return alloc_Process(pid);
 }
 
-Object io_listdir(Object self, int nparts, int *argcv,
-                  Object *args, int flags)
+GRACELIB_FUNCTION(io_listdir)
 {
     DIR *dp;
     Object ret = alloc_BuiltinList();
@@ -4578,13 +4511,13 @@ Object io_listdir(Object self, int nparts, int *argcv,
     {
         Object str = alloc_String(entry->d_name);
         callmethod(ret, "push", 1, partcv, &str);
+        gc_unpause();
     }
 
     return ret;
 }
 
-Object io_findResource(Object self, int nparts, int *argcv,
-                       Object *args, int flags)
+GRACELIB_FUNCTION(io_findResource)
 {
     char *strval = grcstring(args[0]);
     char buf[PATH_MAX];
@@ -4631,8 +4564,7 @@ Object module_io_init()
     return o;
 }
 
-Object environObject_at(Object self, int nparts, int *argcv,
-                        Object *args, int flags)
+GRACELIB_FUNCTION(environObject_at)
 {
     char *s = grcstring(args[0]);
     char *v = getenv(s);
@@ -4645,8 +4577,7 @@ Object environObject_at(Object self, int nparts, int *argcv,
     return alloc_String("");
 }
 
-Object environObject_atPut(Object self, int nparts, int *argcv,
-                           Object *args, int flags)
+GRACELIB_FUNCTION(environObject_atPut)
 {
     char *s = grcstring(args[0]);
     char *v = grcstring(args[1]);
@@ -4654,8 +4585,7 @@ Object environObject_atPut(Object self, int nparts, int *argcv,
     return alloc_Boolean(1);
 }
 
-Object environObject_contains(Object self, int nparts, int *argcv,
-                              Object *args, int flags)
+GRACELIB_FUNCTION(environObject_contains)
 {
     char *s = grcstring(args[0]);
     char *v = getenv(s);
@@ -4681,8 +4611,7 @@ Object alloc_environObject()
     }
 }
 
-Object sys_argv(Object self, int nparts, int *argcv,
-                Object *args, int flags)
+GRACELIB_FUNCTION(sys_argv)
 {
     struct SysModule *so = (struct SysModule *)self;
     return so->argv;
@@ -4696,8 +4625,7 @@ void module_sys_init_argv(Object argv)
     argv_List = argv;
 }
 
-Object sys_cputime(Object self, int nparts, int *argcv,
-                   Object *args, int flags)
+GRACELIB_FUNCTION(sys_cputime)
 {
     int i = clock() - start_clocks;
     double d = i;
@@ -4705,8 +4633,7 @@ Object sys_cputime(Object self, int nparts, int *argcv,
     return alloc_Float64(d);
 }
 
-Object sys_elapsed(Object self, int nparts, int *argcv,
-                   Object *args, int flags)
+GRACELIB_FUNCTION(sys_elapsed)
 {
     struct timeval ar;
     gettimeofday(&ar, NULL);
@@ -4715,8 +4642,7 @@ Object sys_elapsed(Object self, int nparts, int *argcv,
     return alloc_Float64(d);
 }
 
-Object sys_exit(Object self, int nparts, int *argcv,
-                Object *args, int flags)
+GRACELIB_FUNCTION(sys_exit)
 {
     int i = integerfromAny(args[0]);
 
@@ -4773,14 +4699,12 @@ char *execPathHelper()
     return dn;
 }
 
-Object sys_execPath(Object self, int nparts, int *argcv,
-                    Object *args, int flags)
+GRACELIB_FUNCTION(sys_execPath)
 {
     return alloc_String(execPathHelper());
 }
 
-Object sys_environ(Object self, int nparts, int *argcv,
-                   Object *args, int flags)
+GRACELIB_FUNCTION(sys_environ)
 {
     if (!environObject)
     {
@@ -4842,8 +4766,7 @@ void imports__mark(struct ImportsModule *o)
     }
 }
 
-Object StringResourceHandler_loadResource(Object self, int nparts, int *argcv,
-        Object *args, int flags)
+GRACELIB_FUNCTION(StringResourceHandler_loadResource)
 {
     char *res = grcstring(args[0]);
     char path[PATH_MAX];
@@ -4872,8 +4795,7 @@ Object StringResourceHandler_loadResource(Object self, int nparts, int *argcv,
     return str;
 }
 
-Object imports_loadResource(Object self, int nparts, int *argcv,
-                            Object *args, int flags)
+GRACELIB_FUNCTION(imports_loadResource)
 {
     char *res = grcstring(args[0]);
     char *slash = strrchr(res, '/');
@@ -4898,7 +4820,9 @@ Object imports_loadResource(Object self, int nparts, int *argcv,
     {
         if (strcmp(ext, h->extension) == 0)
         {
-            return callmethod(h->handler, "loadResource", 1, argcv, args);
+            Object ret = callmethod(h->handler, "loadResource", 1, argcv, args);
+            gc_unpause();
+            return ret;
         }
 
         h = h->next;
@@ -4908,8 +4832,7 @@ Object imports_loadResource(Object self, int nparts, int *argcv,
     return NULL;
 }
 
-Object imports_registerExtension(Object self, int nparts, int *argcv,
-                                 Object *args, int flags)
+GRACELIB_FUNCTION(imports_registerExtension)
 {
     struct ImportsModule *o = (struct ImportsModule *)self;
     const char *ext = grcstring(args[0]);
@@ -5101,7 +5024,11 @@ int checkmethodcall(Method *m, int nparts, int *argcv, Object *argv)
         for (j = 0; j < argcv[i] && j < t->argcv[i]; j++)
         {
             if (t->types[k])
-                if (!istrue(callmethod(t->types[k], "match", 1, partcv, &argv[k])))
+            {
+                Object match = callmethod(t->types[k], "match", 1, partcv, &argv[k]);
+                gc_unpause();
+
+                if (!istrue(match))
                 {
                     die("Type error: expected %s for argument %s (%i) of %s (defined at %s:%i), got %s",
                         ((struct TypeObject *)t->types[k])->name,
@@ -5109,6 +5036,7 @@ int checkmethodcall(Method *m, int nparts, int *argcv, Object *argv)
                         m->name, m->definitionModule, m->definitionLine,
                         argv[k]->class->name);
                 }
+            }
 
             k++;
         }
@@ -5225,8 +5153,8 @@ start:
 
     if (ret != NULL)
     {
-        gc_frame_end(frame);
         debug(" returned %p (%s) from %s on %p", ret, ret->class->name, name, self);
+        gc_frame_end(frame);
         return ret;
     }
 
@@ -5308,12 +5236,14 @@ Object callmethodflags(Object receiver, const char *name,
                 if (finally_stack[i])
                 {
                     callmethod(finally_stack[i], "apply", 0, NULL, NULL);
+                    gc_unpause();
                     finally_stack[i] = NULL;
                     memcpy(error_jump, exceptionHandler_stack[i],
                            sizeof(jmp_buf));
                 }
 
             st->calldepth = start_calldepth;
+            gc_pause(); // TODO : check that
             return rv;
         }
     }
@@ -5377,16 +5307,21 @@ Object matchCase(Object matchee, Object *cases, int ncases, Object elsecase)
     for (i = 0; i < ncases; i++)
     {
         Object ret = callmethod(cases[i], "match", 1, partcv, &matchee);
+        gc_unpause();
 
         if (istrue(ret))
         {
-            return callmethod(ret, "result", 0, NULL, NULL);
+            Object ret2 = callmethod(ret, "result", 0, NULL, NULL);
+            gc_unpause();
+            return ret2;
         }
     }
 
     if (elsecase)
     {
-        return callmethod(elsecase, "apply", 1, partcv, &matchee);
+        Object ret = callmethod(elsecase, "apply", 1, partcv, &matchee);
+        gc_unpause();
+        return ret;
     }
 
     return alloc_FailedMatch(matchee, NULL);
@@ -5428,10 +5363,12 @@ Object catchCase(Object block, Object *caseList, int ncases,
             Object val = caseList[i];
             Object ret = callmethod(val, "match", 1, partcv,
                                     &currentException);
+            gc_unpause();
 
             if (istrue(ret))
             {
                 callmethod(finally, "apply", 0, NULL, NULL);
+                gc_unpause();
                 finally_stack[start_calldepth] = NULL;
                 exceptionHandlerDepth--;
                 return alloc_done();
@@ -5439,6 +5376,7 @@ Object catchCase(Object block, Object *caseList, int ncases,
         }
 
         callmethod(finally, "apply", 0, NULL, NULL);
+        gc_unpause();
         finally_stack[start_calldepth] = NULL;
         exceptionHandlerDepth--;
 
@@ -5456,10 +5394,12 @@ Object catchCase(Object block, Object *caseList, int ncases,
     memcpy(exceptionHandler_stack[st->calldepth], error_jump,
            sizeof(jmp_buf));
     Object rv = callmethod(block, "apply", 0, NULL, NULL);
+    gc_unpause();
     error_jump_set = old_error_jump_set;
     memcpy(error_jump, old_error_jump, sizeof(jmp_buf));
     exceptionHandlerDepth = start_exceptionHandlerDepth;
     callmethod(finally, "apply", 0, NULL, NULL);
+    gc_unpause();
     finally_stack[start_calldepth] = NULL;
     return rv;
 }
@@ -5474,6 +5414,7 @@ Object gracelib_print(Object receiver, int nparams,
     else
     {
         Object o = callmethod(args[0], "asString", 0, NULL, NULL);
+        gc_unpause();
         char *s = grcstring(o);
         puts(s);
     }
@@ -5613,7 +5554,9 @@ Object gracelib_length(Object self)
     }
     else
     {
-        return callmethod(self, "length", 0, NULL, NULL);
+        Object ret = callmethod(self, "length", 0, NULL, NULL);
+        gc_unpause();
+        return ret;
     }
 }
 
@@ -5682,10 +5625,9 @@ Object alloc_newobj(int additional_size, ClassData class)
     return alloc_obj(additional_size, class);
 }
 
-Object Type_match(Object self, int nparts, int *argcv,
-                  Object *argv, int flags)
+GRACELIB_FUNCTION(Type_match)
 {
-    Object obj = argv[0];
+    Object obj = args[0];
 
     if (obj->class == (ClassData)self)
     {
@@ -5709,8 +5651,7 @@ Object Type_match(Object self, int nparts, int *argcv,
     return alloc_SuccessfulMatch(obj, NULL);
 }
 
-Object Type_asString(Object self, int nparts, int *argcv,
-                     Object *argv, int flags)
+GRACELIB_FUNCTION(Type_asString)
 {
     struct TypeObject *t = (struct TypeObject *)self;
     char buf[strlen(t->name) + 7];
@@ -5744,8 +5685,7 @@ void ClassData__release(struct ClassData *c)
     glfree(c->methods);
 }
 
-Object Class_asString(Object self, int nparts, int *argcv,
-                      Object *argv, int flags)
+GRACELIB_FUNCTION(Class_asString)
 {
     struct TypeObject *t = (struct TypeObject *)self;
     char buf[strlen(t->name) + 8];
@@ -5818,24 +5758,21 @@ ClassData alloc_class3(const char *name, int nummethods, void (*mark)(void *),
     return c;
 }
 
-Object Integer32_Equals(Object self, int nparts, int *argcv,
-                        Object *args, int flags)
+GRACELIB_FUNCTION(Integer32_Equals)
 {
     int ival = *(int *)self->data;
     int oval = integerfromAny(args[0]);
     return (Object)alloc_Boolean(ival == oval);
 }
 
-Object Integer32_NotEquals(Object self, int nparts, int *argcv,
-                           Object *args, int flags)
+GRACELIB_FUNCTION(Integer32_NotEquals)
 {
     int ival = *(int *)self->data;
     int oval = integerfromAny(args[0]);
     return (Object)alloc_Boolean(ival /= oval);
 }
 
-Object Integer32_Plus(Object self, int nparts, int *argcv,
-                      Object *args, int flags)
+GRACELIB_FUNCTION(Integer32_Plus)
 {
     int ival = *(int *)self->data;
     int oval;
@@ -5850,8 +5787,7 @@ Object Integer32_Plus(Object self, int nparts, int *argcv,
     return (Object)alloc_Float64(ival + oval);
 }
 
-Object Integer32_Times(Object self, int nparts, int *argcv,
-                       Object *args, int flags)
+GRACELIB_FUNCTION(Integer32_Times)
 {
     int ival = *(int *)self->data;
     int oval;
@@ -5866,8 +5802,7 @@ Object Integer32_Times(Object self, int nparts, int *argcv,
     return (Object)alloc_Float64(ival * oval);
 }
 
-Object Integer32_Minus(Object self, int nparts, int *argcv,
-                       Object *args, int flags)
+GRACELIB_FUNCTION(Integer32_Minus)
 {
     int ival = *(int *)self->data;
     int oval;
@@ -5882,8 +5817,7 @@ Object Integer32_Minus(Object self, int nparts, int *argcv,
     return (Object)alloc_Float64(ival - oval);
 }
 
-Object Integer32_DividedBy(Object self, int nparts, int *argcv,
-                           Object *args, int flags)
+GRACELIB_FUNCTION(Integer32_DividedBy)
 {
     int ival = *(int *)self->data;
     int oval;
@@ -5898,56 +5832,49 @@ Object Integer32_DividedBy(Object self, int nparts, int *argcv,
     return (Object)alloc_Float64(ival / oval);
 }
 
-Object Integer32_LShift(Object self, int nparts, int *argcv,
-                        Object *args, int flags)
+GRACELIB_FUNCTION(Integer32_LShift)
 {
     int ival = *(int *)self->data;
     int oval = integerfromAny(args[0]);
     return alloc_Integer32(ival << oval);
 }
 
-Object Integer32_RShift(Object self, int nparts, int *argcv,
-                        Object *args, int flags)
+GRACELIB_FUNCTION(Integer32_RShift)
 {
     int ival = *(int *)self->data;
     int oval = integerfromAny(args[0]);
     return alloc_Integer32(ival >> oval);
 }
 
-Object Integer32_And(Object self, int nparts, int *argcv,
-                     Object *args, int flags)
+GRACELIB_FUNCTION(Integer32_And)
 {
     int ival = *(int *)self->data;
     int oval = integerfromAny(args[0]);
     return alloc_Integer32(ival & oval);
 }
 
-Object Integer32_Or(Object self, int nparts, int *argcv,
-                    Object *args, int flags)
+GRACELIB_FUNCTION(Integer32_Or)
 {
     int ival = *(int *)self->data;
     int oval = integerfromAny(args[0]);
     return alloc_Integer32(ival | oval);
 }
 
-Object Integer32_LessThan(Object self, int nparts, int *argcv,
-                          Object *args, int flags)
+GRACELIB_FUNCTION(Integer32_LessThan)
 {
     int ival = *(int *)self->data;
     int oval = integerfromAny(args[0]);
     return (Object)alloc_Boolean(ival < oval);
 }
 
-Object Integer32_GreaterThan(Object self, int nparts, int *argcv,
-                             Object *args, int flags)
+GRACELIB_FUNCTION(Integer32_GreaterThan)
 {
     int ival = *(int *)self->data;
     int oval = integerfromAny(args[0]);
     return (Object)alloc_Boolean(ival > oval);
 }
 
-Object Integer32_asString(Object self, int nparts, int *argcv,
-                          Object *args, int flags)
+GRACELIB_FUNCTION(Integer32_asString)
 {
     int ival = *(int *)self->data;
     char buf[12];
@@ -5955,8 +5882,7 @@ Object Integer32_asString(Object self, int nparts, int *argcv,
     return (Object)alloc_String(buf);
 }
 
-Object Integer32_isInteger32(Object self, int nparts, int *argcv,
-                             Object *args, int flags)
+GRACELIB_FUNCTION(Integer32_isInteger32)
 {
     return (Object)alloc_Boolean(1);
 }
@@ -5969,8 +5895,7 @@ Object alloc_Integer32(int i)
     return (Object)o;
 }
 
-Object Block_apply(Object self, int nparts, int *argcv,
-                   Object *args, int flags)
+GRACELIB_FUNCTION(Block_apply)
 {
     ThreadState *st = get_state();
     struct BlockObject *bo = (struct BlockObject *)self;
@@ -5979,19 +5904,23 @@ Object Block_apply(Object self, int nparts, int *argcv,
 
     if (argcv != NULL)
     {
-        return callmethod(self, "_apply", 1, argcv, args);
+        Object ret = callmethod(self, "_apply", 1, argcv, args);
+        gc_unpause();
+        return ret;
     }
     else
     {
-        return callmethod(self, "_apply", 0, argcv, args);
+        Object ret = callmethod(self, "_apply", 0, argcv, args);
+        gc_unpause();
+        return ret;
     }
 }
 
-Object Block_applyIndirectly(Object self, int nparts, int *argcv,
-                             Object *args, int flags)
+GRACELIB_FUNCTION(Block_applyIndirectly)
 {
     Object tuple = args[0];
     Object size = callmethod(tuple, "size", 0, NULL, NULL);
+    gc_unpause();
     int sz = integerfromAny(size);
     int i;
     int partcv[] = {1};
@@ -6001,13 +5930,16 @@ Object Block_applyIndirectly(Object self, int nparts, int *argcv,
     {
         Object flt = alloc_Float64(i + 1);
         rargs[i] = callmethod(tuple, "[]", 1, partcv, &flt);
+        gc_unpause();
     }
 
     partcv[0] = sz;
-    return callmethod(self, "_apply", 1, partcv, rargs);
+    Object ret = callmethod(self, "_apply", 1, partcv, rargs);
+    gc_unpause();
+    return ret;
 }
 
-Object Block_match(Object self, int nparts, int *argcv, Object *args, int flags)
+GRACELIB_FUNCTION(Block_match)
 {
     struct BlockObject *bo = (struct BlockObject *)self;
 
@@ -6019,12 +5951,14 @@ Object Block_match(Object self, int nparts, int *argcv, Object *args, int flags)
         }
 
         Object r = callmethod(self, "apply", nparts, argcv, args);
+        gc_unpause();
         return alloc_SuccessfulMatch(r, NULL);
     }
 
     Object pattern = bo->data[1];
     int partcv[] = {1};
     Object match = callmethod(pattern, "match", 1, partcv, args);
+    gc_unpause();
 
     if (!istrue(match))
     {
@@ -6032,12 +5966,13 @@ Object Block_match(Object self, int nparts, int *argcv, Object *args, int flags)
     }
 
     Object bindings = callmethod(match, "bindings", 0, NULL, NULL);
+    gc_unpause();
     Object rv = callmethod(self, "applyIndirectly", 1, partcv, &bindings);
+    gc_unpause();
     return alloc_SuccessfulMatch(rv, NULL);
 }
 
-Object Block_pattern(Object self, int argc, int *argcv,
-                     Object *argv, int flags)
+GRACELIB_FUNCTION(Block_pattern)
 {
     struct BlockObject *o = (struct BlockObject *)self;
 
@@ -6049,8 +5984,7 @@ Object Block_pattern(Object self, int argc, int *argcv,
     return o->data[1];
 }
 
-Object Block_lift(Object self, int argc, int *argcv, Object *argv,
-                  int flags)
+GRACELIB_FUNCTION(Block_lift)
 {
     return alloc_BlockPattern(self);
 }
@@ -6147,8 +6081,7 @@ void UserObj__mark(struct UserObject *o)
     }
 }
 
-Object UserObj_Equals(Object self, int nparts, int *argcv,
-                      Object *args, int flags)
+GRACELIB_FUNCTION(UserObj_Equals)
 {
     Object other = args[0];
 
@@ -6193,10 +6126,15 @@ Object UserObj_Equals(Object self, int nparts, int *argcv,
             }
 
             Object myval = callmethodself(self, m->name, 0, NULL, NULL);
+            gc_unpause();
             Object otval = callmethodself(other, m->name, 0, NULL, NULL);
+            gc_unpause();
             int partcv[] = {1};
 
-            if (!istrue(callmethod(myval, "==", 1, partcv, &otval)))
+            Object eq = callmethod(myval, "==", 1, partcv, &otval);
+            gc_unpause();
+
+            if (!istrue(eq))
             {
                 return alloc_Boolean(0);
             }
@@ -6333,6 +6271,7 @@ Object process_varargs(Object *args, int fixed, int nargs)
     for (; i < nargs; i++)
     {
         callmethod(lst, "push", 1, partcv, &args[i]);
+        gc_unpause();
     }
 
     return lst;
@@ -6599,55 +6538,73 @@ void setsource(char *msl[])
     moduleSourceLines = msl;
 }
 
-Object grace_userobj_outer(Object self, int nparts, int *argcv,
-                           Object *argv, int flags)
+GRACELIB_FUNCTION(grace_userobj_outer)
 {
     struct UserObject *o = (struct UserObject *)self;
     return o->data[0];
 }
 
-Object grace_while_do(Object self, int nparts, int *argcv,
-                      Object *argv, int flags)
+GRACELIB_FUNCTION(grace_while_do)
 {
     if (nparts != 2 || argcv[0] != 1 || argcv[1] != 1)
     {
         die("while-do requires exactly two arguments");
     }
 
-    if (argv[0]->class == Boolean || argv[0]->class == Number)
+    if (args[0]->class == Boolean || args[0]->class == Number)
     {
         gracedie("Type error: expected Block for argument condition (1) of "
                  "while()do (defined at NativePrelude:0), got %s",
-                 argv[0]->class->name);
+                 args[0]->class->name);
     }
 
-    while (istrue(callmethod(argv[0], "apply", 0, NULL, NULL)))
+
+    while (1)
     {
-        callmethod(argv[1], "apply", 0, NULL, NULL);
+        Object ret = callmethod(args[0], "apply", 0, NULL, NULL);
+        gc_unpause();
+
+        if (!istrue(ret))
+        {
+            break;
+        }
+
+        callmethod(args[1], "apply", 0, NULL, NULL);
+        gc_unpause();
     }
 
     return done;
 }
 
-Object grace_for_do(Object self, int nparts, int *argcv,
-                    Object *argv, int flags)
+GRACELIB_FUNCTION(grace_for_do)
 {
     if (nparts != 2 || argcv[0] != 1 || argcv[1] != 1)
     {
         die("for-do requires exactly two arguments");
     }
 
-    Object iter = callmethod(argv[0], "iter", 0, NULL, NULL);
+    Object iter = callmethod(args[0], "iter", 0, NULL, NULL);
     gc_frame_newslot(iter);
+    gc_unpause();
     // Stack slot for argument object
     int slot = gc_frame_newslot(NULL);
     int partcv[] = {1};
 
-    while (istrue(callmethod(iter, "havemore", 0, NULL, NULL)))
+    while (1)
     {
+        Object havemore = callmethod(iter, "havemore", 0, NULL, NULL);
+        gc_unpause();
+
+        if (!istrue(havemore))
+        {
+            break;
+        }
+
         Object val = callmethod(iter, "next", 0, NULL, NULL);
         gc_frame_setslot(slot, val);
-        callmethod(argv[1], "apply", 1, partcv, &val);
+        gc_unpause();
+        callmethod(args[1], "apply", 1, partcv, &val);
+        gc_unpause();
     }
 
     return done;
@@ -6658,27 +6615,39 @@ void grace_iterate(Object iterable, void(*callback)(Object, void *),
 {
     Object iter = callmethod(iterable, "iter", 0, NULL, NULL);
     gc_frame_newslot(iter);
+    gc_unpause();
     // Stack slot for argument object
     int slot = gc_frame_newslot(NULL);
     int partcv[] = {1};
 
-    while (istrue(callmethod(iter, "havemore", 0, NULL, NULL)))
+    while (1)
     {
+        Object havemore = callmethod(iter, "havemore", 0, NULL, NULL);
+        gc_unpause();
+
+        if (!istrue(havemore))
+        {
+            break;
+        }
+
         Object val = callmethod(iter, "next", 0, NULL, NULL);
+        gc_frame_setslot(slot, val); // TODO : wasn't there before, pbly should be
+        gc_unpause();
         callback(val, userdata);
     }
 }
 
-Object grace_octets(Object self, int npart, int *argcv,
-                    Object *argv, int flags)
+GRACELIB_FUNCTION(grace_octets)
 {
     if (argcv[0] != 1)
     {
         die("octets requires exactly one argument");
     }
 
-    char *str = grcstring(argv[0]);
-    int slen = integerfromAny(callmethod(argv[0], "size", 0, NULL, NULL));
+    char *str = grcstring(args[0]);
+    Object any = callmethod(args[0], "size", 0, NULL, NULL);
+    gc_unpause();
+    int slen = integerfromAny(any);
 
     if (slen % 2 != 0)
     {
@@ -6705,8 +6674,7 @@ Object grace_octets(Object self, int npart, int *argcv,
     return alloc_Octets(buf, len);
 }
 
-Object prelude__methods(Object self, int argc, int *argcv,
-                        Object *argv, int flags)
+GRACELIB_FUNCTION(prelude__methods)
 {
     ClassData c = self->class;
     gc_pause();
@@ -6721,6 +6689,7 @@ Object prelude__methods(Object self, int argc, int *argcv,
         {
             Object str = alloc_String(c->methods[i].name);
             callmethod(l, "push", 1, partcv, &str);
+            gc_unpause();
         }
 
         c = NULL;
@@ -6740,8 +6709,7 @@ Object prelude__methods(Object self, int argc, int *argcv,
     return l;
 }
 
-Object minigrace_warranty(Object self, int argc, int *argcv,
-                          Object *argv, int flags)
+GRACELIB_FUNCTION(minigrace_warranty)
 {
     char *w =
         "Copyright (C) 2011-2014 Michael Homer and authors\n"
@@ -6761,8 +6729,7 @@ Object minigrace_warranty(Object self, int argc, int *argcv,
     return done;
 }
 
-Object minigrace_credits(Object self, int argc, int *argcv,
-                         Object *argv, int flags)
+GRACELIB_FUNCTION(minigrace_credits)
 {
     char *w =
         "Minigrace contains code by:\n"
@@ -6776,8 +6743,7 @@ Object minigrace_credits(Object self, int argc, int *argcv,
     return done;
 }
 
-Object grace_minigrace(Object self, int argc, int *argcv,
-                       Object *argv, int flags)
+GRACELIB_FUNCTION(grace_minigrace)
 {
     if (!minigrace_obj)
     {
@@ -6787,51 +6753,44 @@ Object grace_minigrace(Object self, int argc, int *argcv,
     return minigrace_obj;
 }
 
-Object prelude_PrimitiveArray(Object self, int argc, int *argcv,
-                              Object *argv, int flags)
+GRACELIB_FUNCTION(prelude_PrimitiveArray)
 {
     return alloc_PrimitiveArrayClassObject();
 }
 
-Object prelude_Exception(Object self, int argc, int *argcv, Object *argv,
-                         int flags)
+GRACELIB_FUNCTION(prelude_Exception)
 {
     return ExceptionObject;
 }
 
-Object prelude_Error(Object self, int argc, int *argcv, Object *argv,
-                     int flags)
+GRACELIB_FUNCTION(prelude_Error)
 {
     return ErrorObject;
 }
 
-Object prelude_RuntimeError(Object self, int argc, int *argcv, Object *argv,
-                            int flags)
+GRACELIB_FUNCTION(prelude_RuntimeError)
 {
     return RuntimeErrorObject;
 }
 
-Object prelude_become(Object self, int argc, int *argcv, Object *argv,
-                      int flags)
+GRACELIB_FUNCTION(prelude_become)
 {
-    return gracebecome(argv[0], argv[1]);
+    return gracebecome(args[0], args[1]);
 }
 
-Object prelude_unbecome(Object self, int argc, int *argcv, Object *argv,
-                        int flags)
+GRACELIB_FUNCTION(prelude_unbecome)
 {
-    return graceunbecome(argv[0]);
+    return graceunbecome(args[0]);
 }
 
-Object prelude_clone(Object self, int argc, int *argcv, Object *argv,
-                     int flags)
+GRACELIB_FUNCTION(prelude_clone)
 {
-    if (!(argv[0]->flags & OFLAG_USEROBJ))
+    if (!(args[0]->flags & OFLAG_USEROBJ))
     {
-        return argv[0];
+        return args[0];
     }
 
-    Object obj = argv[0];
+    Object obj = args[0];
     struct UserObject *uo = (struct UserObject *)obj;
     void *sz = ((char *)obj) - sizeof(size_t);
     size_t *size = sz;
@@ -6843,7 +6802,7 @@ Object prelude_clone(Object self, int argc, int *argcv, Object *argv,
 
     if (uo->super)
     {
-        uret->super = prelude_clone(self, argc, argcv, &uo->super, flags);
+        uret->super = prelude_clone_impl(self, nparts, argcv, &uo->super, flags);
     }
 
     return ret;

@@ -238,6 +238,13 @@ void gc_pause()
 int gc_unpause()
 {
     pthread_mutex_lock(&gc_mutex);
+
+    if (gc_paused <= 0)
+    {
+        pthread_mutex_unlock(&gc_mutex);
+        die("GC unpauses without matching pause.");
+    }
+
     gc_paused--;
     pthread_mutex_unlock(&gc_mutex);
 

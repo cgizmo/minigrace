@@ -37,6 +37,23 @@
 #include "gracelib_gc.h"
 #include "gracelib_types.h"
 
+GRACELIB_PROTOTYPE(unicode_name);
+GRACELIB_PROTOTYPE(unicode_category);
+GRACELIB_PROTOTYPE(unicode_combining);
+GRACELIB_PROTOTYPE(unicode_mirrored);
+GRACELIB_PROTOTYPE(unicode_bidirectional);
+GRACELIB_PROTOTYPE(unicode_iscategory);
+GRACELIB_PROTOTYPE(unicode_isSeparator);
+GRACELIB_PROTOTYPE(unicode_isControl);
+GRACELIB_PROTOTYPE(unicode_isLetter);
+GRACELIB_PROTOTYPE(unicode_isNumber);
+GRACELIB_PROTOTYPE(unicode_isSymbolMathematical);
+GRACELIB_PROTOTYPE(unicode_create);
+GRACELIB_PROTOTYPE(unicode_lookup);
+GRACELIB_PROTOTYPE(UnicodePattern_match);
+GRACELIB_PROTOTYPE(unicode_pattern_not);
+GRACELIB_PROTOTYPE(unicode_pattern);
+
 extern ClassData Number;
 
 // Intern module
@@ -45,45 +62,50 @@ Object unicode_module = NULL;
 // Return a Grace String containing the Unicode name of the first
 // character in the String argument (e.g.,
 // "LATIN SMALL LETTER A WITH DIARESIS").
-Object unicode_name(Object self, int nparts, int *argcv,
-         Object *args, int flags) {
+GRACELIB_FUNCTION(unicode_name)
+{
     Object o = callmethod(args[0], "ord", 0, NULL, NULL);
+    gc_unpause();
     int v = integerfromAny(o);
     const char *name = Unicode_Names[v];
     return alloc_String(name);
 }
 // Return a Grace string containing the Unicode category of the first
 // character in the String argument (e.g., "Nd").
-Object unicode_category(Object self, int nparts, int *argcv,
-         Object *args, int flags) {
+GRACELIB_FUNCTION(unicode_category)
+{
     Object o = callmethod(args[0], "ord", 0, NULL, 0);
+    gc_unpause();
     int v = integerfromAny(o);
     int cindex = UnicodeRecords[v].category;
     return alloc_String(Unicode_Categories[cindex]);
 }
 // Return a Grace Number containing the Unicode combining class of
 // the first character in the String argument (e.g. 10).
-Object unicode_combining(Object self, int nparts, int *argcv,
-         Object *args, int flags) {
+GRACELIB_FUNCTION(unicode_combining)
+{
     Object o = callmethod(args[0], "ord", 0, NULL, NULL);
+    gc_unpause();
     int v = integerfromAny(o);
     int cval = UnicodeRecords[v].combining;
     return alloc_Float64(cval);
 }
 // Return a Grace Boolean indicating whether the first character in
 // the argument String is marked as mirrored in the Unicode database.
-Object unicode_mirrored(Object self, int nparts, int *argcv,
-         Object *args, int flags) {
+GRACELIB_FUNCTION(unicode_mirrored)
+{
     Object o = callmethod(args[0], "ord", 0, NULL, NULL);
+    gc_unpause();
     int v = integerfromAny(o);
     int cval = UnicodeRecords[v].mirrored;
     return alloc_Boolean(cval == 'Y');
 }
 // Return a Grace String indicating the bidirectionality of the first
 // character in the argument String as provided in the Unicode.
-Object unicode_bidirectional(Object self, int nparts, int *argcv,
-         Object *args, int flags) {
+GRACELIB_FUNCTION(unicode_bidirectional)
+{
     Object o = callmethod(args[0], "ord", 0, NULL, NULL);
+    gc_unpause();
     int v = integerfromAny(o);
     int cindex = UnicodeRecords[v].bidirectional;
     return alloc_String(Unicode_Bidirectionals[cindex]);
@@ -92,34 +114,51 @@ Object unicode_bidirectional(Object self, int nparts, int *argcv,
 // argument String is in the Unicode category given by the second. The second
 // can be either one or two characters in length, testing for either a broad
 // category (like "N") or a specific one (like "Nd").
-Object unicode_iscategory(Object self, int nparts, int *argcv,
-        Object *args, int flags) {
+GRACELIB_FUNCTION(unicode_iscategory)
+{
     Object o = args[0];
     char *classname = o->class->name;
+
     if (strcmp(classname, "String") == 0
             || strcmp(classname, "ConcatString") == 0)
+    {
         o = callmethod(args[0], "ord", 0, NULL, NULL);
+        gc_unpause();
+    }
+
     Object co = args[1];
     int v = integerfromAny(o);
     int cindex = UnicodeRecords[v].category;
     const char *cat = Unicode_Categories[cindex];
     char *dt = grcstring(co);
     Object ret = alloc_Boolean(0);
-    if (strlen(dt) == 1) {
+
+    if (strlen(dt) == 1)
+    {
         if (cat[0] == dt[0])
+        {
             ret = alloc_Boolean(1);
+        }
     }
+
     if (strcmp(cat, dt) == 0)
+    {
         ret = alloc_Boolean(1);
+    }
+
     return ret;
 }
 // Return a Grace Boolean indicating whether the argument is a separator.
-Object unicode_isSeparator(Object self, int nparts, int *argcv,
-        Object *args, int flags) {
+GRACELIB_FUNCTION(unicode_isSeparator)
+{
     Object o = args[0];
-    if (strcmp(args[0]->class->name, "String") == 0) {
+
+    if (strcmp(args[0]->class->name, "String") == 0)
+    {
         o = callmethod(args[0], "ord", 0, NULL, 0);
+        gc_unpause();
     }
+
     int v = integerfromAny(o);
     int cindex = UnicodeRecords[v].category;
     const char *cat = Unicode_Categories[cindex];
@@ -127,36 +166,48 @@ Object unicode_isSeparator(Object self, int nparts, int *argcv,
 }
 // Return a Grace Boolean indicating whether the argument is a control
 // character.
-Object unicode_isControl(Object self, int nparts, int *argcv,
-        Object *args, int flags) {
+GRACELIB_FUNCTION(unicode_isControl)
+{
     Object o = args[0];
-    if (strcmp(args[0]->class->name, "String") == 0) {
+
+    if (strcmp(args[0]->class->name, "String") == 0)
+    {
         o = callmethod(args[0], "ord", 0, NULL, 0);
+        gc_unpause();
     }
+
     int v = integerfromAny(o);
     int cindex = UnicodeRecords[v].category;
     const char *cat = Unicode_Categories[cindex];
     return alloc_Boolean(cat[0] == 'C');
 }
 // Return a Grace Boolean indicating whether the argument is a letter.
-Object unicode_isLetter(Object self, int nparts, int *argcv,
-        Object *args, int flags) {
+GRACELIB_FUNCTION(unicode_isLetter)
+{
     Object o = args[0];
-    if (strcmp(args[0]->class->name, "String") == 0) {
+
+    if (strcmp(args[0]->class->name, "String") == 0)
+    {
         o = callmethod(args[0], "ord", 0, NULL, 0);
+        gc_unpause();
     }
+
     int v = integerfromAny(o);
     int cindex = UnicodeRecords[v].category;
     const char *cat = Unicode_Categories[cindex];
     return alloc_Boolean(cat[0] == 'L');
 }
 // Return a Grace Boolean indicating whether the argument is a Number.
-Object unicode_isNumber(Object self, int nparts, int *argcv,
-        Object *args, int flags) {
+GRACELIB_FUNCTION(unicode_isNumber)
+{
     Object o = args[0];
-    if (strcmp(args[0]->class->name, "String") == 0) {
+
+    if (strcmp(args[0]->class->name, "String") == 0)
+    {
         o = callmethod(args[0], "ord", 0, NULL, 0);
+        gc_unpause();
     }
+
     int v = integerfromAny(o);
     int cindex = UnicodeRecords[v].category;
     const char *cat = Unicode_Categories[cindex];
@@ -164,12 +215,16 @@ Object unicode_isNumber(Object self, int nparts, int *argcv,
 }
 // Return a Grace Boolean indicating whether the argument is a
 // Symbol, Mathematical.
-Object unicode_isSymbolMathematical(Object self, int nparts, int *argcv,
-        Object *args, int flags) {
+GRACELIB_FUNCTION(unicode_isSymbolMathematical)
+{
     Object o = args[0];
-    if (strcmp(args[0]->class->name, "String") == 0) {
+
+    if (strcmp(args[0]->class->name, "String") == 0)
+    {
         o = callmethod(args[0], "ord", 0, NULL, 0);
+        gc_unpause();
     }
+
     int v = integerfromAny(o);
     int cindex = UnicodeRecords[v].category;
     const char *cat = Unicode_Categories[cindex];
@@ -179,18 +234,25 @@ Object unicode_isSymbolMathematical(Object self, int nparts, int *argcv,
 // the Number argument. Strings are stored in UTF-8, so the function
 // constructs a buffer and fills it with the appropriate bytes, then
 // calls the String constructur with it.
-Object unicode_create(Object self, int nparts, int *argcv,
-         Object *args, int flags) {
+GRACELIB_FUNCTION(unicode_create)
+{
     Object o = args[0];
     int cp = integerfromAny(o);
     char buf[5];
     int i;
     int tmp;
-    for (i=0; i<5; i++)
+
+    for (i = 0; i < 5; i++)
+    {
         buf[i] = 0;
+    }
+
     if (cp < 128)
-         buf[0] = cp;
-    else if (cp < 0x0800) {
+    {
+        buf[0] = cp;
+    }
+    else if (cp < 0x0800)
+    {
         buf[0] = 0xc0;
         buf[1] = 0x80;
         tmp = cp >> 6;
@@ -198,7 +260,9 @@ Object unicode_create(Object self, int nparts, int *argcv,
         buf[0] |= tmp;
         tmp = cp & 0x3f;
         buf[1] |= tmp;
-    } else if (cp < 0x10000) {
+    }
+    else if (cp < 0x10000)
+    {
         buf[0] = 0xe0;
         buf[1] = 0x80;
         buf[2] = 0x80;
@@ -210,7 +274,9 @@ Object unicode_create(Object self, int nparts, int *argcv,
         buf[1] |= tmp;
         tmp = cp & 0x3f;
         buf[2] |= tmp;
-    } else if (cp < 0x10FFFF) {
+    }
+    else if (cp < 0x10FFFF)
+    {
         buf[0] = 0xf0;
         buf[1] = 0x80;
         buf[2] = 0x80;
@@ -227,38 +293,53 @@ Object unicode_create(Object self, int nparts, int *argcv,
         tmp = cp & 0x3f;
         buf[3] |= tmp;
     }
-    return alloc_String((char*)buf);
+
+    return alloc_String((char *)buf);
 }
 
 // Find and return the character named by the String argument. Uses a
 // binary search over the Unicode_Lookups array of codepoints, which
 // is ordered lexicographically by name.
-Object unicode_lookup(Object self, int nparts, int *argcv,
-        Object *args, int flags) {
+GRACELIB_FUNCTION(unicode_lookup)
+{
     char *target = grcstring(args[0]);
     unsigned int bot = 0;
     unsigned int top = Unicode_Lookups_Size;
-    while (bot <= top) {
+
+    while (bot <= top)
+    {
         unsigned int mid = bot + (top - bot) / 2;
         unsigned int codepoint = Unicode_Lookups[mid];
         const char *name = Unicode_Names[codepoint];
         int c = strcmp(target, name);
-        if (c == 0) {
+
+        if (c == 0)
+        {
             Object cp = alloc_Float64(codepoint);
             int argcv2[] = {1};
-            return unicode_create(self, 1, argcv2, &cp, 0);
+            return unicode_create_impl(self, 1, argcv2, &cp, 0);
         }
-        if (bot == mid) {
+
+        if (bot == mid)
+        {
             bot++;
             continue;
-        } else if (bot == top)
+        }
+        else if (bot == top)
+        {
             break;
-        if (c < 0) {
+        }
+
+        if (c < 0)
+        {
             top = mid;
-        } else {
+        }
+        else
+        {
             bot = mid;
         }
     }
+
     return alloc_done();
 }
 
@@ -266,118 +347,175 @@ Object unicode_lookup(Object self, int nparts, int *argcv,
 #define UNICODEPATTERN_CLASS 2
 #define UNICODEPATTERN_CODEPOINT_NOT 3
 #define UNICODEPATTERN_CLASS_NOT 4
-struct UnicodePatternElement {
+struct UnicodePatternElement
+{
     int type;
-    union {
+    union
+    {
         int codepoint;
         char class[3];
     } data;
 };
-struct UnicodePattern {
+struct UnicodePattern
+{
     OBJECT_HEADER;
     int size;
     struct UnicodePatternElement elements[];
 };
 ClassData UnicodePattern;
 
-Object UnicodePattern_match(Object self, int nparts, int *argcv,
-        Object *argv, int flags) {
+GRACELIB_FUNCTION(UnicodePattern_match)
+{
     struct UnicodePattern *pat = (struct UnicodePattern *)self;
-    Object other = argv[0];
-    Object o = argv[0];
+    Object other = args[0];
+    Object o = args[0];
     char *classname = o->class->name;
+
     if (strcmp(classname, "String") == 0
             || strcmp(classname, "ConcatString") == 0)
-        o = callmethod(argv[0], "ord", 0, NULL, NULL);
+    {
+        o = callmethod(args[0], "ord", 0, NULL, NULL);
+        gc_unpause();
+    }
+
     int v = integerfromAny(o);
     int cindex = UnicodeRecords[v].category;
     const char *cat = Unicode_Categories[cindex];
     int successful = 0;
-    for (int j=0; j<pat->size; j++) {
-        if (pat->elements[j].type == UNICODEPATTERN_CODEPOINT) {
+
+    for (int j = 0; j < pat->size; j++)
+    {
+        if (pat->elements[j].type == UNICODEPATTERN_CODEPOINT)
+        {
             if (v == pat->elements[j].data.codepoint)
+            {
                 successful = 1;
-        } else if (pat->elements[j].type == UNICODEPATTERN_CLASS) {
-            const char *needle = pat->elements[j].data.class;
-            if (needle[0] == cat[0]) {
-                if (!needle[1])
-                    successful = 1;
-                if (needle[1] == cat[1])
-                    successful = 1;
             }
-        } else if (pat->elements[j].type == UNICODEPATTERN_CODEPOINT_NOT) {
-            if (v == pat->elements[j].data.codepoint)
-                successful = 0;
-        } else if (pat->elements[j].type == UNICODEPATTERN_CLASS_NOT) {
+        }
+        else if (pat->elements[j].type == UNICODEPATTERN_CLASS)
+        {
             const char *needle = pat->elements[j].data.class;
-            if (needle[0] == cat[0]) {
+
+            if (needle[0] == cat[0])
+            {
                 if (!needle[1])
-                    successful = 0;
+                {
+                    successful = 1;
+                }
+
                 if (needle[1] == cat[1])
+                {
+                    successful = 1;
+                }
+            }
+        }
+        else if (pat->elements[j].type == UNICODEPATTERN_CODEPOINT_NOT)
+        {
+            if (v == pat->elements[j].data.codepoint)
+            {
+                successful = 0;
+            }
+        }
+        else if (pat->elements[j].type == UNICODEPATTERN_CLASS_NOT)
+        {
+            const char *needle = pat->elements[j].data.class;
+
+            if (needle[0] == cat[0])
+            {
+                if (!needle[1])
+                {
                     successful = 0;
+                }
+
+                if (needle[1] == cat[1])
+                {
+                    successful = 0;
+                }
             }
         }
     }
-    if (successful) {
-        return alloc_SuccessfulMatch(argv[0], NULL);
+
+    if (successful)
+    {
+        return alloc_SuccessfulMatch(args[0], NULL);
     }
+
     return alloc_FailedMatch(other, NULL);
 }
 
-Object unicode_pattern_not(Object self, int nparts, int *argcv,
-        Object *args, int flags) {
-    if (!UnicodePattern) {
+GRACELIB_FUNCTION(unicode_pattern_not)
+{
+    if (!UnicodePattern)
+    {
         UnicodePattern = alloc_class("UnicodePattern", 1);
         add_Method(UnicodePattern, "match", &UnicodePattern_match);
     }
+
     int size = argcv[0];
     int size2 = argcv[1];
     Object me = alloc_obj(sizeof(struct UnicodePattern) - sizeof(struct Object)
-            + sizeof(struct UnicodePatternElement) * (size + size2),
-            UnicodePattern);
+                          + sizeof(struct UnicodePatternElement) * (size + size2),
+                          UnicodePattern);
     struct UnicodePattern *pat = (struct UnicodePattern *)me;
     pat->size = size + size2;
-    for (int j=0; j<size; j++) {
+
+    for (int j = 0; j < size; j++)
+    {
         Object o = args[j];
-        if (o->class == Number) {
+
+        if (o->class == Number)
+        {
             pat->elements[j].type = UNICODEPATTERN_CODEPOINT;
             int n = integerfromAny(o);
             pat->elements[j].data.codepoint = n;
-        } else {
+        }
+        else
+        {
             pat->elements[j].type = UNICODEPATTERN_CLASS;
             const char *cc = grcstring(o);
             char *bf = pat->elements[j].data.class;
             strcpy(bf, cc);
         }
     }
-    for (int j=size; j<size+size2; j++) {
+
+    for (int j = size; j < size + size2; j++)
+    {
         Object o = args[j];
-        if (o->class == Number) {
+
+        if (o->class == Number)
+        {
             pat->elements[j].type = UNICODEPATTERN_CODEPOINT_NOT;
             int n = integerfromAny(o);
             pat->elements[j].data.codepoint = n;
-        } else {
+        }
+        else
+        {
             pat->elements[j].type = UNICODEPATTERN_CLASS_NOT;
             const char *cc = grcstring(o);
             char *bf = pat->elements[j].data.class;
             strcpy(bf, cc);
         }
     }
+
     return me;
 }
 
-Object unicode_pattern(Object self, int nparts, int *argcv,
-        Object *args, int flags) {
+GRACELIB_FUNCTION(unicode_pattern)
+{
     int argcv2[2];
     argcv2[0] = argcv[0];
     argcv2[1] = 0;
-    return unicode_pattern_not(self, 2, argcv2, args, flags);
+    return unicode_pattern_not_impl(self, 2, argcv2, args, flags);
 }
 
 // Create and return a Grace object with all the above functions as methods.
-Object module_unicode_init() {
+Object module_unicode_init()
+{
     if (unicode_module != NULL)
+    {
         return unicode_module;
+    }
+
     ClassData c = alloc_class("Module<unicode>", 15);
     add_Method(c, "category", &unicode_category);
     add_Method(c, "bidirectional", &unicode_bidirectional);

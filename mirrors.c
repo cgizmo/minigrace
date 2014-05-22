@@ -22,26 +22,39 @@
 // A sample use might be:
 //   mirrors.reflect(1).getMethod("+").request([[2]]) == 3
 
+GRACELIB_PROTOTYPE(MirrorMethod_asString);
+GRACELIB_PROTOTYPE(MirrorMethod_name);
+GRACELIB_PROTOTYPE(MirrorMethod_partcount);
+GRACELIB_PROTOTYPE(MirrorMethod_paramcounts);
+GRACELIB_PROTOTYPE(MirrorMethod_request);
+GRACELIB_PROTOTYPE(Mirror_getMethod);
+GRACELIB_PROTOTYPE(Mirror_methods);
+GRACELIB_PROTOTYPE(Mirror_annotations);
+GRACELIB_PROTOTYPE(mirrors_reflect);
+GRACELIB_PROTOTYPE(mirrors_loadDynamicModule);
+
 Object mirrors_module = NULL;
 ClassData MirrorClass;
 ClassData MirrorMethodClass;
 
 Method *findmethodsimple(Object self, const char *name);
 
-struct MirrorObject {
+struct MirrorObject
+{
     OBJECT_HEADER;
     Object obj;
 };
 
-struct MirrorMethodObject {
+struct MirrorMethodObject
+{
     OBJECT_HEADER;
     Method *method;
     Object obj;
 };
 
-Object MirrorMethod_asString(Object self, int nparams, int *argcv, Object *argv,
-        int flags) {
-    struct MirrorMethodObject *s = (struct MirrorMethodObject*)self;
+GRACELIB_FUNCTION(MirrorMethod_asString)
+{
+    struct MirrorMethodObject *s = (struct MirrorMethodObject *)self;
     char buf[strlen(s->method->name) + 12];
     strcpy(buf, "<Method \"");
     strcat(buf, s->method->name);
@@ -49,72 +62,128 @@ Object MirrorMethod_asString(Object self, int nparams, int *argcv, Object *argv,
     return alloc_String(buf);
 }
 
-Object MirrorMethod_name(Object self, int nparams, int *argcv, Object *argv,
-        int flags) {
-    struct MirrorMethodObject *s = (struct MirrorMethodObject*)self;
+GRACELIB_FUNCTION(MirrorMethod_name)
+{
+    struct MirrorMethodObject *s = (struct MirrorMethodObject *)self;
     return alloc_String(s->method->name);
 }
 
-Object MirrorMethod_partcount(Object self, int nparams, int *argcv,
-        Object *argv, int flags) {
-    struct MirrorMethodObject *s = (struct MirrorMethodObject*)self;
+GRACELIB_FUNCTION(MirrorMethod_partcount)
+{
+    struct MirrorMethodObject *s = (struct MirrorMethodObject *)self;
+
     if (!s->method->type)
+    {
         return alloc_Float64(-1);
+    }
+
     return alloc_Float64(s->method->type->nparts);
 }
 
-Object MirrorMethod_paramcounts(Object self, int nparams, int *argcv,
-        Object *argv, int flags) {
-    struct MirrorMethodObject *s = (struct MirrorMethodObject*)self;
+GRACELIB_FUNCTION(MirrorMethod_paramcounts)
+{
+    struct MirrorMethodObject *s = (struct MirrorMethodObject *)self;
     int i;
+
     if (!s->method->type)
+    {
         return alloc_done();
+    }
+
     gc_pause();
     Object l = alloc_List();
     int cargcv[] = {1};
     Object carg;
-    for (i=0; i<s->method->type->nparts; i++) {
+
+    for (i = 0; i < s->method->type->nparts; i++)
+    {
         carg = alloc_Float64(s->method->type->argcv[i]);
         callmethod(l, "push", 1, cargcv, &carg);
+        gc_unpause();
     }
+
     gc_unpause();
     return l;
 }
 
-Object MirrorMethod_request(Object self, int nparts, int *argcv, Object *argv,
-        int flags) {
-    struct MirrorMethodObject *s = (struct MirrorMethodObject*)self;
-    Object partsl = argv[0];
+GRACELIB_FUNCTION(MirrorMethod_request)
+{
+    struct MirrorMethodObject *s = (struct MirrorMethodObject *)self;
+    Object partsl = args[0];
     int cparts = integerfromAny(callmethod(partsl, "size", 0, NULL, NULL));
+    gc_unpause();
     int i = 0;
     int size = 0;
     int cargcv[cparts];
     Object partsiter = callmethod(partsl, "iter", 0, NULL, NULL);
-    while (istrue(callmethod(partsiter, "havemore", 0, NULL, NULL))) {
+    gc_unpause();
+
+    while (1)
+    {
+        Object havemore = callmethod(partsiter, "havemore", 0, NULL, NULL);
+        gc_unpause();
+
+        if (!istrue(havemore))
+        {
+            break;
+        }
+
         Object argsl = callmethod(partsiter, "next", 0, NULL, NULL);
-        cargcv[i] = integerfromAny(callmethod(argsl, "size", 0, NULL, NULL));
+        gc_unpause();
+        Object any = callmethod(argsl, "size", 0, NULL, NULL);
+        gc_unpause();
+        cargcv[i] = integerfromAny(any);
         size += cargcv[i];
         i++;
     }
+
     Object cargv[size];
     i = 0;
     partsiter = callmethod(partsl, "iter", 0, NULL, NULL);
-    while (istrue(callmethod(partsiter, "havemore", 0, NULL, NULL))) {
+    gc_unpause();
+
+    while (1)
+    {
+        Object havemore1 = callmethod(partsiter, "havemore", 0, NULL, NULL);
+        gc_unpause();
+
+        if (!istrue(havemore1))
+        {
+            break;
+        }
+
         Object argsl = callmethod(partsiter, "next", 0, NULL, NULL);
+        gc_unpause();
         Object argsiter = callmethod(argsl, "iter", 0, NULL, NULL);
-        while (istrue(callmethod(argsiter, "havemore", 0, NULL, NULL))) {
+        gc_unpause();
+
+        while (1)
+        {
+            Object havemore2 = callmethod(argsiter, "havemore", 0, NULL, NULL);
+            gc_unpause();
+
+            if (!istrue(havemore2))
+            {
+                break;
+            }
+
             Object o = callmethod(argsiter, "next", 0, NULL, NULL);
+            gc_unpause();
             cargv[i] = o;
             i++;
         }
     }
+
     Object rv = callmethod(s->obj, s->method->name, cparts, cargcv,
-            cargv);
+                           cargv);
+    gc_unpause();
     return rv;
 }
 
-Object alloc_MirrorMethod(Method *method, Object obj) {
-    if (MirrorMethodClass == NULL) {
+Object alloc_MirrorMethod(Method *method, Object obj)
+{
+    if (MirrorMethodClass == NULL)
+    {
         MirrorMethodClass = alloc_class("MirrorMethod", 5);
         add_Method(MirrorMethodClass, "request", &MirrorMethod_request);
         add_Method(MirrorMethodClass, "name", &MirrorMethod_name);
@@ -122,28 +191,32 @@ Object alloc_MirrorMethod(Method *method, Object obj) {
         add_Method(MirrorMethodClass, "partcount", &MirrorMethod_partcount);
         add_Method(MirrorMethodClass, "paramcounts", &MirrorMethod_paramcounts);
     }
+
     Object o = alloc_obj(sizeof(struct MirrorMethodObject)
-            - sizeof(struct Object), MirrorMethodClass);
-    struct MirrorMethodObject *p = (struct MirrorMethodObject*)o;
+                         - sizeof(struct Object), MirrorMethodClass);
+    struct MirrorMethodObject *p = (struct MirrorMethodObject *)o;
     p->obj = obj;
     p->method = method;
     return o;
 }
 
-Object Mirror_getMethod(Object self, int nparams, int *argcv, Object *argv,
-        int flags) {
-    struct MirrorObject *s = (struct MirrorObject*)self;
+GRACELIB_FUNCTION(Mirror_getMethod)
+{
+    struct MirrorObject *s = (struct MirrorObject *)self;
     Object o = s->obj;
-    Method *m = findmethodsimple(o, grcstring(argv[0]));
-    if (m == NULL) {
-        gracedie("no such method '%s' found by mirror\n", grcstring(argv[0]));
+    Method *m = findmethodsimple(o, grcstring(args[0]));
+
+    if (m == NULL)
+    {
+        gracedie("no such method '%s' found by mirror\n", grcstring(args[0]));
     }
+
     return alloc_MirrorMethod(m, o);
 }
 
-Object Mirror_methods(Object self, int nparams, int *argcv, Object *args,
-        int flags) {
-    struct MirrorObject *s = (struct MirrorObject*)self;
+GRACELIB_FUNCTION(Mirror_methods)
+{
+    struct MirrorObject *s = (struct MirrorObject *)self;
     Object o = s->obj;
     ClassData c = o->class;
     Method *m;
@@ -152,69 +225,98 @@ Object Mirror_methods(Object self, int nparams, int *argcv, Object *args,
     Object arg;
     int tmp = 1;
     int i;
-    for (i=0; i<c->nummethods; i++) {
+
+    for (i = 0; i < c->nummethods; i++)
+    {
         m = &c->methods[i];
         arg = alloc_MirrorMethod(m, o);
         callmethod(l, "push", 1, &tmp, &arg);
+        gc_unpause();
     }
+
     gc_unpause();
     return l;
 }
 
-Object Mirror_annotations(Object self, int nparams, int *argcv, Object *args,
-        int flags) {
-    struct MirrorObject *s = (struct MirrorObject*)self;
+GRACELIB_FUNCTION(Mirror_annotations)
+{
+    struct MirrorObject *s = (struct MirrorObject *)self;
     Object o = s->obj;
     ClassData c = o->class;
-    if (strncmp(c->name, "Object", 6) != 0) {
+
+    if (strncmp(c->name, "Object", 6) != 0)
+    {
         gracedie("cannot request annotations of non-user object\n");
     }
-    struct UserObject *uo = (struct UserObject*)o;
+
+    struct UserObject *uo = (struct UserObject *)o;
+
     gc_pause();
+
     Object l = alloc_List();
+
     Object arg;
+
     int tmp = 1;
+
     int i;
-    for (i = 0; i < uo->numannotations; i++) {
+
+    for (i = 0; i < uo->numannotations; i++)
+    {
         arg = uo->annotations[i];
         callmethod(l, "push", 1, &tmp, &arg);
+        gc_unpause();
     }
+
     gc_unpause();
     return l;
 }
 
-Object alloc_mirror(Object obj) {
-    if (MirrorClass == NULL) {
+Object alloc_mirror(Object obj)
+{
+    if (MirrorClass == NULL)
+    {
         MirrorClass = alloc_class("Mirror", 3);
         add_Method(MirrorClass, "methods", &Mirror_methods);
         add_Method(MirrorClass, "getMethod", &Mirror_getMethod);
         add_Method(MirrorClass, "annotations", &Mirror_annotations);
     }
+
     Object o = alloc_obj(sizeof(Object), MirrorClass);
-    struct MirrorObject *p = (struct MirrorObject*)o;
+    struct MirrorObject *p = (struct MirrorObject *)o;
     p->obj = obj;
     return o;
 }
 
-Object mirrors_reflect(Object self, int nparams, int *argcv, Object *args,
-        int flags) {
-    if (nparams != 1)
+GRACELIB_FUNCTION(mirrors_reflect)
+{
+    if (nparts != 1)
+    {
         gracedie("mirrors.reflect requires one argument");
+    }
+
     return alloc_mirror(args[0]);
 }
 
-Object mirrors_loadDynamicModule(Object self, int nparams, int *argcv,
-        Object *argv, int flags) {
-    if (nparams != 1)
+GRACELIB_FUNCTION(mirrors_loadDynamicModule)
+{
+    if (nparts != 1)
+    {
         gracedie("mirrors.loadDynamicModule requires one argument");
-    char *s = grcstring(argv[0]);
+    }
+
+    char *s = grcstring(args[0]);
     return dlmodule(s);
 }
 
 // Create and return a Grace object with all the above functions as methods.
-Object module_mirrors_init() {
+Object module_mirrors_init()
+{
     if (mirrors_module != NULL)
+    {
         return mirrors_module;
+    }
+
     ClassData c = alloc_class("Module<mirrors>", 12);
     add_Method(c, "reflect", &mirrors_reflect);
     add_Method(c, "loadDynamicModule", &mirrors_loadDynamicModule);

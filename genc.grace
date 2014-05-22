@@ -52,6 +52,31 @@ var dialectHasAtModuleStart := false
 
 def cflags = "-pthread -g -std=c99" 
 
+// Call convention : 
+// In callee, finish with : 
+//   gc_pause();
+//   gc_frame_end(frame);
+//   return ret;
+// In caller :
+// callmethod("callmethod(...)", "x")
+// To ensure garbage collection works in threaded code.
+method callmethod(ccall) {
+    out("{ccall};")
+    out("gc_unpause();")
+}
+
+method callmethod(ccall)ret(ret) {
+    out("Object {ret} = {ccall};")
+    out("gc_frame_newslot({ret});")
+    out("gc_unpause();")
+}
+
+method callmethod(ccall)ret(ret)at(slot) {
+    out("Object {ret} = {ccall};")
+    out("gc_frame_setslot({slot}, {ret});")
+    out("gc_unpause();")
+}
+
 method out(s) {
     output.push(s)
 }
@@ -192,7 +217,7 @@ method compilearray(o) {
         r := compilenode(a)
         out("  params[0] = {r};")
         out("  partcv[0] = 1;")
-        out("  callmethod(array{myc}, \"push\", 1, partcv, params);")
+        callmethod("callmethod(array{myc}, \"push\", 1, partcv, params)")
         i := i + 1
     }
     out("  gc_unpause();")
@@ -217,7 +242,7 @@ method compileobjouter(selfr, outerRef) {
         ++ "(Object self, int nparams, int *argcv, "
         ++ "Object* args, int flags) \{")
     outprint("  struct UserObject *uo = (struct UserObject*)self;")
-    outprint("  return uo->data[0];")
+    outprint("  END_GRACE_FUNCTION_NOFRAME(uo->data[0]);")
     outprint("\}")
     out("  addmethodreal({selfr},\"outer\", &reader_{escmodname}_{enm}_{myc});")
 }
@@ -238,7 +263,7 @@ method compileobjtypemeth(o, selfr, pos) {
         }
     }
     outprint("  struct UserObject *uo = (struct UserObject *)self;")
-    outprint("  return uo->data[{pos}];")
+    outprint("  END_GRACE_FUNCTION_NOFRAME(uo->data[{pos}]);")
     outprint("\}")
     out("  Method *reader{myc} = addmethodrealflags({selfr}, \"{enm}\",&reader_{escmodname}_{inm}_{myc}, {flags});")
     out("  reader{myc}->definitionModule = modulename;")
@@ -286,7 +311,7 @@ method compileobjdefdecmeth(o, selfr, pos) {
         flags := "{flags} | MFLAG_CONFIDENTIAL"
     }
     outprint("  struct UserObject *uo = (struct UserObject *)self;")
-    outprint("  return uo->data[{pos}];")
+    outprint("  END_GRACE_FUNCTION_NOFRAME(uo->data[{pos}]);")
     outprint("\}")
     out("  Method *reader{myc} = addmethodrealflags({selfr}, \"{enm}\",&reader_{escmodname}_{inm}_{myc}, {flags});")
     out("  reader{myc}->definitionModule = modulename;")
@@ -314,7 +339,7 @@ method compileobjdefdec(o, selfr, pos) {
         ++ "(Object self, int nparams, int *argcv, "
         ++ "Object* args, int flags) \{")
     outprint("  struct UserObject *uo = (struct UserObject *)self;")
-    outprint("  return uo->data[{pos}];")
+    outprint("  END_GRACE_FUNCTION_NOFRAME(uo->data[{pos}]);")
     outprint("\}")
     out("  Method *reader{myc} = addmethodrealflags({selfr}, \"{enm}\",&reader_{escmodname}_{inm}_{myc}, MFLAG_DEF);")
 }
@@ -350,7 +375,7 @@ method compileobjvardecmeth(o, selfr, pos) {
         }
     }
     outprint("  struct UserObject *uo = (struct UserObject *)self;")
-    outprint("  return uo->data[{pos}];")
+    outprint("  END_GRACE_FUNCTION_NOFRAME(uo->data[{pos}]);")
     outprint("\}")
     out("  Method *reader{myc} = addmethodrealflags({selfr}, \"{enm}\",&reader_{escmodname}_{inm}_{myc}, {rflags});")
     var nmw := nm ++ ":="
@@ -361,7 +386,7 @@ method compileobjvardecmeth(o, selfr, pos) {
         ++ "Object* args, int flags) \{")
     outprint("  struct UserObject *uo = (struct UserObject *)self;")
     outprint("  uo->data[{pos}] = args[0];")
-    outprint("  return done;");
+    outprint("  END_GRACE_FUNCTION_NOFRAME(done);")
     outprint("\}")
     out("  Method *writer{myc} = addmethodrealflags({selfr}, \"{enm}:=\",&writer_{escmodname}_{inm}_{myc}, {wflags});")
     out("  reader{myc}->definitionModule = modulename;")
@@ -386,7 +411,7 @@ method compileobjvardec(o, selfr, pos) {
         ++ "(Object self, int nparams, int *argcv, "
         ++ "Object* args, int flags) \{")
     outprint("  struct UserObject *uo = (struct UserObject *)self;")
-    outprint("  return uo->data[{pos}];")
+    outprint("  END_GRACE_FUNCTION_NOFRAME(uo->data[{pos}]);")
     outprint("\}")
     out("  addmethodreal({selfr}, \"{enm}\",&reader_{escmodname}_{inm}_{myc});")
     var nmw := nm ++ ":="
@@ -397,7 +422,7 @@ method compileobjvardec(o, selfr, pos) {
         ++ "Object* args, int flags) \{")
     outprint("  struct UserObject *uo = (struct UserObject *)self;")
     outprint("  uo->data[{pos}] = args[0];")
-    outprint("  return done;");
+    outprint("  END_GRACE_FUNCTION_NOFRAME(done);")
     outprint("\}")
     out("  addmethodreal({selfr}, \"{enm}:=\", &writer_{escmodname}_{inm}_{myc});")
 }
@@ -633,15 +658,14 @@ method compilefor(o) {
     out("  gc_frame_newslot({obj});")
     out("  params[0] = {over};")
     out("  partcv[0] = 1;")
-    out("  Object iter{myc} = callmethod({over}, \"iter\", 1, partcv, params);")
-    out("  gc_frame_newslot(iter{myc});")
+    callmethod("callmethod({over}, \"iter\", 1, partcv, params)") ret ("iter{myc}")
     out("  int forvalslot{myc} = gc_frame_newslot(NULL);")
     out("  while(1) \{")
-    out("    Object cond{myc} = callmethod(iter{myc}, \"havemore\", 0, NULL, NULL);")
-    out("    if (!istrue(cond{myc})) break;")
-    out("    params[0] = callmethod(iter{myc}, \"next\", 0, NULL, NULL);")
-    out("    gc_frame_setslot(forvalslot{myc}, params[0]);")
-    out("    callmethod({obj}, \"apply\", 1, partcv, params);")
+    callmethod("callmethod(iter{myc}, \"havemore\", 0, NULL, NULL)") ret ("cond{myc}")
+    out("    if (!istrue(cond{myc})) \{ break; \}")
+    callmethod("callmethod(iter{myc}, \"next\", 0, NULL, NULL)") ret ("params[0]")
+        at ("forvalslot{myc}")
+    callmethod("callmethod({obj}, \"apply\", 1, partcv, params)")
     out("  \}")
     out("  gc_frame_end(forframe{myc});")
     o.register := "done"
@@ -702,7 +726,7 @@ method compilemethod(o, selfobj, pos) {
             var van := escapeident(part.vararg.value)
             out("  Object var_init_{van} = alloc_BuiltinList();")
             out("  for (i = {part.params.size}; i < argcv[{partnr - 1}]; i++) \{")
-            out("    callmethod(var_init_{van}, \"push\", 1, pushcv, &args[curarg]);")
+            callmethod("callmethod(var_init_{van}, \"push\", 1, pushcv, &args[curarg])")
             out("    curarg++;")
             out("  \}")
             out("  Object *var_{van} = &(stackframe->slots[{slot}]);")
@@ -765,8 +789,7 @@ method compilemethod(o, selfobj, pos) {
         compileobject(tailObj, "self")
         ret := tailObj.register
     }
-    out("  gc_frame_end(frame);")
-    out("  return {ret};")
+    out("  END_GRACE_FUNCTION({ret});")
     out("\}")
     var body := output
     outswitchup
@@ -818,7 +841,7 @@ method compilemethod(o, selfobj, pos) {
         out("  pushclosure(NULL);")
     }
     out("  pushstackframe(stackframe, \"{escapestring2(name)}\");")
-    out("  int frame = gc_frame_new();")
+    out("  START_GRACE_FUNCTION();")
     out("  gc_frame_newslot((Object)stackframe);")
     out "  Object methodInheritingObject = NULL;"
     for (o.signature.indices) do { partnr ->
@@ -950,7 +973,7 @@ method compilefreshmethod(o, nm, body, closurevars, selfobj, pos, numslots,
         out("  pushclosure(NULL);")
     }
     out("  pushstackframe(stackframe, \"{escapestring2(name)}\");")
-    out("  int frame = gc_frame_new();")
+    out("  START_GRACE_FUNCTION();")
     out("  gc_frame_newslot((Object)stackframe);")
     var sumAccum := "0"
     for (o.signature.indices) do { partnr ->
@@ -1170,8 +1193,9 @@ method compilebind(o) {
         var nm := escapeident(dest.value)
         usedvars.push(nm)
         out("  *var_{nm} = {val};")
-        out("  if ({val} == undefined)")
-        out("    callmethod(done, \"assignment\", 0, NULL, NULL);")
+        out("  if ({val} == undefined) \{")
+        callmethod("callmethod(done, \"assignment\", 0, NULL, NULL)")
+        out("  \}")
         auto_count := auto_count + 1
         o.register := val
     } elseif (dest.kind == "member") then {
@@ -1197,8 +1221,9 @@ method compiledefdec(o) {
     declaredvars.push(nm)
     var val := compilenode(o.value)
     out("  *var_{nm} = {val};")
-    out("  if ({val} == undefined)")
-    out("    callmethod(done, \"assignment\", 0, NULL, NULL);")
+    out("  if ({val} == undefined) \{")
+    callmethod("callmethod(done, \"assignment\", 0, NULL, NULL)")
+    out("  \}")
     if (compilationDepth == 1) then {
         compilenode(ast.methodNode.new(o.name, [ast.signaturePart.new(o.name)], [o.name], false))
         if (ast.findAnnotation(o, "parent")) then {
@@ -1220,8 +1245,9 @@ method compilevardec(o) {
     }
     out("  *var_{nm} = {val};")
     if (hadval) then {
-        out("  if ({val} == undefined)")
-        out("    callmethod(done, \"assignment\", 0, NULL, NULL);")
+        out("  if ({val} == undefined) \{")
+        callmethod("callmethod(done, \"assignment\", 0, NULL, NULL)")
+        out("  \}")
     }
     if (compilationDepth == 1) then {
         compilenode(ast.methodNode.new(o.name, [ast.signaturePart.new(o.name)], [o.name], false))
@@ -1238,7 +1264,7 @@ method compileindex(o) {
     out("  params[0] = {index};")
     out("  gc_frame_newslot(params[0]);")
     out("  partcv[0] = 1;")
-    out("  Object idxres{auto_count} = callmethod({of}, \"[]\", 1, partcv, params);")
+    callmethod("callmethod({of}, \"[]\", 1, partcv, params)") ret ("idxres{auto_count}")
     o.register := "idxres" ++ auto_count
     auto_count := auto_count + 1
 }
@@ -1321,9 +1347,8 @@ method compileop(o) {
         var evl := escapestring2(o.value)
         out("  params[0] = {right};")
         out("  partcv[0] = 1;")
-        out("  Object opresult{myc} = callmethod4(self, "
-            ++ "\"{evl}\", 1, partcv, params, ((flags >> 24) & 0xff) + 1,"
-            ++ "CFLAG_SELF);")
+        callmethod("callmethod4(self, \"{evl}\", 1, partcv, params, "
+            ++ "((flags >> 24) & 0xff) + 1, CFLAG_SELF)", "opresult{myc}")
         o.register := "opresult{myc}"
         return true
     }
@@ -1346,8 +1371,8 @@ method compileop(o) {
         }
         out("  params[0] = {right};")
         out("  partcv[0] = 1;")
-        out("  Object {rnm}{auto_count} = callmethod({left}, \"{o.value}\", "
-            ++ "1, partcv, params);")
+        callmethod("callmethod({left}, \"{o.value}\", 1, partcv, params)")
+            ret ("{rnm}{auto_count}")
         o.register := rnm ++ auto_count
         auto_count := auto_count + 1
     } else {
@@ -1357,8 +1382,8 @@ method compileop(o) {
             ++ "constant [" ++ len ++ " x i8] c\"" ++ evl ++ "\\00\""
         out("  params[0] = {right};")
         out("  partcv[0] = 1;")
-        out("  Object opresult{auto_count} = "
-            ++ "callmethod({left}, \"{o.value}\", 1, partcv, params);")
+        callmethod("callmethod({left}, \"{o.value}\", 1, partcv, params)")
+            ret ("opresult{auto_count}")
         o.register := "opresult" ++ auto_count
         auto_count := auto_count + 1
     }
@@ -1412,9 +1437,9 @@ method compilecall(o) {
         for (o.with.indices) do { partnr ->
             out("  partcv[{partnr - 1}] = {o.with[partnr].args.size};")
         }
-        out("  Object call{auto_count} = callmethod4(self, \"{evl}\", "
+        callmethod("callmethod4(self, \"{evl}\", "
             ++ "{nparts}, partcv, params, ((flags >> 24) & 0xff) + 1, "
-            ++ "CFLAG_SELF);")
+            ++ "CFLAG_SELF)") ret ("call{auto_count}")
     } elseif ((o.value.kind == "member").andAlso {
         o.value.in.kind == "member"}.andAlso {
             o.value.in.value == "outer"}) then {
@@ -1426,13 +1451,13 @@ method compilecall(o) {
         for (o.with.indices) do { partnr ->
             out("  partcv[{partnr - 1}] = {o.with[partnr].args.size};")
         }
-        out("  Object call{auto_count} = callmethodflags({ot}, \"{evl}\", "
-            ++ "{nparts}, partcv, params, CFLAG_SELF);")
+        callmethod("callmethodflags({ot}, \"{evl}\", {nparts}, partcv, "
+            ++ "params, CFLAG_SELF)") ret ("call{auto_count}")
     } elseif ((o.value.kind == "member") && {(o.value.in.kind == "identifier")
         && (o.value.in.value == "self") && (o.value.value == "outer")}
         ) then {
-        out("  Object call{auto_count} = callmethod3(self, \"{evl}\", "
-            ++ "0, 0, NULL, ((flags >> 24) & 0xff));")
+        callmethod("callmethod3(self, \"{evl}\", 0, 0, NULL, "
+            ++ "((flags >> 24) & 0xff))") ret ("call{auto_count}")
     } elseif ((o.value.kind == "member") && {(o.value.in.kind == "identifier")
         && (o.value.in.value == "self")}) then {
         for (args) do { arg ->
@@ -1442,8 +1467,8 @@ method compilecall(o) {
         for (o.with.indices) do { partnr ->
             out("  partcv[{partnr - 1}] = {o.with[partnr].args.size};")
         }
-        out("  Object call{auto_count} = callmethodflags(self, \"{evl}\", "
-            ++ "{nparts}, partcv, params, CFLAG_SELF);")
+        callmethod("callmethodflags(self, \"{evl}\", {nparts}, partcv, "
+            ++ "params, CFLAG_SELF)") ret ("call{auto_count}")
     } elseif ((o.value.kind == "member") && {(o.value.in.kind == "identifier")
         && (o.value.in.value == "prelude")}) then {
         for (args) do { arg ->
@@ -1453,8 +1478,8 @@ method compilecall(o) {
         for (o.with.indices) do { partnr ->
             out("  partcv[{partnr - 1}] = {o.with[partnr].args.size};")
         }
-        out("  Object call{auto_count} = callmethodflags(prelude, \"{evl}\", "
-            ++ "{nparts}, partcv, params, CFLAG_SELF);")
+        callmethod("callmethodflags(prelude, \"{evl}\", {nparts}, partcv, "
+            ++ "params, CFLAG_SELF)") ret ("call{auto_count}")
     } elseif (o.value.kind == "member") then {
         obj := compilenode(o.value.in)
         len := o.value.value.size + 1
@@ -1465,8 +1490,8 @@ method compilecall(o) {
         for (o.with.indices) do { partnr ->
             out("  partcv[{partnr - 1}] = {o.with[partnr].args.size};")
         }
-        out("  Object call{auto_count} = callmethod({obj}, \"{evl}\",")
-        out("    {nparts}, partcv, params);")
+        callmethod("callmethod({obj}, \"{evl}\", {nparts}, partcv, params)")
+            ret ("call{auto_count}")
     } else {
         obj := "self"
         len := o.value.value.size + 1
@@ -1477,8 +1502,8 @@ method compilecall(o) {
         for (o.with.indices) do { partnr ->
             out("  partcv[{partnr - 1}] = {o.with[partnr].args.size};")
         }
-        out("  Object call{auto_count} = callmethod(self, \"{evl}\",")
-        out("    {nparts}, partcv, params);")
+        callmethod("callmethod(self, \"{evl}\", {nparts}, partcv, params)")
+            ret ("call{auto_count}")
     }
     out("  gc_frame_end(callframe{myc});")
     o.register := "call" ++ auto_count
@@ -1535,8 +1560,8 @@ method compiledialect(o) {
     if (dialectHasAtModuleEnd) then {
         out("  partcv[0] = 1;")
         out("  params[0] = alloc_String(\"{escapestring(modname)}\");")
-        out("  callmethodflags(prelude, \"atModuleStart\", "
-            ++ "1, partcv, params, CFLAG_SELF);")
+        callmethod("callmethodflags(prelude, \"atModuleStart\", 1, partcv, "
+            ++ "params, CFLAG_SELF)")
     }
     o.register := "done"
 }
@@ -1574,7 +1599,7 @@ method compilereturn(o) {
     if (inBlock) then {
         out("  block_return(realself, {reg});")
     } else {
-        out("  return {reg};")
+        out("  END_GRACE_FUNCTION({reg});")
     }
     o.register := "undefined"
 }
@@ -2108,8 +2133,8 @@ method compile(vl, of, mn, rm, bt) {
     if (dialectHasAtModuleEnd) then {
         out("  partcv[0] = 1;")
         out("  params[0] = self;")
-        out("  callmethodflags(prelude, \"atModuleEnd\", "
-            ++ "1, partcv, params, CFLAG_SELF);")
+        callmethod("callmethodflags(prelude, \"atModuleEnd\", "
+            ++ "1, partcv, params, CFLAG_SELF)")
     }
     for (globals) do {e->
         outprint(e)
@@ -2142,7 +2167,7 @@ method compile(vl, of, mn, rm, bt) {
         out("    int frame = gc_frame_new();")
         out("    params[0] = alloc_String(argv[i]);")
         out("    gc_frame_newslot(params[0]);")
-        out("    callmethod(tmp_argv, \"push\", 1, partcv_push, params);")
+        callmethod("callmethod(tmp_argv, \"push\", 1, partcv_push, params)")
         out("    gc_frame_end(frame);")
         out("  \}")
         out("  module_sys_init_argv(tmp_argv);")

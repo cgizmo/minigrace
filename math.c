@@ -9,49 +9,67 @@
 #include "gracelib_gc.h"
 #include "gracelib_types.h"
 
+GRACELIB_PROTOTYPE(math_sin);
+GRACELIB_PROTOTYPE(math_cos);
+GRACELIB_PROTOTYPE(math_tan);
+GRACELIB_PROTOTYPE(math_asin);
+GRACELIB_PROTOTYPE(math_acos);
+GRACELIB_PROTOTYPE(math_atan);
+GRACELIB_PROTOTYPE(math_random);
+
 Object math_module = NULL;
 
-Object math_sin(Object self, int nparams, int *argcv, Object *argv, int flags) {
+GRACELIB_FUNCTION(math_sin)
+{
 
-    return alloc_Float64(sin(*(double*) argv[0]->data));
+    return alloc_Float64(sin(*(double *) args[0]->data));
 }
 
-Object math_cos(Object self, int nparams, int *argcv, Object *argv, int flags) {
+GRACELIB_FUNCTION(math_cos)
+{
 
-    return alloc_Float64(cos(*(double*) argv[0]->data));
+    return alloc_Float64(cos(*(double *) args[0]->data));
 }
 
-Object math_tan(Object self, int nparams, int *argcv, Object *argv, int flags) {
+GRACELIB_FUNCTION(math_tan)
+{
 
-    return alloc_Float64(tan(*(double*) argv[0]->data));
+    return alloc_Float64(tan(*(double *) args[0]->data));
 }
 
-Object math_asin(Object self, int nparams, int *argcv, Object *argv, int flags) {
+GRACELIB_FUNCTION(math_asin)
+{
 
-    return alloc_Float64(asin(*(double*) argv[0]->data));
+    return alloc_Float64(asin(*(double *) args[0]->data));
 }
 
-Object math_acos(Object self, int nparams, int *argcv, Object *argv, int flags) {
+GRACELIB_FUNCTION(math_acos)
+{
 
-    return alloc_Float64(acos(*(double*) argv[0]->data));
+    return alloc_Float64(acos(*(double *) args[0]->data));
 }
 
-Object math_atan(Object self, int nparams, int *argcv, Object *argv, int flags) {
+GRACELIB_FUNCTION(math_atan)
+{
 
-    return alloc_Float64(atan(*(double*) argv[0]->data));
+    return alloc_Float64(atan(*(double *) args[0]->data));
 }
 
-Object math_random(Object self, int nparams, int *argcv, Object *argv, int flags) {
+GRACELIB_FUNCTION(math_random)
+{
 
     return alloc_Float64((double)rand() / RAND_MAX);
 }
 
 
 // Create and return a grace object which contains the above functions
-Object module_math_init() {
+Object module_math_init()
+{
 
     if (math_module != NULL)
+    {
         return math_module;
+    }
 
     srand(time(NULL));
 

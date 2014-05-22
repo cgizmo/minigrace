@@ -1,6 +1,7 @@
 #ifndef GRACELIB_GC_H
 #define GRACELIB_GC_H
 
+#include <stdio.h>
 #include <string.h>
 #include "gracelib_types.h"
 
@@ -52,8 +53,6 @@ void gc_arrive(GCTransit *);
 
 void gc_mark(Object);
 void gc_root(Object);
-void gc_pause();
-int gc_unpause();
 
 GCStack *gc_stack_create(void);
 void gc_stack_destroy(GCStack *);
