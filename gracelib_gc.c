@@ -63,6 +63,7 @@ void set_stack_size(int stack_size_)
     stack_size = stack_size_;
 }
 
+// Note: GC is hardcoded as disabled in this version of minigrace.
 void gc_init(int gc_dofree_, int gc_dowarn_, int gc_period_)
 {
     pthread_mutex_init(&gc_mutex, NULL);
@@ -75,7 +76,7 @@ void gc_init(int gc_dofree_, int gc_dowarn_, int gc_period_)
 
     gc_dofree = gc_dofree_;
     gc_dowarn = gc_dowarn_;
-    gc_enabled = gc_dofree | gc_dowarn;
+    gc_enabled = 0; // gc_dofree | gc_dowarn;
 
     if (gc_dowarn)
     {
@@ -99,6 +100,11 @@ void gc_alloc_obj(Object o)
 {
     assert(o != NULL);
 
+    if (!gc_enabled)
+    {
+        return;
+    }
+
     /* An object is ignored until the GC is told about it. Ideally, every
      * allocated object should be entered in the GC with the gc_frame_newslot,
      * gc_frame_setslot, gc_root or gc_transit functions.
@@ -112,24 +118,21 @@ void gc_alloc_obj(Object o)
 
     objectcount++;
 
-    if (gc_enabled)
+    if (objects_living_next >= objects_living_size)
     {
-        if (objects_living_next >= objects_living_size)
-        {
-            expand_living();
-        }
+        expand_living();
+    }
 
-        if (objectcount % gc_period == 0)
-        {
-            rungc();
-        }
+    if (objectcount % gc_period == 0)
+    {
+        rungc();
+    }
 
-        objects_living[objects_living_next++] = o;
+    objects_living[objects_living_next++] = o;
 
-        if (objects_living_next > objects_living_max)
-        {
-            objects_living_max = objects_living_next;
-        }
+    if (objects_living_next > objects_living_max)
+    {
+        objects_living_max = objects_living_next;
     }
 
     pthread_mutex_unlock(&gc_mutex);
@@ -158,11 +161,19 @@ void gc_mark(Object o)
 
 void gc_root(Object o)
 {
+    if (!gc_enabled)
+    {
+        return;
+    }
+
     struct GC_Root *r = malloc(sizeof(struct GC_Root));
+
     r->object = o;
 
     pthread_mutex_lock(&gc_mutex);
+
     r->next = GC_roots;
+
     GC_roots = r;
 
     if (o != NULL)
@@ -176,6 +187,11 @@ void gc_root(Object o)
 
 GCTransit *gc_transit(Object o)
 {
+    if (!gc_enabled)
+    {
+        return NULL;
+    }
+
     GCTransit *x = malloc(sizeof(GCTransit));
     x->object = o;
     x->prev = NULL;
@@ -205,6 +221,11 @@ void gc_arrive(GCTransit *x)
 {
     assert(x != NULL);
 
+    if (!gc_enabled)
+    {
+        return;
+    }
+
     pthread_mutex_lock(&gc_mutex);
 
     if (x->prev != NULL)
@@ -230,6 +251,11 @@ void gc_arrive(GCTransit *x)
 
 void gc_pause()
 {
+    if (!gc_enabled)
+    {
+        return;
+    }
+
     pthread_mutex_lock(&gc_mutex);
     gc_paused++;
     pthread_mutex_unlock(&gc_mutex);
@@ -237,6 +263,11 @@ void gc_pause()
 
 int gc_unpause()
 {
+    if (!gc_enabled)
+    {
+        return -1;
+    }
+
     pthread_mutex_lock(&gc_mutex);
 
     if (gc_paused <= 0)
@@ -260,16 +291,19 @@ GCStack *gc_stack_create()
     stack->stack_size = stack_size;
     stack->prev = NULL;
 
-    pthread_mutex_lock(&gc_mutex);
-    stack->next = thread_stacks;
-
-    if (thread_stacks != NULL)
+    if (gc_enabled)
     {
-        thread_stacks->prev = stack;
-    }
+        pthread_mutex_lock(&gc_mutex);
+        stack->next = thread_stacks;
 
-    thread_stacks = stack;
-    pthread_mutex_unlock(&gc_mutex);
+        if (thread_stacks != NULL)
+        {
+            thread_stacks->prev = stack;
+        }
+
+        thread_stacks = stack;
+        pthread_mutex_unlock(&gc_mutex);
+    }
 
     return stack;
 }
@@ -278,39 +312,52 @@ void gc_stack_destroy(GCStack *stack)
 {
     assert(stack != NULL);
 
-    pthread_mutex_lock(&gc_mutex);
-
-    if (stack->prev != NULL)
+    if (gc_enabled)
     {
-        stack->prev->next = stack->next;
-    }
+        pthread_mutex_lock(&gc_mutex);
 
-    if (stack->next != NULL)
-    {
-        stack->next->prev = stack->prev;
-    }
+        if (stack->prev != NULL)
+        {
+            stack->prev->next = stack->next;
+        }
 
-    // stack was head of the list.
-    if (thread_stacks == stack)
-    {
-        thread_stacks = stack->next;
-    }
+        if (stack->next != NULL)
+        {
+            stack->next->prev = stack->prev;
+        }
 
-    pthread_mutex_unlock(&gc_mutex);
+        // stack was head of the list.
+        if (thread_stacks == stack)
+        {
+            thread_stacks = stack->next;
+        }
+
+        pthread_mutex_unlock(&gc_mutex);
+    }
 
     free(stack);
 }
 
 // TODO : change gc_frame* fns so that they don't use a global lock when manipulating
-// thread local stacks (will need to change the rungc funciton to deal with individual
+// thread local stacks (will need to change the rungc function to deal with individual
 // locks).
 int gc_frame_new()
 {
+    if (!gc_enabled)
+    {
+        return -1;
+    }
+
     return get_state()->gc_stack->framepos;
 }
 
 void gc_frame_end(int pos)
 {
+    if (!gc_enabled)
+    {
+        return;
+    }
+
     pthread_mutex_lock(&gc_mutex);
     get_state()->gc_stack->framepos = pos;
     pthread_mutex_unlock(&gc_mutex);
@@ -318,6 +365,11 @@ void gc_frame_end(int pos)
 
 int gc_frame_newslot(Object o)
 {
+    if (!gc_enabled)
+    {
+        return -1;
+    }
+
     pthread_mutex_lock(&gc_mutex);
     GCStack *gc_stack = get_state()->gc_stack;
 
@@ -345,6 +397,11 @@ int gc_frame_newslot(Object o)
 
 void gc_frame_setslot(int slot, Object o)
 {
+    if (!gc_enabled)
+    {
+        return;
+    }
+
     pthread_mutex_lock(&gc_mutex);
     get_state()->gc_stack->stack[slot] = o;
 
