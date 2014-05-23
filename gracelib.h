@@ -6,7 +6,6 @@
 
 #include "gracelib_types.h"
 #include "gracelib_threads.h"
-#include "gracelib_gc.h"
 
 #define MFLAG_REALSELFONLY 2
 #define MFLAG_REALSELFALSO 4
@@ -18,30 +17,6 @@
 #define OFLAG_MUTABLE 64
 
 #define CFLAG_SELF 128
-
-#define START_GRACE_FUNCTION() int frame = gc_frame_new();
-
-#define END_GRACE_FUNCTION(ret) { gc_pause(); \
-                                  gc_frame_end(frame); \
-                                  return (ret); }
-
-#define END_GRACE_FUNCTION_NOFRAME(ret) { gc_pause(); \
-                                          return (ret); }
-
-#define GRACELIB_PROTOTYPE(name) Object name(Object, int, int *, Object *, int); \
-                                 static inline Object name##_impl(Object self, \
-                                 int nparts, int *argcv, Object *args, int flags);
-
-#define GRACELIB_FUNCTION(name) Object name(Object self, int nparts, \
-                                    int *argcv, Object *args, int flags) \
-                                { \
-                                    Object ret = name##_impl(self, nparts, \
-                                                argcv, args, flags); \
-                                    gc_pause(); \
-                                    return ret; \
-                                } \
-                                static inline Object name##_impl(Object self, int nparts, \
-                                    int *argcv, Object *args, int flags)
 
 struct UserObject
 {
@@ -128,10 +103,10 @@ Object alloc_FailedMatch(Object result, Object bindings);
 char *grcstring(Object);
 
 // Prototypes used by dynamic-module objects
-GRACELIB_PROTOTYPE(Object_Equals);
-GRACELIB_PROTOTYPE(Object_NotEquals);
-GRACELIB_PROTOTYPE(Object_asString);
-GRACELIB_PROTOTYPE(Singleton_asString);
+Object Object_Equals(Object, int, int *, Object *, int);
+Object Object_NotEquals(Object, int, int *, Object *, int);
+Object Object_asString(Object, int, int *, Object *, int);
+Object Singleton_asString(Object, int, int *, Object *, int);
 
 // These are used by code generation, and shouldn't need to be
 // used elsewhere.

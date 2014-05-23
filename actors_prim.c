@@ -23,15 +23,10 @@ static Object alloc_AID_object(thread_id);
 static void init_module_object(void);
 
 Object module_actors_prim_init(void);
-GRACELIB_PROTOTYPE(actors_prim_me);
-GRACELIB_PROTOTYPE(actors_prim_spawn);
-GRACELIB_PROTOTYPE(actors_prim_post);
-GRACELIB_PROTOTYPE(actors_prim_poll);
-GRACELIB_PROTOTYPE(actors_prim_timedpoll);
-GRACELIB_PROTOTYPE(actors_prim_TimedOut);
-GRACELIB_PROTOTYPE(actors_prim_AID);
-GRACELIB_PROTOTYPE(AID_asString);
-GRACELIB_PROTOTYPE(AID_Equals);
+Object actors_prim_spawn(Object, int, int *, Object *, int);
+Object actors_prim_post(Object, int, int *, Object *, int);
+Object actors_prim_poll(Object, int, int *, Object *, int);
+Object actors_prim_timedpoll(Object, int, int *, Object *, int);
 
 /* Globals */
 static pthread_once_t once_control = PTHREAD_ONCE_INIT;
@@ -48,7 +43,7 @@ Object module_actors_prim_init()
     return actors_prim_module;
 }
 
-GRACELIB_FUNCTION(actors_prim_me)
+Object actors_prim_me(Object self, int nparams, int *argcv, Object *argv, int flags)
 {
     return alloc_AID_object(get_state()->id);
 }
@@ -58,32 +53,32 @@ GRACELIB_FUNCTION(actors_prim_me)
  * Takes a function of type (parent : AID) -> Actor.
  * Returns the resulting actor's AID.
  */
-GRACELIB_FUNCTION(actors_prim_spawn)
+Object actors_prim_spawn(Object self, int nparams, int *argcv, Object *argv, int flags)
 {
-    if (nparts != 1 || argcv[0] != 2)
+    if (nparams != 1 || argcv[0] != 2)
     {
         gracedie("actors_prim.spawn requires two argument");
     }
 
     // Mark the block and it's argument as "in transit" so the GC does not free it.
-    GCTransit *block_transit = gc_transit(args[0]);
-    GCTransit *arg_transit = gc_transit(args[1]);
+    GCTransit *block_transit = gc_transit(argv[0]);
+    GCTransit *arg_transit = gc_transit(argv[1]);
 
-    thread_id id = grace_thread_create(args[0], args[1], block_transit, arg_transit);
+    thread_id id = grace_thread_create(argv[0], argv[1], block_transit, arg_transit);
     debug("actors_prim_spawn: made an actor with id %d.\n", id);
 
     return alloc_AID_object(id);
 }
 
-GRACELIB_FUNCTION(actors_prim_post)
+Object actors_prim_post(Object self, int nparams, int *argcv, Object *argv, int flags)
 {
-    if (nparts != 1 || argcv[0] != 2)
+    if (nparams != 1 || argcv[0] != 2)
     {
         gracedie("actors_prim.post requires two arguments");
     }
 
-    AIDObject *aid = (AIDObject *)args[0];
-    Object data = args[1];
+    AIDObject *aid = (AIDObject *)argv[0];
+    Object data = argv[1];
     GCTransit *data_transit = gc_transit(data);
     MessageQueue *msg_queue = get_thread_message_queue(aid->id);
 
@@ -92,9 +87,9 @@ GRACELIB_FUNCTION(actors_prim_post)
     return alloc_done();
 }
 
-GRACELIB_FUNCTION(actors_prim_poll)
+Object actors_prim_poll(Object self, int nparams, int *argcv, Object *argv, int flags)
 {
-    if (nparts != 1 || argcv[0] != 0)
+    if (nparams != 1 || argcv[0] != 0)
     {
         gracedie("actors_prim.poll requires no argument");
     }
@@ -104,15 +99,15 @@ GRACELIB_FUNCTION(actors_prim_poll)
     return data;
 }
 
-GRACELIB_FUNCTION(actors_prim_timedpoll)
+Object actors_prim_timedpoll(Object self, int nparams, int *argcv, Object *argv, int flags)
 {
-    if (nparts != 1 || argcv[0] != 1)
+    if (nparams != 1 || argcv[0] != 1)
     {
         gracedie("actors_prim.timedpoll requires one argument");
     }
 
     Object data;
-    PollResult res = poll_with_timeout(&data, integerfromAny(args[0]));
+    PollResult res = poll_with_timeout(&data, integerfromAny(argv[0]));
 
     if (res == POLL_TIMED_OUT)
     {
@@ -122,33 +117,33 @@ GRACELIB_FUNCTION(actors_prim_timedpoll)
     return data;
 }
 
-GRACELIB_FUNCTION(actors_prim_TimedOut)
+Object actors_prim_TimedOut(Object self, int nparams, int *argcv, Object *argv, int flags)
 {
     return (Object)TimedOut; // TODO : Should this be an alloc_Type ?
 }
 
-GRACELIB_FUNCTION(actors_prim_AID)
+Object actors_prim_AID(Object self, int nparams, int *argcv, Object *argv, int flags)
 {
     return (Object)AID; // TODO : Should this be an alloc_Type ?
 }
 
-GRACELIB_FUNCTION(AID_asString)
+Object AID_asString(Object self, int nparams, int *argcv, Object *argv, int flags)
 {
-    thread_id id = ((AIDObject *)self)->id;
+    thread_id id = ((AIDObject*)self)->id;
     char str[100];
 
     snprintf(str, 100, "AID<%d>", id);
     return alloc_String(str);
 }
 
-GRACELIB_FUNCTION(AID_Equals)
+Object AID_Equals(Object self, int nparams, int *argcv, Object *argv, int flags)
 {
-    if (args[0]->class != AID)
+    if (argv[0]->class != AID)
     {
         return alloc_Boolean(0);
     }
 
-    return alloc_Boolean(((AIDObject *)args[0])->id == ((AIDObject *)self)->id);
+    return alloc_Boolean(((AIDObject*)argv[0])->id == ((AIDObject*)self)->id);
 }
 
 static PollResult poll_with_timeout(Object *result, const int timeout)
