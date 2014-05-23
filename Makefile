@@ -2,7 +2,7 @@ include Makefile.conf
 
 ARCH:=$(shell uname -s)-$(shell uname -m)
 STABLE=88855bc35225a388b52f1574488df3486543f510
-all: minigrace gracepm $(OTHER_MODULES)
+all: minigrace gracepm stdlib $(OTHER_MODULES)
 
 REALSOURCEFILES = compiler.grace errormessages.grace util.grace ast.grace lexer.grace parser.grace genjs.grace genc.grace mgcollections.grace interactive.grace xmodule.grace identifierresolution.grace genjson.grace
 SOURCEFILES = $(REALSOURCEFILES) buildinfo.grace
