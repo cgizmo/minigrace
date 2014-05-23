@@ -3,6 +3,10 @@
 inherits _prelude
 var isStandardPrelude := true
 
+type Copyable<A> = {
+    copy() -> A
+}
+
 class SuccessfulMatch.new(result', bindings') {
     inherits true
     def result = result'

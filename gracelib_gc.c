@@ -98,12 +98,12 @@ void gc_destroy()
 
 void gc_alloc_obj(Object o)
 {
-    assert(o != NULL);
-
     if (!gc_enabled)
     {
         return;
     }
+
+    assert(o != NULL);
 
     /* An object is ignored until the GC is told about it. Ideally, every
      * allocated object should be entered in the GC with the gc_frame_newslot,
@@ -219,12 +219,12 @@ GCTransit *gc_transit(Object o)
 
 void gc_arrive(GCTransit *x)
 {
-    assert(x != NULL);
-
     if (!gc_enabled)
     {
         return;
     }
+
+    assert(x != NULL);
 
     pthread_mutex_lock(&gc_mutex);
 

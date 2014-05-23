@@ -3,13 +3,13 @@ import "actors_prim" as actors_prim
 
 inherits StandardPrelude.methods
 
-class Actor.new(aid') is confidential {
+class Actor.new(aid') {
     inherits false
 
     def aid = aid'
 
-    method !(msg) {
-        actors_prim.post(aid, msg)
+    method !(msg : Copyable) {
+        actors_prim.post(aid, msg.copy())
     }
 
     method asString {

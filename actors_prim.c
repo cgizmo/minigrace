@@ -129,7 +129,7 @@ Object actors_prim_AID(Object self, int nparams, int *argcv, Object *argv, int f
 
 Object AID_asString(Object self, int nparams, int *argcv, Object *argv, int flags)
 {
-    thread_id id = ((AIDObject*)self)->id;
+    thread_id id = ((AIDObject *)self)->id;
     char str[100];
 
     snprintf(str, 100, "AID<%d>", id);
@@ -143,7 +143,7 @@ Object AID_Equals(Object self, int nparams, int *argcv, Object *argv, int flags)
         return alloc_Boolean(0);
     }
 
-    return alloc_Boolean(((AIDObject*)argv[0])->id == ((AIDObject*)self)->id);
+    return alloc_Boolean(((AIDObject *)argv[0])->id == ((AIDObject *)self)->id);
 }
 
 static PollResult poll_with_timeout(Object *result, const int timeout)

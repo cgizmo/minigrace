@@ -192,6 +192,7 @@ Object BuiltinList_pop(Object self, int nparts, int *argcv, Object *args, int fl
 Object BuiltinList_prepended(Object self, int nparts, int *argcv, Object *args, int flags);
 Object BuiltinList_push(Object self, int nparts, int *argcv, Object *args, int flags);
 Object BuiltinList_reduce(Object self, int nparts, int *argcv, Object *args, int flags);
+Object BuiltinList_copy(Object self, int nparts, int *argcv, Object *args, int flags);
 Object Class_asString(Object self, int nparts, int *argcv, Object *argv, int flags);
 Object ConcatString_Equals(Object self, int nparts, int *argcv, Object *args, int flags);
 Object ConcatString__escape(Object self, int nparts, int *argcv, Object *args, int flags);
@@ -277,6 +278,7 @@ Object OrPattern_match(Object self, int nparts, int *argcv, Object *argv, int fl
 Object PrimitiveArrayClassObject_new(Object self, int nparts, int *argcv, Object *args, int flags);
 Object PrimitiveArray_index(Object self, int nparts, int *argcv, Object *args, int flags);
 Object PrimitiveArray_indexAssign(Object self, int nparts, int *argcv, Object *args, int flags);
+Object PrimitiveArray_copy(Object self, int nparts, int *argcv, Object *args, int flags);
 Object Process_status(Object self, int nparts, int *argcv, Object *argv, int flags);
 Object Process_success(Object self, int nparts, int *argcv, Object *argv, int flags);
 Object Process_terminated(Object self, int nparts, int *argcv, Object *argv, int flags);
@@ -345,6 +347,7 @@ Object prelude__methods(Object self, int argc, int *argcv, Object *argv, int fla
 Object prelude_become(Object self, int argc, int *argcv, Object *argv, int flags);
 Object prelude_clone(Object self, int argc, int *argcv, Object *argv, int flags);
 Object prelude_unbecome(Object self, int argc, int *argcv, Object *argv, int flags);
+Object immutable_primitive_copy(Object self, int nparams, int *argcv, Object *argv, int flags);
 
 Object grace_prelude(void);
 
@@ -383,6 +386,7 @@ Object alloc_AndPattern(Object l, Object r);
 
 Object alloc_ExceptionPacket(Object msg, Object exception);
 Object alloc_Exception(char *name, Object parent);
+Object alloc_PrimitiveArray(int size);
 
 struct imports_extension_pair *alloc_imports_extension(const char *ext, Object handler);
 
@@ -673,7 +677,6 @@ static void init_default_object()
     addmethod2(GraceDefaultObject, "!=", &Object_NotEquals);
     addmethod2(GraceDefaultObject, "asDebugString", &Object_asString);
 
-    // TODO : need to do this ? Not in original minigrace.
     gc_root(GraceDefaultObject);
 }
 
@@ -777,6 +780,7 @@ static void init_Number()
         add_Method(Number, "&", &literal_and);
         add_Method(Number, "prefix<", &Float64_prefixLessThan);
         add_Method(Number, "prefix>", &Float64_prefixGreaterThan);
+        add_Method(Number, "copy", &immutable_primitive_copy);
     }
 }
 
@@ -797,6 +801,7 @@ static void init_Boolean()
         add_Method(Boolean, "!=", &Boolean_NotEquals);
         add_Method(Boolean, "orElse", &Boolean_orElse);
         add_Method(Boolean, "match", &literal_match);
+        add_Method(Boolean, "copy", &immutable_primitive_copy);
     }
 }
 
@@ -827,6 +832,7 @@ static void init_String()
         add_Method(String, "match", &literal_match);
         add_Method(String, "|", &literal_or);
         add_Method(String, "&", &literal_and);
+        add_Method(String, "copy", &immutable_primitive_copy);
     }
 }
 
@@ -860,6 +866,7 @@ static void init_ConcatString()
         add_Method(ConcatString, "match", &literal_match);
         add_Method(ConcatString, "|", &literal_or);
         add_Method(ConcatString, "&", &literal_and);
+        add_Method(ConcatString, "copy", &immutable_primitive_copy);
     }
 }
 
@@ -876,6 +883,7 @@ static void init_Octets()
         add_Method(Octets, "!=", &Object_NotEquals);
         add_Method(Octets, "size", &Octets_size);
         add_Method(Octets, "decode", &Octets_decode);
+        add_Method(Octets, "copy", &immutable_primitive_copy);
     }
 }
 
@@ -883,7 +891,7 @@ static void init_BuiltinList()
 {
     if (BuiltinList == NULL)
     {
-        BuiltinList = alloc_class3("BuiltinList", 20, (void *)&BuiltinList_mark,
+        BuiltinList = alloc_class3("BuiltinList", 21, (void *)&BuiltinList_mark,
                                    (void *)&BuiltinList__release);
         add_Method(BuiltinList, "asString", &BuiltinList_asString);
         add_Method(BuiltinList, "at", &BuiltinList_index);
@@ -905,6 +913,7 @@ static void init_BuiltinList()
         add_Method(BuiltinList, "prepended", &BuiltinList_prepended);
         add_Method(BuiltinList, "++", &BuiltinList_concat);
         add_Method(BuiltinList, "reduce", &BuiltinList_reduce);
+        add_Method(BuiltinList, "copy", &BuiltinList_copy);
     }
 }
 
@@ -932,6 +941,7 @@ static void init_PrimitiveArray()
         add_Method(PrimitiveArray, "size", &BuiltinList_length);
         add_Method(PrimitiveArray, "==", &Object_Equals);
         add_Method(PrimitiveArray, "!=", &Object_NotEquals);
+        add_Method(PrimitiveArray, "copy", &PrimitiveArray_copy);
     }
 }
 
@@ -1270,6 +1280,12 @@ static inline void init_Block(ClassData block)
     {
         Block = block;
     }
+}
+
+/* Cloning functions */
+Object immutable_primitive_copy(Object self, int nparams, int *argcv, Object *argv, int flags)
+{
+    return self;
 }
 
 void pushstackframe(struct StackFrameObject *f, char *name)
@@ -2222,6 +2238,25 @@ Object alloc_BuiltinListIter(Object array)
     return o;
 }
 
+Object BuiltinList_copy(Object self, int nparts, int *argcv,
+                        Object *args, int flags)
+{
+    int argcv_[] = {1};
+    Object newlist = alloc_BuiltinList();
+
+    Object iter = callmethod(self, "iter", 0, NULL, NULL);
+    gc_frame_newslot(iter);
+
+    while (istrue(callmethod(iter, "havemore", 0, NULL, NULL)))
+    {
+        Object x = callmethod(iter, "next", 0, NULL, NULL);
+        Object copy_x = callmethod(x, "copy", 0, NULL, NULL);
+        BuiltinList_push(newlist, 1, argcv_, &copy_x, 0);
+    }
+
+    return newlist;
+}
+
 Object BuiltinList_pop(Object self, int nparts, int *argcv,
                        Object *args, int flags)
 {
@@ -2515,6 +2550,21 @@ Object alloc_BuiltinList()
 Object alloc_List()
 {
     return alloc_BuiltinList();
+}
+
+Object PrimitiveArray_copy(Object self, int nparts, int *argcv,
+                           Object *args, int flags)
+{
+    struct PrimitiveArrayObject *arr = (struct PrimitiveArrayObject *)self;
+    struct PrimitiveArrayObject *new_arr =
+        (struct PrimitiveArrayObject *)alloc_PrimitiveArray(arr->size);
+
+    for (int i = 0; i < arr->size; i++)
+    {
+        new_arr->items[i] = callmethod(arr->items[i], "copy", 0, NULL, NULL);
+    }
+
+    return (Object)new_arr;
 }
 
 Object PrimitiveArray_indexAssign(Object self, int nparts, int *argcv,
@@ -3095,8 +3145,6 @@ Object alloc_ConcatString(Object left, Object right)
     return o;
 }
 
-Object String__escape(Object, int, int *, Object *, int flags);
-Object String_length(Object, int, int *, Object *, int flags);
 Object String_iter(Object receiver, int nparts, int *argcv,
                    Object *args, int flags)
 {
