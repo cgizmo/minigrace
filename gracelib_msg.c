@@ -32,7 +32,8 @@ void message_queue_destroy(MessageQueue *msg_queue)
     free(msg_queue);
 }
 
-void message_queue_post(MessageQueue *msg_queue, Object data, GCTransit *data_transit)
+void message_queue_post(MessageQueue *msg_queue, Object data, GCTransit *data_transit,
+        const PostBehaviour b)
 {
     MessageQueueElement *elem = malloc(sizeof(MessageQueueElement));
 
@@ -47,6 +48,11 @@ void message_queue_post(MessageQueue *msg_queue, Object data, GCTransit *data_tr
     {
         msg_queue->head = elem;
         msg_queue->tail = elem;
+    }
+    else if (b == PREPEND)
+    {
+        elem->next = msg_queue->head;
+        msg_queue->head = elem;
     }
     else
     {

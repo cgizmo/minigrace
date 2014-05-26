@@ -18,15 +18,18 @@ struct AIDObject
 };
 
 /* Prototypes */
+static Object post(Object, Object, const PostBehaviour);
 static PollResult poll_with_timeout(Object *, const int);
 static Object alloc_AID_object(thread_id);
 static void init_module_object(void);
 
 Object module_actors_prim_init(void);
+Object actors_prim_self(Object, int, int *, Object *, int);
 Object actors_prim_spawn(Object, int, int *, Object *, int);
 Object actors_prim_post(Object, int, int *, Object *, int);
+Object actors_prim_priority_post(Object, int, int *, Object *, int);
 Object actors_prim_poll(Object, int, int *, Object *, int);
-Object actors_prim_timedpoll(Object, int, int *, Object *, int);
+Object actors_prim_timed_poll(Object, int, int *, Object *, int);
 
 /* Globals */
 static pthread_once_t once_control = PTHREAD_ONCE_INIT;
@@ -77,14 +80,17 @@ Object actors_prim_post(Object self, int nparams, int *argcv, Object *argv, int 
         gracedie("actors_prim.post requires two arguments");
     }
 
-    AIDObject *aid = (AIDObject *)argv[0];
-    Object data = argv[1];
-    GCTransit *data_transit = gc_transit(data);
-    MessageQueue *msg_queue = get_thread_message_queue(aid->id);
+    return post(argv[0], argv[1], APPEND);
+}
 
-    message_queue_post(msg_queue, data, data_transit);
+Object actors_prim_priority_post(Object self, int nparams, int *argcv, Object *argv, int flags)
+{
+    if (nparams != 1 || argcv[0] != 2)
+    {
+        gracedie("actors_prim.priority_post requires two arguments");
+    }
 
-    return alloc_done();
+    return post(argv[0], argv[1], PREPEND);
 }
 
 Object actors_prim_poll(Object self, int nparams, int *argcv, Object *argv, int flags)
@@ -99,11 +105,11 @@ Object actors_prim_poll(Object self, int nparams, int *argcv, Object *argv, int 
     return data;
 }
 
-Object actors_prim_timedpoll(Object self, int nparams, int *argcv, Object *argv, int flags)
+Object actors_prim_timed_poll(Object self, int nparams, int *argcv, Object *argv, int flags)
 {
     if (nparams != 1 || argcv[0] != 1)
     {
-        gracedie("actors_prim.timedpoll requires one argument");
+        gracedie("actors_prim.timed_poll requires one argument");
     }
 
     Object data;
@@ -144,6 +150,17 @@ Object AID_Equals(Object self, int nparams, int *argcv, Object *argv, int flags)
     }
 
     return alloc_Boolean(((AIDObject *)argv[0])->id == ((AIDObject *)self)->id);
+}
+
+static Object post(Object dest, Object data, const PostBehaviour b)
+{
+    AIDObject *aid = (AIDObject *)dest;
+    GCTransit *data_transit = gc_transit(data);
+    MessageQueue *msg_queue = get_thread_message_queue(aid->id);
+
+    message_queue_post(msg_queue, data, data_transit, b);
+
+    return alloc_done();
 }
 
 static PollResult poll_with_timeout(Object *result, const int timeout)
@@ -196,8 +213,9 @@ static void init_module_object()
     add_Method(c, "me", &actors_prim_me);
     add_Method(c, "spawn", &actors_prim_spawn);
     add_Method(c, "post", &actors_prim_post);
+    add_Method(c, "priority_post", &actors_prim_priority_post);
     add_Method(c, "poll", &actors_prim_poll);
-    add_Method(c, "timedpoll", &actors_prim_timedpoll);
+    add_Method(c, "timed_poll", &actors_prim_timed_poll);
     add_Method(c, "TimedOut", &actors_prim_TimedOut);
     add_Method(c, "AID", &actors_prim_AID);
 

@@ -26,7 +26,7 @@ method receive(block) {
 method receive(block)
        after(secs)
        do(timeout) {
-    def res = actors_prim.timedpoll(secs)
+    def res = actors_prim.timed_poll(secs)
 
     match(res)
         case { _ : actors_prim.TimedOut -> timeout.apply() }

@@ -11,6 +11,7 @@
 typedef struct MessageQueue MessageQueue;
 typedef struct MessageQueueElement MessageQueueElement;
 typedef enum PollResult PollResult;
+typedef enum PostBehaviour PostBehaviour;
 
 struct MessageQueue
 {
@@ -35,9 +36,14 @@ enum PollResult
     POLL_OK, POLL_TIMED_OUT
 };
 
+enum PostBehaviour
+{
+    PREPEND, APPEND
+};
+
 MessageQueue *message_queue_alloc(void);
 void message_queue_destroy(MessageQueue *);
-void message_queue_post(MessageQueue *, Object, GCTransit *);
+void message_queue_post(MessageQueue *, Object, GCTransit *, const PostBehaviour);
 PollResult message_queue_poll(MessageQueue *, Object *, GCTransit **, const int);
 
 #endif
