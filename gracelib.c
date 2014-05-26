@@ -959,7 +959,8 @@ static void init_Undefined()
 {
     if (Undefined == NULL)
     {
-        Undefined = alloc_class("Undefined", 0);
+        Undefined = alloc_class("Undefined", 1);
+        add_Method(Undefined, "copy", &immutable_primitive_copy);
     }
 }
 
@@ -967,11 +968,12 @@ static void init_Done()
 {
     if (Done == NULL)
     {
-        Done = alloc_class("done", 4);
+        Done = alloc_class("done", 5);
         add_Method(Done, "==", &Object_Equals);
         add_Method(Done, "!=", &Object_NotEquals);
         add_Method(Done, "asDebugString", &Singleton_asString);
         add_Method(Done, "asString", &Singleton_asString);
+        add_Method(Done, "copy", &immutable_primitive_copy);
     }
 }
 
@@ -979,11 +981,12 @@ static void init_EllipsisClass()
 {
     if (ellipsisClass == NULL)
     {
-        ellipsisClass = alloc_class("ellipsis", 4);
+        ellipsisClass = alloc_class("ellipsis", 5);
         add_Method(ellipsisClass, "asString", &Object_asString);
         add_Method(ellipsisClass, "++", &Object_concat);
         add_Method(ellipsisClass, "==", &Object_Equals);
         add_Method(ellipsisClass, "!=", &Object_NotEquals);
+        add_Method(ellipsisClass, "copy", &immutable_primitive_copy);
     }
 }
 
