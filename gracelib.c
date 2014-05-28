@@ -5646,6 +5646,21 @@ Object *getfromclosure(Object o, int idx)
     return closure->data[idx];
 }
 
+void resolveclosure(Object o)
+{
+    struct ClosureEnvObject *closure = (struct ClosureEnvObject *)o;
+
+    for (int i = 0; i < closure->size; i++)
+    {
+        if (closure->data[i] != NULL)
+        {
+            Object *resolved = glmalloc(sizeof(Object));
+            *resolved = *(closure->data[i]);
+            closure->data[i] = resolved;
+        }
+    }
+}
+
 Object gracelib_readall(Object self, int nparams,
                         Object *args)
 {

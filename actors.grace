@@ -71,7 +71,7 @@ method receive(block)
 
 method spawn(block) {
     def parent = me()
-    aid.new(actors_prim.spawn(block, parent))
+    aid.new(actors_prim.spawn(block, parent.copy()))
 }
 
 method me() {

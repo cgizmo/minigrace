@@ -41,6 +41,7 @@ static ThreadState *thread_state_alloc(thread_id, thread_id);
 static ThreadList *thread_list_cons(ThreadList **);
 static void thread_list_remove(ThreadList **, ThreadList *);
 static void thread_list_free(ThreadList *);
+static void resolve_block(Object);
 
 static int active = 0;
 
@@ -146,11 +147,16 @@ thread_id grace_thread_create(Object block, Object block_arg,
     id = next_thread_id;
     next_thread_id++;
 
+    // Resolve the pointers in the block's closure. If they are not resolved now,
+    // they can be changed by the caller thread before the new thread is able to read
+    // them.
+    resolve_block(block);
+
     // Fill up thread parameters
     params->my_thread_state = thread_state_alloc(id, get_state()->id);
     params->thread_list_entry = t;
-    params->block = block; // TODO : block_copy(block); ?
-    params->block_arg = block_arg; // TODO : copy ?
+    params->block = block;
+    params->block_arg = block_arg;
     params->block_transit = block_transit;
     params->block_arg_transit = block_arg_transit;
     t->id = id;
@@ -210,6 +216,12 @@ void wait_for_all_threads()
     }
 
     debug("wait_for_all_threads: threads finished.\n");
+}
+
+static void resolve_block(Object o)
+{
+    struct UserObject *block = (struct UserObject *)o;
+    resolveclosure(block->data[0]);
 }
 
 static void grace_thread(void *thread_params_)

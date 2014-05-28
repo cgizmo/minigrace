@@ -119,6 +119,7 @@ void gracelib_destroy();
 void module_sys_init_argv(Object);
 void gracelib_stats();
 void addtoclosure(Object, Object *);
+void resolveclosure(Object);
 void glfree(void *);
 void setCompilerModulePath(char *);
 void setModulePath(char *);
