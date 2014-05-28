@@ -138,7 +138,7 @@ Object AID_asString(Object self, int nparams, int *argcv, Object *argv, int flag
     thread_id id = ((AIDObject *)self)->id;
     char str[100];
 
-    snprintf(str, 100, "AID<%d>", id);
+    snprintf(str, 100, "c_AID<%d>", id);
     return alloc_String(str);
 }
 
@@ -200,6 +200,7 @@ static void init_module_object()
     add_Method(AID, "==", &AID_Equals);
     add_Method(AID, "!=", &Object_NotEquals);
     add_Method(AID, "asString", &AID_asString);
+    add_Method(AID, "copy", &immutable_primitive_copy);
 
     TimedOut = alloc_class("TimedOut", 1);
     add_Method(TimedOut, "__ unique TimedOut", NULL);

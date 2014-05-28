@@ -33,7 +33,7 @@ void message_queue_destroy(MessageQueue *msg_queue)
 }
 
 void message_queue_post(MessageQueue *msg_queue, Object data, GCTransit *data_transit,
-        const PostBehaviour b)
+                        const PostBehaviour b)
 {
     MessageQueueElement *elem = malloc(sizeof(MessageQueueElement));
 

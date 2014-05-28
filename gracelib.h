@@ -108,6 +108,9 @@ Object Object_NotEquals(Object, int, int *, Object *, int);
 Object Object_asString(Object, int, int *, Object *, int);
 Object Singleton_asString(Object, int, int *, Object *, int);
 
+// Used for immutable obj copies in libs
+Object immutable_primitive_copy(Object self, int nparams, int *argcv, Object *argv, int flags);
+
 // These are used by code generation, and shouldn't need to be
 // used elsewhere.
 void initprofiling();

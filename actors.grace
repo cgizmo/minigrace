@@ -3,17 +3,53 @@ import "actors_prim" as actors_prim
 
 inherits StandardPrelude.methods
 
-class Actor.new(aid') {
-    inherits false
+type Signal = {
+    getSignal() -> String
+}
 
-    def aid = aid'
+type AID = {
+    !(msg : Copyable) -> Done
+}
 
-    method !(msg : Copyable) {
-        actors_prim.post(aid, msg.copy())
+class baseSignal.new(signal') -> Signal & Copyable {
+    def signal : String = signal'
+
+    method getSignal() -> String {
+        signal
+    }
+
+    method copy() {
+        baseSignal.new(signal)
+    }
+
+    method asString() {
+        "Signal<{signal}>"
+    }
+}
+
+def STOP_SIGNAL : Signal = baseSignal.new("STOP")
+def KILL_SIGNAL : Signal = baseSignal.new("KILL")
+
+class aid.new(aid') -> AID & Copyable {
+    def prim_aid : actors_prim.AID = aid'
+
+    method !(msg : Copyable | Signal) -> Done {
+        // Put a KILL signal on the front of the queue
+        if (Signal.match(msg) && (msg == KILL_SIGNAL)) then {
+            actors_prim.priority_post(prim_aid, msg.copy())
+        }
+        // Put any other signal/message at the back of the queue
+        else {
+            actors_prim.post(prim_aid, msg.copy())
+        }
+    }
+
+    method copy() {
+        aid.new(prim_aid)
     }
 
     method asString {
-        "Actor<{aid}>"
+        "AID<{prim_aid}>"
     }
 
 }
@@ -33,12 +69,12 @@ method receive(block)
         case { _ -> block.apply(res) }
 }
 
-
 method spawn(block) {
     def parent = me()
-    Actor.new(actors_prim.spawn(block, parent))
+    aid.new(actors_prim.spawn(block, parent))
 }
 
 method me() {
-    Actor.new(actors_prim.me())
+    aid.new(actors_prim.me())
 }
+
