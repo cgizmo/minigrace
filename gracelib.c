@@ -1933,6 +1933,15 @@ Object alloc_GreaterThanPattern(Object r)
     return o;
 }
 
+void gracelib_raise_exception(char* ex)
+{
+    int partcv[1] = {1};
+    Object params[1] = {alloc_String(ex)};
+
+    Object ex_obj = callmethodflags(prelude, "Exception", 1, partcv, params, CFLAG_SELF);
+    callmethod(ex_obj, "raise", 1, partcv, params);
+}
+
 void printExceptionBacktrace(Object o)
 {
     ThreadState *st = get_state();

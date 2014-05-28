@@ -79,6 +79,7 @@ Object *alloc_var();
 Object alloc_HashMapClassObject();
 Object gracelib_print(Object, int, Object *);
 Object gracelib_length(Object);
+void gracelib_raise_exception(char*);
 Object dlmodule(const char *);
 Object process_varargs(Object *, int, int);
 void assertClass(Object, ClassData);
