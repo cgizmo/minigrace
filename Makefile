@@ -122,7 +122,10 @@ minigrace-dynamic: l2/minigrace $(SOURCEFILES)
 actors.gso: minigrace actors.grace
 	./minigrace --make --noexec --dynamic-module -XNoMain actors.grace
 
-stdlib: actors.gso
+actors_lib.gso: minigrace actors_lib.grace
+	./minigrace --make --noexec --dynamic-module -XNoMain actors_lib.grace
+
+stdlib: actors.gso actors_lib.gso
 
 gencheck:
 	( X=$$(tools/git-calculate-generation) ; mv .git-generation-cache .git-generation-cache.$$$$ ; Y=$$(tools/git-calculate-generation) ; [ "$$X" = "$$Y" ] || exit 1 ; rm -rf .git-generation-cache ; mv .git-generation-cache.$$$$ .git-generation-cache )
