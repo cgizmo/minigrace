@@ -160,7 +160,7 @@ static Object post(Object dest, Object data, const PostBehaviour b)
 
     if (msg_queue == NULL)
     {
-        gracelib_raise_exception("cannot post, not actor at given AID");
+        gracelib_raise_exception("cannot post, no actor at given AID");
     }
 
     message_queue_post(msg_queue, data, data_transit, b);

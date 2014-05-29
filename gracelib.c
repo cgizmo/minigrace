@@ -532,12 +532,6 @@ char **ARGV = NULL;
 Object argv_List = NULL;
 
 // TODO : deal with those
-static jmp_buf error_jump;
-static int error_jump_set;
-static Object currentException;
-static jmp_buf *exceptionHandler_stack;
-static Object *finally_stack;
-static int exceptionHandlerDepth;
 static Object ExceptionObject;
 static Object ErrorObject;
 static Object RuntimeErrorObject;
@@ -1337,13 +1331,15 @@ void gracedie(char *msg, ...)
     va_list args;
     va_start(args, msg);
 
-    if (error_jump_set)
+    ThreadState *st = get_state();
+
+    if (st->error_jump_set)
     {
         char buf[strlen(msg) * 4 + 1024];
         vsprintf(buf, msg, args);
-        currentException = alloc_ExceptionPacket(alloc_String(buf),
+        st->currentException = alloc_ExceptionPacket(alloc_String(buf),
                            RuntimeErrorObject);
-        longjmp(error_jump, 1);
+        longjmp(st->error_jump, 1);
     }
 
     fprintf(stderr, "Error around line %i: RuntimeError: ", linenumber);
@@ -1382,13 +1378,15 @@ void die(char *msg, ...)
     va_list args;
     va_start(args, msg);
 
-    if (error_jump_set)
+    ThreadState *st = get_state();
+
+    if (st->error_jump_set)
     {
         char buf[strlen(msg) * 4 + 1024];
         vsprintf(buf, msg, args);
-        currentException = alloc_ExceptionPacket(alloc_String(buf),
+        st->currentException = alloc_ExceptionPacket(alloc_String(buf),
                            RuntimeErrorObject);
-        longjmp(error_jump, 1);
+        longjmp(st->error_jump, 1);
     }
 
     fprintf(stderr, "Error around line %i: RuntimeError: ", linenumber);
@@ -2075,11 +2073,13 @@ Object alloc_ExceptionPacket(Object msg, Object exception)
 Object Exception_raise(Object self, int argc, int *argcv, Object *argv,
                        int flags)
 {
-    if (error_jump_set)
+    ThreadState *st = get_state();
+
+    if (st->error_jump_set)
     {
-        currentException = alloc_ExceptionPacket(argv[0],
+        st->currentException = alloc_ExceptionPacket(argv[0],
                            self);
-        longjmp(error_jump, 1);
+        longjmp(st->error_jump, 1);
     }
 
     printExceptionBacktrace(alloc_ExceptionPacket(argv[0], self));
@@ -2090,14 +2090,16 @@ Object Exception_raise(Object self, int argc, int *argcv, Object *argv,
 Object Exception_raiseWith(Object self, int argc, int *argcv, Object *argv,
                            int flags)
 {
-    currentException = alloc_ExceptionPacket(argv[0], self);
+    ThreadState *st = get_state();
+
+    st->currentException = alloc_ExceptionPacket(argv[0], self);
     struct ExceptionPacketObject *p =
-        (struct ExceptionPacketObject *)currentException;
+        (struct ExceptionPacketObject *)st->currentException;
     p->data = argv[1];
 
-    if (error_jump_set)
+    if (st->error_jump_set)
     {
-        longjmp(error_jump, 1);
+        longjmp(st->error_jump, 1);
     }
 
     printExceptionBacktrace(alloc_ExceptionPacket(argv[0], self));
@@ -5298,14 +5300,14 @@ start:
         exit(1);
     }
 
-    if (error_jump_set)
+    if (st->error_jump_set)
     {
         char buf[1024];
         sprintf(buf, "Method lookup error: no %s in %s.", name,
                 self->class->name);
-        currentException = alloc_ExceptionPacket(alloc_String(buf),
+        st->currentException = alloc_ExceptionPacket(alloc_String(buf),
                            RuntimeErrorObject);
-        longjmp(error_jump, 1);
+        longjmp(st->error_jump, 1);
     }
 
     fprintf(stderr, "Available methods are:\n");
@@ -5348,7 +5350,7 @@ Object callmethodflags(Object receiver, const char *name,
     ThreadState *st = get_state();
     int i, j;
     int start_calldepth = st->calldepth;
-    int start_exceptionHandlerDepth = exceptionHandlerDepth;
+    int start_exceptionHandlerDepth = st->exceptionHandlerDepth;
 
     if (receiver->flags & FLAG_DEAD)
     {
@@ -5365,11 +5367,11 @@ Object callmethodflags(Object receiver, const char *name,
             st->return_value = NULL;
 
             for (i = st->calldepth; i > start_calldepth; i--)
-                if (finally_stack[i])
+                if (st->finally_stack[i])
                 {
-                    callmethod(finally_stack[i], "apply", 0, NULL, NULL);
-                    finally_stack[i] = NULL;
-                    memcpy(error_jump, exceptionHandler_stack[i],
+                    callmethod(st->finally_stack[i], "apply", 0, NULL, NULL);
+                    st->finally_stack[i] = NULL;
+                    memcpy(st->error_jump, st->exceptionHandler_stack[i],
                            sizeof(jmp_buf));
                 }
 
@@ -5456,8 +5458,8 @@ Object catchCase(Object block, Object *caseList, int ncases,
                  Object finally)
 {
     ThreadState *st = get_state();
-    int old_error_jump_set = error_jump_set;
-    error_jump_set = 1;
+    int old_error_jump_set = st->error_jump_set;
+    st->error_jump_set = 1;
     int start_calldepth = st->calldepth;
 
     if (!finally)
@@ -5467,19 +5469,19 @@ Object catchCase(Object block, Object *caseList, int ncases,
         block_savedest(finally);
     }
 
-    finally_stack[st->calldepth] = finally;
-    int start_exceptionHandlerDepth = exceptionHandlerDepth++;
+    st->finally_stack[st->calldepth] = finally;
+    int start_exceptionHandlerDepth = st->exceptionHandlerDepth++;
     jmp_buf old_error_jump;
 
-    if (error_jump)
+    if (st->error_jump)
     {
-        memcpy(old_error_jump, error_jump, sizeof(jmp_buf));
+        memcpy(old_error_jump, st->error_jump, sizeof(jmp_buf));
     }
 
-    if (setjmp(error_jump))
+    if (setjmp(st->error_jump))
     {
-        memcpy(error_jump, old_error_jump, sizeof(jmp_buf));
-        error_jump_set = old_error_jump_set;
+        memcpy(st->error_jump, old_error_jump, sizeof(jmp_buf));
+        st->error_jump_set = old_error_jump_set;
         st->calldepth = start_calldepth;
         int partcv[1] = {1};
 
@@ -5487,40 +5489,40 @@ Object catchCase(Object block, Object *caseList, int ncases,
         {
             Object val = caseList[i];
             Object ret = callmethod(val, "match", 1, partcv,
-                                    &currentException);
+                                    &(st->currentException));
 
             if (istrue(ret))
             {
                 callmethod(finally, "apply", 0, NULL, NULL);
-                finally_stack[start_calldepth] = NULL;
-                exceptionHandlerDepth--;
+                st->finally_stack[start_calldepth] = NULL;
+                st->exceptionHandlerDepth--;
                 return alloc_done();
             }
         }
 
         callmethod(finally, "apply", 0, NULL, NULL);
-        finally_stack[start_calldepth] = NULL;
-        exceptionHandlerDepth--;
+        st->finally_stack[start_calldepth] = NULL;
+        st->exceptionHandlerDepth--;
 
         // try next level of stack
-        if (exceptionHandlerDepth > 0)
+        if (st->exceptionHandlerDepth > 0)
         {
             longjmp(old_error_jump, 1);
         }
 
         // Exception propagated to top
-        printExceptionBacktrace(currentException);
+        printExceptionBacktrace(st->currentException);
         exit(1);
     }
 
-    memcpy(exceptionHandler_stack[st->calldepth], error_jump,
+    memcpy(st->exceptionHandler_stack[st->calldepth], st->error_jump,
            sizeof(jmp_buf));
     Object rv = callmethod(block, "apply", 0, NULL, NULL);
-    error_jump_set = old_error_jump_set;
-    memcpy(error_jump, old_error_jump, sizeof(jmp_buf));
-    exceptionHandlerDepth = start_exceptionHandlerDepth;
+    st->error_jump_set = old_error_jump_set;
+    memcpy(st->error_jump, old_error_jump, sizeof(jmp_buf));
+    st->exceptionHandlerDepth = start_exceptionHandlerDepth;
     callmethod(finally, "apply", 0, NULL, NULL);
-    finally_stack[start_calldepth] = NULL;
+    st->finally_stack[start_calldepth] = NULL;
     return rv;
 }
 
@@ -6619,11 +6621,6 @@ void gracelib_argv(char **argv)
     pthread_mutex_init(&gracelib_mutex, NULL);
     pthread_mutex_init(&debug_mutex, NULL);
 
-    // TODO : make thread local ?
-    exceptionHandler_stack = calloc(STACK_SIZE + 1, sizeof(jmp_buf));
-    exceptionHandler_stack++;
-    finally_stack = calloc(STACK_SIZE + 1, sizeof(Object));
-    finally_stack++;
     debug_enabled = (getenv("GRACE_DEBUG_LOG") != NULL);
 
     if (debug_enabled)

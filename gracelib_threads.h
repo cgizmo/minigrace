@@ -36,6 +36,16 @@ struct ThreadState
 
     int callcount;
     int tailcount;
+
+    // Exception handling
+    jmp_buf error_jump;
+    Object currentException;
+
+    jmp_buf *exceptionHandler_stack;
+    Object *finally_stack;
+
+    int error_jump_set;
+    int exceptionHandlerDepth;
 };
 
 void threading_init(void);

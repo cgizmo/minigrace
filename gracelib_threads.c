@@ -318,6 +318,17 @@ static ThreadState *thread_state_alloc(thread_id id, thread_id parent_id)
     state->callcount = 0;
     state->tailcount = 0;
 
+    state->currentException = NULL;
+
+    state->exceptionHandler_stack = calloc(STACK_SIZE + 1, sizeof(jmp_buf));
+    state->exceptionHandler_stack++;
+
+    state->finally_stack = calloc(STACK_SIZE + 1, sizeof(Object));
+    state->finally_stack++;
+
+    state->error_jump_set = 0;
+    state->exceptionHandlerDepth = 0;
+
     return state;
 }
 
