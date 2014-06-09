@@ -8,7 +8,7 @@ def child = actors_prim.spawn({parent ->
     print "[child] got '{res}'"
     print "[child] sending back 'got it'"
     actors_prim.post(parent, "got it")
-}, actors_prim.self())
+}, actors_prim.me())
 
 print "[parent] sending 'hello child' to child"
 actors_prim.post(child, "hello child")

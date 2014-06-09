@@ -24,7 +24,7 @@ static Object alloc_AID_object(thread_id);
 static void init_module_object(void);
 
 Object module_actors_prim_init(void);
-Object actors_prim_self(Object, int, int *, Object *, int);
+Object actors_prim_me(Object, int, int *, Object *, int);
 Object actors_prim_spawn(Object, int, int *, Object *, int);
 Object actors_prim_post(Object, int, int *, Object *, int);
 Object actors_prim_priority_post(Object, int, int *, Object *, int);
