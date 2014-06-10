@@ -48,10 +48,17 @@ class aid.new(aid') -> AID & Copyable {
         aid.new(prim_aid)
     }
 
+    method ==(otherAid) {
+        prim_aid == otherAid.getPrimAid
+    }
+
     method asString {
         "AID<{prim_aid}>"
     }
 
+    method getPrimAid {
+        prim_aid
+    }
 }
 
 method receive(block) {
