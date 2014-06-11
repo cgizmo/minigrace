@@ -277,11 +277,11 @@ int gc_unpause()
 
 GCStack *gc_stack_create()
 {
-    const int stack_size = STACK_SIZE * 1024;
-    GCStack *stack = calloc(1, sizeof(GCStack) + (sizeof(Object) * stack_size));
+    const int stack_size_bytes = STACK_SIZE * 1024;
+    GCStack *stack = calloc(1, sizeof(GCStack) + (sizeof(Object) * stack_size_bytes));
 
     stack->framepos = 0;
-    stack->stack_size = stack_size;
+    stack->stack_size = stack_size_bytes;
     stack->prev = NULL;
 
     if (gc_enabled)
