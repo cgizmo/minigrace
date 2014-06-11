@@ -17,7 +17,7 @@ table(State) ->
     receive
         {Pid, acquire, Fork} when element(Fork, State) == available ->
             Pid ! ok,
-            table(setelement(Fork, State, Pid));
+            table(setelement(Fork, State, taken));
         {Pid, acquire, _} ->
             Pid ! denied,
             table(State);
@@ -53,16 +53,13 @@ think(Name) ->
     wait().
 
 acquire_fork(Table, Name, Fork) ->
-    io:format("~s is requesting fork ~p.~n", [Name, Fork]),
-    wait(),
     Table ! {self(), acquire, Fork},
     receive
         ok -> io:format("~s has acquired fork ~p.~n", [Name, Fork]), ok;
-        denied -> io:format("~s has been denied fork ~p.~n", [Name, Fork]), denied
+        denied -> denied
     end.
 
 replace_fork(Table, Name, Fork) ->
     io:format("~s is replacing fork ~p.~n", [Name, Fork]),
-    wait(),
     Table ! {self(), replace, Fork}.
 

@@ -40,26 +40,22 @@ void table() {
 
 void philosopher(Tid tableTid, immutable Person person) {
   while(true) {
-    stdout.writefln("[%s] I'm thinking", person.name);
+    stdout.writefln("%s is thinking...", person.name);
     wait();
     foreach(ref i, ForkID fork; person.forks) {
-      stdout.writefln("[%s] I'm requesting fork %u", person.name, fork);
-      wait();
       tableTid.send(thisTid, fork);
       if(receiveOnly!Request == Request.Ok) {
-        stdout.writefln("[%s] Fork %u acquired", person.name, fork);
+        stdout.writefln("%s has acquired fork %u.", person.name, fork);
       } else {
-        stdout.writefln("[%s] Fork %u denied", person.name, fork);
         --i;
       }
     }
 
-    stdout.writefln("[%s] I'm eating", person.name);
+    stdout.writefln("%s is eating...", person.name);
     wait();
 
     foreach(i, ForkID fork; person.forks) {
-      stdout.writefln("[%s] Returning fork %u", person.name, fork);
-      wait();
+      stdout.writefln("%s is returning fork %u.", person.name, fork);
       tableTid.send(fork);
     }
   }

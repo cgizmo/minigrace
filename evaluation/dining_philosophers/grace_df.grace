@@ -4,8 +4,8 @@ import "math" as math
 dialect "actors"
 
 method wait() {
-    def sleepS = (math.random * 3).truncate + 1
-    receive { _ -> true } after (sleepS) do { true }
+   def sleepMs = (math.random * 3000).truncate
+   receive { _ -> done } after (sleepMs) do { done }
 }
 
 class philosopher.new(tableAID, name, forks) {
@@ -25,15 +25,12 @@ class philosopher.new(tableAID, name, forks) {
     method acquireAllForks is confidential {
         while { requiredForks.size > 0 } do {
             def fork = requiredForks.pop
-            print("{name} is requesting fork {fork}.")
-            wait()
 
             tableAID ! [me(), "acquire", fork]
             receive { x -> match(x)
                 case { "ok" -> print("{name} has acquired fork {fork}.");
                                acquiredForks.push(fork) }
-                case { "denied" -> print("{name} has been denied fork {fork}.");
-                                   requiredForks.push(fork) }
+                case { "denied" -> requiredForks.push(fork) }
             }
         }
     }
@@ -42,10 +39,8 @@ class philosopher.new(tableAID, name, forks) {
         while { acquiredForks.size > 0 } do {
             def fork = acquiredForks.pop
             print("{name} is replacing fork {fork}.")
-            wait()
 
             tableAID ! [me(), "replace", fork]
-
             requiredForks.push(fork)
         }
     }
@@ -60,13 +55,10 @@ class philosopher.new(tableAID, name, forks) {
     }
 }
 
-class table.new(numForks) {
-    var state := []
+class table.new(state') {
+    var state := state'
 
-    method onStart() {
-        state := [me(), me(), me(), me(), me()]
-    }
-
+    method onStart() { }
     method onFinish() { }
     
     method onMessage(msg) {
@@ -75,29 +67,28 @@ class table.new(numForks) {
 
         match (msg[2])
             case { "acquire" ->
-                     if (state[fork] == me()) then {
-                        state[fork] := sender
+                     if (state[fork]) then {
+                        state[fork] := false
                         sender ! "ok"
                      } else {
                         sender ! "denied"
                      }
             }
-            case { "replace" -> state[fork] := me() }
+            case { "replace" -> state[fork] := true }
     }
 }
 
-def numForks = 5
-def philosophers = [["Marx", [1, 2]],
-                    ["Descartes", [2, 3]],
-                    ["Nietzsche", [3, 4]],
-                    ["Aristotle", [4, 5]],
-                    ["Kant", [1, 5]]]
-def tableAID = actors_lib.spawnActor(table.new(numForks))
+def defaultTableState = [true, true , true, true, true]
+def philosophers = [["Marx", [1, 2]], ["Descartes", [2, 3]], ["Nietzsche", [3, 4]],
+                    ["Aristotle", [4, 5]], ["Kant", [1, 5]]]
+def tableAID = actors_lib.spawnActor(table.new(defaultTableState))
 
 for (philosophers) do { p ->
+    // Create the fork stack. The first fork to be popped must be the fork at
+    // p[2][1], so it is pushed last.
     var forks := []
     forks.push(p[2][2])
     forks.push(p[2][1])
 
-    spawn({ _ -> philosopher.new(tableAID, p[1], forks).philosophise })
+    spawn { _ -> philosopher.new(tableAID, p[1], forks).philosophise }
 }

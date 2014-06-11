@@ -46,7 +46,7 @@ int main()
 pthread_t start_philosopher(char *name, int fork1, int fork2)
 {
     pthread_t thread;
-    philosopher_params *params = malloc(sizeof(philosopher_params) + strlen(name));
+    philosopher_params *params = malloc(sizeof(philosopher_params) + (strlen(name) + 1) * sizeof(char));
 
     params->fork1 = fork1;
     params->fork2 = fork2;
@@ -76,9 +76,6 @@ void acquire_fork(char *name, int fork)
 {
     while (1)
     {
-        printf("%s is acquiring fork %d.\n", name, fork);
-        philo_wait();
-
         pthread_mutex_lock(&table_mutex);
         if (table[fork - 1] == 1)
         {
@@ -87,8 +84,6 @@ void acquire_fork(char *name, int fork)
             pthread_mutex_unlock(&table_mutex);
             return;
         }
-
-        printf("%s has been denied fork %d.\n", name, fork);
         pthread_mutex_unlock(&table_mutex);
     }
 }
@@ -96,7 +91,6 @@ void acquire_fork(char *name, int fork)
 void replace_fork(char *name, int fork)
 {
     printf("%s is replacing fork %d.\n", name, fork);
-    philo_wait();
 
     pthread_mutex_lock(&table_mutex);
     table[fork - 1] = 1;

@@ -18,19 +18,14 @@ type Fork = TMVar Int
 
 wait :: IO ()
 wait = do
-  delay <- randomRIO (1, 3) 
-  threadDelay $ delay * 1000000
+  delay <- randomRIO (0.0, 3.0) :: IO Float
+  threadDelay $ truncate $ delay * 1000000.0
 
 acquireFork :: Fork -> IO Int
-acquireFork fork = do 
-  id <- atomically $ takeTMVar fork
-  wait
-  return id
+acquireFork = atomically . takeTMVar
 
 replaceFork :: Fork -> Int -> IO ()
-replaceFork fork id = do
-  atomically $ putTMVar fork id
-  wait
+replaceFork fork = atomically . putTMVar fork
 
 think :: String -> IO ()
 think name = do
