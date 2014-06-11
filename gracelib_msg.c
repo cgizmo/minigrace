@@ -118,11 +118,14 @@ static struct timespec make_absolute_time(const int timeout)
 {
     struct timeval now;
     struct timespec wake_time;
+    unsigned long timeout_nsec = timeout * 1000000UL;
 
     gettimeofday(&now, NULL);
     wake_time.tv_sec = now.tv_sec;
-    wake_time.tv_nsec = now.tv_usec * 1000;
-    wake_time.tv_sec += timeout;
+    wake_time.tv_nsec = now.tv_usec * 1000UL;
+
+    wake_time.tv_sec += (wake_time.tv_nsec + timeout_nsec) / 1000000000UL;
+    wake_time.tv_nsec = (wake_time.tv_nsec + timeout_nsec) % 1000000000UL;
 
     return wake_time;
 }
