@@ -868,7 +868,7 @@ static void init_Octets()
 {
     if (Octets == NULL)
     {
-        Octets = alloc_class("Octets", 8);
+        Octets = alloc_class("Octets", 9);
         add_Method(Octets, "asString", &Octets_asString);
         add_Method(Octets, "++", &Octets_Concat);
         add_Method(Octets, "at", &Octets_at);
@@ -2302,7 +2302,6 @@ Object BuiltinList_push(Object self, int nparts, int *argcv,
             dt[i] = sself->items[i];
         }
 
-        glfree(sself->items);
         sself->items = dt;
     }
 

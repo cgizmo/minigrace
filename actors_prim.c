@@ -200,7 +200,7 @@ static void init_module_object()
     // Initialize global class data
     // TODO : fix the "fake unique method" hack (it's there b/c of pattern matching,
     // see act4.grace in samples/actors_prim).
-    AID = alloc_class("AID", 4);
+    AID = alloc_class("AID", 5);
     add_Method(AID, "__ unique AID", NULL);
     add_Method(AID, "==", &AID_Equals);
     add_Method(AID, "!=", &Object_NotEquals);
@@ -214,7 +214,7 @@ static void init_module_object()
     gc_root(timed_out_singleton);
 
     // Initialize module
-    ClassData c = alloc_class("Module<actors_prim>", 7);
+    ClassData c = alloc_class("Module<actors_prim>", 8);
 
     add_Method(c, "me", &actors_prim_me);
     add_Method(c, "spawn", &actors_prim_spawn);

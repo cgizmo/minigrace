@@ -28,12 +28,12 @@ buildinfo.grace: $(REALSOURCEFILES) StandardPrelude.grace gracelib.c gracelib_gc
 %.o: %.c
 	gcc $(CFLAGS) -c -o $@ $<
 
-gracelib-basic.a: gracelib.o gracelib_gc.o gracelib_threads.o gracelib_msg.o $(CGRACELIB)
-	ar cr gracelib-basic.a gracelib.o gracelib_gc.o gracelib_threads.o gracelib_msg.o
+gracelib-basic.o: gracelib.o gracelib_gc.o gracelib_threads.o gracelib_msg.o $(CGRACELIB)
+	ld -r -o gracelib-basic.o gracelib.o gracelib_gc.o gracelib_threads.o gracelib_msg.o
 
-gracelib-final.o: gracelib-basic.a debugger.o l1/minigrace StandardPrelude.grace
+gracelib-final.o: gracelib-basic.o debugger.o l1/minigrace StandardPrelude.grace
 	l1/minigrace --make --noexec -XNoMain -XNativePrelude StandardPrelude.grace
-	ld -o gracelib-final.o -r gracelib-basic.a StandardPrelude.gcn debugger.o
+	ld -o gracelib-final.o -r gracelib-basic.o StandardPrelude.gcn debugger.o
 
 curl.gso: curl.c gracelib.h gracelib_types.h
 	gcc $(CFLAGS) $(UNICODE_LDFLAGS) -o curl.gso -shared -fPIC curl.c -lcurl
@@ -116,7 +116,7 @@ minigrace: l2/minigrace $(SOURCEFILES) $(UNICODE_MODULE) gracelib-final.o
 # Giant hack! Not suitable for use.
 minigrace-dynamic: l2/minigrace $(SOURCEFILES)
 	l1/minigrace --make --noexec --import-dynamic -XNoMain -XNativePrelude StandardPrelude.grace
-	ld -o gracelib-final.o -r gracelib-basic.a StandardPrelude.gcn debugger.o
+	ld -o gracelib-final.o -r gracelib-basic.o StandardPrelude.gcn debugger.o
 	l2/minigrace --make --import-dynamic --verbose --module minigrace-dynamic compiler.grace
 
 actors.gso: minigrace actors.grace
@@ -148,7 +148,7 @@ samples-%: minigrace
 samples: samples-dialects samples-graphics samples-js
 
 clean:
-	rm -f gracelib-final.o gracelib-basic.a
+	rm -f gracelib-final.o gracelib-basic.o
 	rm -f gracelib.bc gracelib.o
 	rm -f gracelib_gc.bc gracelib_gc.o
 	rm -f gracelib_threads.bc gracelib_threads.o
