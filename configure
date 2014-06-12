@@ -3,6 +3,7 @@
 DISTRIB=tree
 PLATFORM=$(uname)
 PREFIX="/usr"
+CFLAGS="-pthread -g -std=c99"
 LDFLAGS=
 UNICODE_LDFLAGS=
 OTHER_MODULES=
@@ -14,6 +15,7 @@ other_modules=(
     mirrors
     math
     repl
+    actors_prim
 )
 
 ADVISE_END=
@@ -254,6 +256,7 @@ fi
 
 cat <<EOT > Makefile.conf
 PREFIX = $PREFIX
+CFLAGS = $CFLAGS
 LDFLAGS = $LDFLAGS -lm
 UNICODE_LDFLAGS = $UNICODE_LDFLAGS
 UNICODE_MODULE = $UNICODE_MODULE
