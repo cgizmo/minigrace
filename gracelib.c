@@ -5537,6 +5537,7 @@ Object gracelib_print(Object receiver, int nparams,
         Object o = callmethod(args[0], "asString", 0, NULL, NULL);
         char *s = grcstring(o);
         puts(s);
+        fflush(stdout);
     }
 
     return done;
