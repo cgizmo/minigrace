@@ -35,8 +35,10 @@ class aid.new(aid') -> AID & Copyable {
 
     method !(msg : Copyable | Signal) -> Done {
         // Put a KILL signal on the front of the queue
-        if (Signal.match(msg) && (msg == KILL_SIGNAL)) then {
-            actors_prim.priority_post(prim_aid, msg.copy())
+        if (Signal.match(msg)) then {
+            if (msg == KILL_SIGNAL) then {
+                actors_prim.priority_post(prim_aid, msg.copy())
+            }
         }
         // Put any other signal/message at the back of the queue
         else {
