@@ -13,6 +13,9 @@ enum Request {
   Denied
 }
 
+struct Acquire { }
+struct Return { }
+
 struct Person {
   string name;
   ForkID[] forks;
@@ -25,14 +28,14 @@ void wait() {
 void table() {
   bool[numForks] forksAvailable = true;
   while(true) {
-    receive((Tid person, ForkID fork) {
+    receive((Acquire _, Tid person, ForkID fork) {
           if(forksAvailable[fork - 1]) {
             forksAvailable[fork - 1] = false;
             person.send(Request.Ok);
           } else {
             person.send(Request.Denied);
           }
-        }, (ForkID fork) {
+        }, (Return _, ForkID fork) {
           forksAvailable[fork - 1] = true;
         });
   }
@@ -43,7 +46,7 @@ void philosopher(Tid tableTid, immutable Person person) {
     stdout.writefln("%s is thinking...", person.name);
     wait();
     foreach(ref i, ForkID fork; person.forks) {
-      tableTid.send(thisTid, fork);
+      tableTid.send(Acquire(), thisTid, fork);
       if(receiveOnly!Request == Request.Ok) {
         stdout.writefln("%s has acquired fork %u.", person.name, fork);
       } else {
@@ -56,7 +59,7 @@ void philosopher(Tid tableTid, immutable Person person) {
 
     foreach(i, ForkID fork; person.forks) {
       stdout.writefln("%s is returning fork %u.", person.name, fork);
-      tableTid.send(fork);
+      tableTid.send(Return(), fork);
     }
   }
 }
@@ -75,4 +78,6 @@ void main() {
   foreach(person; people) {
     spawn(&philosopher, tableTid, person);
   }
+
+  stdin.readln();
 }

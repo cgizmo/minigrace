@@ -6,6 +6,9 @@ import Control.Concurrent
 import Control.Concurrent.STM
 import System.Random
 
+-- In order to make putStrLn behave as an atomic operation with minimal code, we
+-- implement the following workaround. This is not crucial to the implementation,
+-- but it makes the output readable.
 import System.IO.Unsafe
 
 printLock :: MVar ()
@@ -13,6 +16,7 @@ printLock = unsafePerformIO $ newMVar ()
 {-# NOINLINE printLock #-}
 
 atomicPutStrLn = withMVar printLock . const . putStrLn
+-- End of workaround.
 
 type Fork = TMVar Int
 
@@ -24,8 +28,8 @@ wait = do
 acquireFork :: Fork -> IO Int
 acquireFork = atomically . takeTMVar
 
-replaceFork :: Fork -> Int -> IO ()
-replaceFork fork = atomically . putTMVar fork
+returnFork :: Fork -> Int -> IO ()
+returnFork fork = atomically . putTMVar fork
 
 think :: String -> IO ()
 think name = do
@@ -45,9 +49,9 @@ hungryPhilosopher name forks@(fork1, fork2) = do
 
   eat name
 
-  replaceFork fork2 id2
-  replaceFork fork1 id1
-  atomicPutStrLn $ name ++ " has replaced forks " ++ show id1 ++ " and " ++ show id2
+  returnFork fork2 id2
+  returnFork fork1 id1
+  atomicPutStrLn $ name ++ " has returned forks " ++ show id1 ++ " and " ++ show id2
 
   philosopher name forks
 

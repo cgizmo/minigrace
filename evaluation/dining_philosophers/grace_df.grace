@@ -3,7 +3,7 @@ import "math" as math
 
 dialect "actors"
 
-method wait() {
+method wait {
    def sleepMs = (math.random * 3000).truncate
    receive { _ -> done } after (sleepMs) do { done }
 }
@@ -14,19 +14,19 @@ class philosopher.new(tableAID, name, forks) {
 
     method think is confidential {
         print("{name} is thinking...")
-        wait()
+        wait
     }
 
     method eat is confidential {
         print("{name} is eating...")
-        wait()
+        wait
     }
 
     method acquireAllForks is confidential {
         while { requiredForks.size > 0 } do {
             def fork = requiredForks.pop
 
-            tableAID ! [me(), "acquire", fork]
+            tableAID ! ["acquire", me, fork]
             receive { x -> match(x)
                 case { "ok" -> print("{name} has acquired fork {fork}.");
                                acquiredForks.push(fork) }
@@ -35,12 +35,12 @@ class philosopher.new(tableAID, name, forks) {
         }
     }
 
-    method replaceAllForks is confidential {
+    method returnAllForks is confidential {
         while { acquiredForks.size > 0 } do {
             def fork = acquiredForks.pop
-            print("{name} is replacing fork {fork}.")
+            print("{name} is returning fork {fork}.")
 
-            tableAID ! [me(), "replace", fork]
+            tableAID ! ["return", fork]
             requiredForks.push(fork)
         }
     }
@@ -50,7 +50,7 @@ class philosopher.new(tableAID, name, forks) {
             think
             acquireAllForks
             eat
-            replaceAllForks
+            returnAllForks
         }
     }
 }
@@ -58,23 +58,23 @@ class philosopher.new(tableAID, name, forks) {
 class table.new(state') {
     var state := state'
 
-    method onStart() { }
-    method onFinish() { }
+    method onStart { }
+    method onFinish { }
     
     method onMessage(msg) {
-        def sender = msg[1]
-        def fork = msg[3]
-
-        match (msg[2])
+        match (msg[1])
             case { "acquire" ->
-                     if (state[fork]) then {
+                    def sender = msg[2]
+                    def fork = msg[3]
+
+                    if (state[fork]) then {
                         state[fork] := false
                         sender ! "ok"
-                     } else {
+                    } else {
                         sender ! "denied"
-                     }
+                    }
             }
-            case { "replace" -> state[fork] := true }
+            case { "return" -> state[msg[2]] := true }
     }
 }
 

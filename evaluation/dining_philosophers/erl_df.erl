@@ -15,13 +15,13 @@ start() ->
 
 table(State) ->
     receive
-        {Pid, acquire, Fork} when element(Fork, State) == available ->
+        {acquire, Pid, Fork} when element(Fork, State) == available ->
             Pid ! ok,
             table(setelement(Fork, State, taken));
-        {Pid, acquire, _} ->
+        {acquire, Pid, _} ->
             Pid ! denied,
             table(State);
-        {_, replace, Fork} ->
+        {return, Fork} ->
             table(setelement(Fork, State, available))
     end.
 
@@ -31,7 +31,7 @@ philosopher(Table, Name, Forks) ->
 
 hungry_philosopher(Table, Name, MyForks, []) ->
     eat(Name),
-    lists:map(fun(Fork) -> replace_fork(Table, Name, Fork) end, MyForks),
+    lists:map(fun(Fork) -> return_fork(Table, Name, Fork) end, MyForks),
     philosopher(Table, Name, lists:reverse(MyForks));
 
 hungry_philosopher(Table, Name, MyForks, [RequestedFork|TailForks]) ->
@@ -53,13 +53,13 @@ think(Name) ->
     wait().
 
 acquire_fork(Table, Name, Fork) ->
-    Table ! {self(), acquire, Fork},
+    Table ! {acquire, self(), Fork},
     receive
         ok -> io:format("~s has acquired fork ~p.~n", [Name, Fork]), ok;
         denied -> denied
     end.
 
-replace_fork(Table, Name, Fork) ->
-    io:format("~s is replacing fork ~p.~n", [Name, Fork]),
-    Table ! {self(), replace, Fork}.
+return_fork(Table, Name, Fork) ->
+    io:format("~s is returning fork ~p.~n", [Name, Fork]),
+    Table ! {return, Fork}.
 
